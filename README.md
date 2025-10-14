@@ -41,7 +41,3 @@ Non-commercial use only. Credit to the creator is required.
 ---
 
 Made with ❤️ by Daniil Maistrenko
-
-Если хочешь, я могу сделать **ещё более привлекательную версию** с разделами «Screenshots», «Commands», и «Contribution», чтобы README выглядел как профессиональный проект на GitHub.  
-
-Хочешь, чтобы я это сделал?
