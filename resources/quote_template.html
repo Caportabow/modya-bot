@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Глобальные переменные для удобного управления цветами и размерами */
+    :root {
+      --bubble-bg: #2c2c3e;
+      --avatar-bg-start: #ff6f61;
+      --avatar-bg-end: #ff8c7a;
+      --username-color: #ff6f61;
+      --text-color: #e0e0e0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      color: var(--text-color);
+    }
+
+    .chat-container {
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chat-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #fff;
+      background-image: linear-gradient(45deg, var(--avatar-bg-start), var(--avatar-bg-end));
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .message-media {
+      margin-top: 3px;
+      border-radius: 15px;
+      max-width: 150px;
+    }
+
+    .message-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: flex-start;
+    }
+
+    .chat-bubble {
+      position: relative;
+      padding: 10px 14px;
+      border-radius: 25px;
+      background-color: var(--bubble-bg);
+      max-width: 70vw;
+      box-sizing: border-box;
+    }
+
+    /* "Хвостик" для первого сообщения в группе */
+    .chat-message:not(.consecutive) .chat-bubble:first-child {
+      border-top-left-radius: 8px;
+    }
+    
+    .username {
+      font-weight: 600;
+      color: var(--username-color);
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+
+    .message {
+      font-size: 1em;
+      line-height: 1.5;
+      color: var(--text-color);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    /* Стили для последующих сообщений от того же пользователя */
+    .chat-message.consecutive {
+      margin-top: -2px; /* Уменьшаем отступ между сгруппированными сообщениями */
+    }
+
+    .chat-message.consecutive .avatar {
+      visibility: hidden; /* Скрываем аватар, но сохраняем место */
+    }
+    
+    .chat-message.consecutive .chat-bubble {
+       border-top-left-radius: 25px; /* Возвращаем стандартное скругление */
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="chat-container">
+
+    {{messages}}
+
+  </div>
+
+</body>
+</html>

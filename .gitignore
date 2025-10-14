@@ -1,0 +1,14 @@
+/venv/
+/__pycache__/
+/utils/__pycache__/
+
+.DS_Store
+.idea/
+.vscode/
+
+config.py
+test.py
+resources/stats.db
+
+bot.session
+bot.session-journal

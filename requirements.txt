@@ -1,0 +1,7 @@
+aiosqlite
+aiogram
+telethon
+matplotlib
+pandas
+playwright
+filetype
