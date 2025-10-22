@@ -33,6 +33,7 @@ async def sync_members(chat_id: int):
 # Aiogram handlers
 # --------------------
 
+# TODO: калл
 # TODO: варны и награды
 # TODO: просмотр всех команд с обьяснениями
 
@@ -134,16 +135,19 @@ async def user_info_handler(msg: Message):
 
     ans = f"👤 Это пользователь {mention}\n\n"
     if stats["favorite_word"]:
-        fav_user_id = await get_uid(int(msg.chat.id), stats["favorite_word"])
+        fav_word = stats["favorite_word"]["word"]
+        fav_word_count = stats["favorite_word"]["count"]
+
+        fav_user_id = await get_uid(int(msg.chat.id), fav_word)
 
         if not fav_user_id:
-            ans += f"Любимое слово: {stats["favorite_word"]}\n"
+            ans += f"Любимое слово: {fav_word} ({fav_word_count} р.)\n"
         else:
             fav_user_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(fav_user_id))
-            ans += f'Любимый участник: {fav_user_mention}\n'
+            ans += f'Любимый участник: {fav_user_mention} ({fav_word_count} р.)\n'
     ans += f"Первое появление: {stats["first_seen"]}\n"
     ans += f"Последний актив: {stats["last_active"]}\n"
-    ans += f"Актив (д|н|м|весь): {stats["activity"]}\n"
+    ans += f"Актив за последние (24ч|7дн|30дн|∞): {stats["activity"]}\n"
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
 

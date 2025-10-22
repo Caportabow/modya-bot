@@ -41,3 +41,15 @@ async def parse_user_mention(
             except:
                 pass
     return user
+
+async def is_admin(bot, chat_id: int, user_id: int) -> bool:
+    """Проверяет, является ли пользователь администратором чата."""
+    try:
+        member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+        return (
+            member.status == "creator" or
+            (member.status == "administrator" and member.can_restrict_members)
+        )
+    except:
+        return False
+    

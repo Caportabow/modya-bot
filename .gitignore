@@ -9,6 +9,8 @@
 config.py
 test.py
 resources/stats.db
+resources/stats.db-shm
+resources/stats.db-wal
 
 bot.session
 bot.session-journal

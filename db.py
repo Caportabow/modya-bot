@@ -97,11 +97,13 @@ async def remove_user(chat_id: int, uid: int):
 async def user_stats(chat_id: int, user_id: int):
     def format_timedelta(delta: timedelta) -> str:
         seconds = int(delta.total_seconds())
-        if seconds < 60:
+        if seconds <= 1:
+            return "только что"
+        elif seconds <= 60:
             return f"{seconds} сек."
-        elif seconds < 3600:
+        elif seconds <= 3600:
             return f"{seconds//60} мин."
-        elif seconds < 86400:
+        elif seconds <= 86400:
             return f"{seconds//3600} ч."
         else:
             return f"{delta.days} дн."
@@ -218,7 +220,7 @@ async def get_next_messages(chat_id: int, message_id: int, limit: int = 5):
         rows = await cursor.fetchall()
     return [{"user_id": r[0], "name": r[1], "text": r[2], "file_id": r[3]} for r in rows]
 
-async def get_favorite_word(chat_id: int, user_id: int) -> str | None:
+async def get_favorite_word(chat_id: int, user_id: int) -> dict | None:
     global db
     async with db_lock:
         # Сначала проверим, есть ли больше 50 сообщений
@@ -248,7 +250,10 @@ async def get_favorite_word(chat_id: int, user_id: int) -> str | None:
         return None
 
     # Возвращаем самое частое слово
-    return word_counter.most_common(1)[0][0]
+    return {
+        "word": word_counter.most_common(1)[0][0],
+        "count": word_counter.most_common(1)[0][1]
+    }
 
 # Подсчёт сообщений
 async def plot_user_activity(chat_id: int, user_id: int):
@@ -266,12 +271,19 @@ async def plot_user_activity(chat_id: int, user_id: int):
     if not rows:
         return None
 
-    # преобразуем в pandas для удобства
+    # Конвертируем в DataFrame
     df = pd.DataFrame(rows, columns=["date", "count"])
-    df["date"] = pd.to_datetime(df["date"], unit="s").dt.strftime("%d.%m")
+    df["date"] = pd.to_datetime(df["date"])  # оставляем datetime для корректного порядка
 
+    # Заполняем пропущенные дни нулями
+    df = df.set_index("date").asfreq("D", fill_value=0).reset_index()
+
+    # Создаём подписи для оси X
+    df["date_str"] = df["date"].dt.strftime("%d.%m")
+
+    # Рисуем график
     plt.figure(figsize=(10, 5))
-    plt.bar(df["date"], df["count"], color="#1d74e6")
+    plt.bar(df["date_str"], df["count"], color="#1d74e6")
     plt.title("Статистика активности", fontsize=12)
     plt.ylabel("Кол-во сообщений")
     plt.xticks(rotation=45, ha="right")

@@ -18,17 +18,29 @@
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/modya.git
+   git clone https://github.com/Caportabow/modya-bot.git
    ```
 
-2.	Install dependencies:
+2.	Create and activate virtual environment and install dependencies:
     ```bash
-    pip install -r requirements.txt
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
     ```
 
+3.	Install dependencies:
+    ```bash
+    pip install playwright
+    ```
 
-3.	Configure your bot token and settings in config.py.
-4.	Run the bot:
+4.	Install playwright:
+    ```bash
+    playwright install chromium
+    ```
+
+5.	Create a new file - “config.py” based on the example “example.config.py” and delete the above-mentioned
+
+6.	Run the bot:
     ```bash
     python main.py
     ```
