@@ -20,3 +20,24 @@ async def mention_user(
 
     mention = user_entity.mention_html(name=user_nickname)
     return mention
+
+async def parse_user_mention(
+        msg,
+    ):
+    """Парсит пользователя из сообщения."""
+    user = None
+    for entity in msg.entities:
+        if entity.type == "text_mention" and entity.user:
+            user = entity.user
+            break
+        elif entity.type == "mention":
+            username = msg.text[entity.offset + 1: entity.offset + entity.length]
+            try:
+                uid = await get_uid(int(msg.chat.id), username)
+                if uid: user = await bot.get_chat_member(chat_id=msg.chat.id, user_id=uid)
+                if user:
+                    user = user.user
+                    break
+            except:
+                pass
+    return user

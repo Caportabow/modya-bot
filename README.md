@@ -37,7 +37,10 @@
 ## License
 
 Non-commercial use only. Credit to the creator is required.
+<<<<<<< HEAD
 
 ---
 
 Made with ❤️ by Daniil Maistrenko
+=======
+>>>>>>> 42a642c (Refactor database handling and improve README)

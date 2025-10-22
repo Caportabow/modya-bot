@@ -1,4 +1,6 @@
 import aiosqlite
+import asyncio
+import json
 import time
 import io
 from collections import Counter
@@ -8,57 +10,58 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 DB_PATH = "resources/stats.db"
-RUSSIAN_STOPWORDS = {
-    "и", "в", "во", "не", "что", "он", "на", "я", "с", "со", "как",
-    "а", "то", "все", "она", "так", "его", "но", "да", "ты", "к", "у",
-    "же", "вы", "за", "бы", "по", "только", "ее", "мне", "было", "вот",
-    "от", "меня", "еще", "нет", "о", "из", "ему", "теперь", "когда", "даже"
-}
+
+with open("resources/russian_stopwords.json", "r", encoding="utf-8") as f:
+    RUSSIAN_STOPWORDS = set(json.load(f))
+
+db: aiosqlite.Connection
+db_lock = asyncio.Lock()
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("PRAGMA journal_mode=WAL;")
-        await db.execute("PRAGMA synchronous=NORMAL;")
+    global db
+    db = await aiosqlite.connect(DB_PATH, timeout=15)
+    await db.execute("PRAGMA journal_mode=WAL;")
+    await db.execute("PRAGMA synchronous=NORMAL;")
 
-        # Профиль пользователя в каждом чате
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS user_profiles (
-            chat_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            username TEXT,
-            nickname TEXT,
-            first_seen TIMESTAMP NOT NULL,
-            last_update TIMESTAMP NOT NULL,
-            PRIMARY KEY (chat_id, user_id)
-        )
-        """)
+    # Профиль пользователя в каждом чате
+    await db.execute("""
+    CREATE TABLE IF NOT EXISTS user_profiles (
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        username TEXT,
+        nickname TEXT,
+        first_seen TIMESTAMP NOT NULL,
+        last_update TIMESTAMP NOT NULL,
+        PRIMARY KEY (chat_id, user_id)
+    )
+    """)
 
-        # Сообщения
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER NOT NULL,
-            chat_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            name TEXT,
-            text TEXT,
-            file_id TEXT NULL,
-            date TIMESTAMP NOT NULL,
-            PRIMARY KEY(chat_id, id)
-        );
-        """)
+    # Сообщения
+    await db.execute("""
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER NOT NULL,
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        name TEXT,
+        text TEXT,
+        file_id TEXT NULL,
+        date TIMESTAMP NOT NULL,
+        PRIMARY KEY(chat_id, id)
+    );
+    """)
 
-        # Цитаты
-        await db.execute("""
-        CREATE TABLE IF NOT EXISTS quotes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            chat_id INTEGER NOT NULL,
-            sticker TEXT NOT NULL,
-            UNIQUE(sticker)
-        )
-        """)
+    # Цитаты
+    await db.execute("""
+    CREATE TABLE IF NOT EXISTS quotes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        sticker TEXT NOT NULL,
+        UNIQUE(sticker)
+    )
+    """)
 
-        await db.commit()
+    await db.commit()
 
 
 # --------------------
@@ -68,7 +71,9 @@ async def init_db():
 async def upsert_user(chat_id: int, uid: int, username: str | None, first_name: str):
     """Добавляем или обновляем пользователя в рамках конкретного чата."""
     now = int(time.time())
-    async with aiosqlite.connect(DB_PATH) as db:
+
+    global db
+    async with db_lock:
         await db.execute(
             """
             INSERT INTO user_profiles(chat_id, user_id, username, nickname, first_seen, last_update)
@@ -83,7 +88,8 @@ async def upsert_user(chat_id: int, uid: int, username: str | None, first_name: 
 
 async def remove_user(chat_id: int, uid: int):
     """Удаляем профиль пользователя из чата."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         await db.execute("DELETE FROM user_profiles WHERE chat_id=? AND user_id=?", (chat_id, uid))
         await db.commit()
 
@@ -104,17 +110,18 @@ async def user_stats(chat_id: int, user_id: int):
     one_week = now - 7 * 86400
     one_month = now - 30 * 86400
 
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         cursor = await db.execute("""
             SELECT 
-                MIN(m.date) as first_seen,
-                MAX(m.date) as last_active,
-                COUNT(m.id) as total,
-                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) as day_count,
-                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) as week_count,
-                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) as month_count
+                MIN(m.date) AS first_seen,
+                MAX(m.date) AS last_active,
+                COUNT(m.id) AS total,
+                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) AS day_count,
+                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) AS week_count,
+                SUM(CASE WHEN m.date >= ? THEN 1 ELSE 0 END) AS month_count
             FROM messages m
-            WHERE m.chat_id = ? AND m.user_id = ?
+            WHERE m.chat_id = ? AND m.user_id = ?;
         """, (one_day, one_week, one_month, chat_id, user_id))
         row = await cursor.fetchone()
 
@@ -131,9 +138,8 @@ async def user_stats(chat_id: int, user_id: int):
 
     fav_word = await get_favorite_word(chat_id, user_id)
 
-
     return {
-        "first_seen": f"{first_dt:%d.%m.%Y} ({age.days} д {age.seconds//3600} ч)",
+        "first_seen": f"{first_dt:%d.%m.%Y} ({(f'{age.days} д. ' if age.days > 0 else '')}{age.seconds//3600} ч.)",
         "last_active": format_timedelta(last_diff),
         "activity": f"{day_count} | {week_count} | {month_count} | {total}",
         "favorite_word": fav_word
@@ -142,7 +148,8 @@ async def user_stats(chat_id: int, user_id: int):
 # Никнеймы
 async def set_nickname(chat_id: int, uid: int, nickname: str | None):
     """Меняем кастомный ник пользователя в чате (или убираем)."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         await db.execute(
             "UPDATE user_profiles SET nickname=? WHERE chat_id=? AND user_id=?",
             (nickname, chat_id, uid)
@@ -154,7 +161,8 @@ async def get_nickname(chat_id: int, uid: int | None = None, username: str | Non
     if uid is None and username is None:
         raise ValueError("Нужно передать хотя бы uid или username")
 
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         if uid is not None:
             cursor = await db.execute(
                 "SELECT nickname FROM user_profiles WHERE chat_id=? AND user_id=?",
@@ -170,9 +178,10 @@ async def get_nickname(chat_id: int, uid: int | None = None, username: str | Non
         return row[0] if row else None
 
 # Хелперы для ТГ
-async def get_uid(chat_id: int, username: str) -> str | None:
+async def get_uid(chat_id: int, username: str) -> int | None:
     """Возвращает user_id пользователя в чате по username."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         cursor = await db.execute(
             "SELECT user_id FROM user_profiles WHERE chat_id=? AND username=?",
             (chat_id, username)
@@ -187,7 +196,8 @@ async def get_uid(chat_id: int, username: str) -> str | None:
 
 async def add_message(m_id:int, chat_id: int, user_id: int, name: str, text: str, date: int, file_id: str | None = None):
     """Добавляем сообщение пользователя в чате."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         await db.execute(
             "INSERT INTO messages (id, chat_id, user_id, name, text, file_id, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (m_id, chat_id, user_id, name, text, file_id, date)
@@ -209,7 +219,8 @@ async def get_next_messages(chat_id: int, message_id: int, limit: int = 5):
     return [{"user_id": r[0], "name": r[1], "text": r[2], "file_id": r[3]} for r in rows]
 
 async def get_favorite_word(chat_id: int, user_id: int) -> str | None:
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         # Сначала проверим, есть ли больше 50 сообщений
         async with db.execute(
             "SELECT COUNT(*) FROM messages WHERE chat_id=? AND user_id=? AND text IS NOT NULL AND TRIM(text) != ''",
@@ -233,21 +244,22 @@ async def get_favorite_word(chat_id: int, user_id: int) -> str | None:
                 words = [w for w in words if w not in RUSSIAN_STOPWORDS]
                 word_counter.update(words)
 
-        if not word_counter:
-            return None
+    if not word_counter:
+        return None
 
-        # Возвращаем самое частое слово
-        return word_counter.most_common(1)[0][0]
+    # Возвращаем самое частое слово
+    return word_counter.most_common(1)[0][0]
 
 # Подсчёт сообщений
 async def plot_user_activity(chat_id: int, user_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         cursor = await db.execute("""
-            SELECT date, COUNT(*) 
+            SELECT strftime('%Y-%m-%d', datetime(date, 'unixepoch')) AS day, COUNT(*) AS count
             FROM messages
             WHERE chat_id = ? AND user_id = ?
-            GROUP BY strftime('%Y-%m-%d', datetime(date, 'unixepoch'))
-            ORDER BY date
+            GROUP BY day
+            ORDER BY day
         """, (chat_id, user_id))
         rows = await cursor.fetchall()
 
@@ -275,7 +287,8 @@ async def plot_user_activity(chat_id: int, user_id: int):
 
 async def count_messages(chat_id: int, user_id: int, since: int | None = None):
     """Считаем количество сообщений пользователя в чате (если since=None → за всё время)."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         if since is not None:
             cursor = await db.execute(
                 "SELECT COUNT(*) FROM messages WHERE chat_id=? AND user_id=? AND date>=?",
@@ -297,7 +310,8 @@ async def top_users(chat_id: int, limit: int = 10, since: int | None = None):
     :param since: если указано, считать только сообщения после этой метки времени
     :return: список (user_id, nickname, count)
     """
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         if since is not None:
             cursor = await db.execute("""
                 SELECT u.user_id, u.nickname, COUNT(m.id) as msg_count
@@ -328,7 +342,8 @@ async def top_users(chat_id: int, limit: int = 10, since: int | None = None):
 
 async def add_quote(chat_id: int, sticker_id: str):
     """Добавляем цитату (стикер) пользователя в чате."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         await db.execute(
             """
             INSERT INTO quotes (chat_id, sticker)
@@ -342,7 +357,8 @@ async def add_quote(chat_id: int, sticker_id: str):
 
 async def get_random_quote(chat_id: int) -> str | None:
     """Возвращает случайную цитату (стикер) в чате."""
-    async with aiosqlite.connect(DB_PATH) as db:
+    global db
+    async with db_lock:
         cursor = await db.execute(
             "SELECT sticker FROM quotes WHERE chat_id=? ORDER BY RANDOM() LIMIT 1",
             (chat_id,)  # <-- добавляем запятую

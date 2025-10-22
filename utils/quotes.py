@@ -11,8 +11,8 @@ async def make_quote(materials: list) -> bytes:
       <div class="message-content">
         <div class="chat-bubble">
           <div class="username">{{name}}</div>
-          <div class="message">{{text}}</div>
           {{media}}
+          <div class="message">{{text}}</div>
         </div>
       </div>
     </div>
@@ -26,8 +26,8 @@ async def make_quote(materials: list) -> bytes:
     """
     additional_content_bubble = """
     <div class="chat-bubble">
-        <div class="message">{{text}}</div>
         {{media}}
+        <div class="message">{{text}}</div>
     </div>
     """
     media_content = """

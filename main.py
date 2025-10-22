@@ -2,16 +2,15 @@ import asyncio
 import random
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ChatMemberUpdated, BufferedInputFile
-from aiogram.filters import Command
 
 from config import TOKEN, API_ID, API_HASH
 
 from utils.middlewares import setup_middlewares
-from db import init_db, top_users, upsert_user, user_stats, plot_user_activity, remove_user, set_nickname, add_quote, get_random_quote, get_next_messages
+from db import init_db, top_users, upsert_user, user_stats, plot_user_activity, remove_user, set_nickname, add_quote, get_random_quote, get_next_messages, get_uid
 from utils.stats import get_since
 from utils.roleplay import parse_rp_command
 from utils.quotes import make_quote
-from utils import mention_user
+from utils import mention_user, parse_user_mention
 from utils.media import get_user_avatar, get_message_media, get_file_bytes, get_mime_type
 
 from telethon import TelegramClient
@@ -34,12 +33,15 @@ async def sync_members(chat_id: int):
 # Aiogram handlers
 # --------------------
 
-@dp.message(Command("q"))
+# TODO: варны и награды
+# TODO: просмотр всех команд с обьяснениями
+
+@dp.message((F.text.lower().startswith("/q")) & (F.chat.type.in_(["group", "supergroup"])))
 async def quotes_handler(msg: Message):
     if not msg.reply_to_message or not msg.reply_to_message.from_user: await msg.reply("❌ Ответьте на сообщение, чтобы создать цитату."); return
     
     parts = msg.text.split()
-    one_quote = len(parts) == 1 or not parts[1].isdigit() or int(parts[1]) <= 1
+    one_quote = len(parts) == 1 or not parts[1].isdigit() or int(parts[1]) < 1
     if not one_quote and int(parts[1]) > 5:
         await msg.reply("❌ Слишком много сообщений для цитаты (макс 5).")
         return
@@ -53,6 +55,7 @@ async def quotes_handler(msg: Message):
         return
     
     user = msg.reply_to_message.from_user
+    if msg.reply_to_message.forward_from: user = msg.reply_to_message.forward_from
     name = user.full_name
     avatar = await get_user_avatar(bot, int(user.id))
     avatars[int(user.id)] = avatar
@@ -99,7 +102,7 @@ async def quotes_handler(msg: Message):
         sticker_id = sent_msg.sticker.file_id
         await add_quote(int(msg.chat.id), str(sticker_id))
 
-@dp.message(F.text.lower().startswith("кто"))
+@dp.message((F.text.lower().startswith("кто")) & (F.chat.type.in_(["group", "supergroup"])))
 async def user_info_handler(msg: Message):
     """Команда: кто [я|ты]"""
     parts = msg.text.split()
@@ -109,23 +112,38 @@ async def user_info_handler(msg: Message):
     if target == "я": user = msg.from_user
 
     elif target == "ты" and msg.reply_to_message: user = msg.reply_to_message.from_user
+
+    elif target == "ты" and not msg.reply_to_message and msg.entities:
+        user = await parse_user_mention(msg)
+        if not user:
+            await msg.reply("❌ Не удалось найти пользователя.")
+            return
     
     else: return
 
     stats = await user_stats(int(msg.chat.id), int(user.id))
     img = await plot_user_activity(int(msg.chat.id), int(user.id))
     if not stats or not img:
-        print(stats, img)
+        if user.is_bot:
+            await msg.reply("❌ Эта команда не поддерживает ботов.")
+            return
         await msg.reply("❌ Нет данных по этому пользователю.")
         return
     
     mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_entity=user)
 
     ans = f"👤 Это пользователь {mention}\n\n"
+    if stats["favorite_word"]:
+        fav_user_id = await get_uid(int(msg.chat.id), stats["favorite_word"])
+
+        if not fav_user_id:
+            ans += f"Любимое слово: {stats["favorite_word"]}\n"
+        else:
+            fav_user_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(fav_user_id))
+            ans += f'Любимый участник: {fav_user_mention}\n'
     ans += f"Первое появление: {stats["first_seen"]}\n"
     ans += f"Последний актив: {stats["last_active"]}\n"
     ans += f"Актив (д|н|м|весь): {stats["activity"]}\n"
-    if stats["favorite_word"]: ans += f"Любимое слово: {stats["favorite_word"]}\n"
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
 
@@ -135,7 +153,7 @@ async def user_info_handler(msg: Message):
                 parse_mode="HTML"
     )
 
-@dp.message(F.text.lower().startswith("топ"))
+@dp.message((F.text.lower().startswith("топ")) & (F.chat.type.in_(["group", "supergroup"])))
 async def stats_handler(msg: Message):
     """Команда: топ [день|неделя|месяц|год|вся]"""
     parts = msg.text.split()
@@ -151,7 +169,6 @@ async def stats_handler(msg: Message):
     msg_count = 0
 
     for i, u in enumerate(top):
-        if i == 0: i = "🏆 1"
         mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
         
         ans += f"{i}. {mention} - {u["count"]}\n"
@@ -160,7 +177,7 @@ async def stats_handler(msg: Message):
 
     await msg.reply(ans, parse_mode="HTML")
 
-@dp.message(F.text.lower().startswith("+ник"))
+@dp.message((F.text.lower().startswith("+ник")) & (F.chat.type.in_(["group", "supergroup"])))
 async def set_nick(msg: Message):
     """Команда: +ник NICKNAME"""
     parts = msg.text.split(maxsplit=1)
@@ -171,7 +188,7 @@ async def set_nick(msg: Message):
     await set_nickname(int(msg.chat.id), int(msg.from_user.id), nickname)
     await msg.reply(f"✅ Ваш ник изменён на: {nickname}")
 
-@dp.message(F.text.lower().startswith("-ник"))
+@dp.message((F.text.lower().startswith("-ник")) & (F.chat.type.in_(["group", "supergroup"])))
 async def unset_nick(msg: Message):
     """Команда: -ник (сброс ника)"""
     await set_nickname(int(msg.chat.id), int(msg.from_user.id), msg.from_user.first_name)
@@ -189,6 +206,12 @@ async def on_message(msg: Message):
 
             if msg.reply_to_message and msg.reply_to_message.from_user:
                 target_user_entity = msg.reply_to_message.from_user
+            
+            if not target_user_entity and msg.entities:
+                # Пытаемся найти упоминание пользователя в тексте
+                for entity in msg.entities:
+                    if entity.type == "text_mention" and entity.user:
+                        target_user_entity = entity.user
     
             command = await parse_rp_command(
                 bot, int(chat.id), msg.text,
@@ -200,7 +223,7 @@ async def on_message(msg: Message):
                 return
         
         # выдача рандомной цитаты
-        if random.random() < 0.001:  # ~0.1% шанс
+        if random.random() < 0.005:  # ~0.1% шанс
             quote_sticker_id = await get_random_quote(int(msg.chat.id))
             if quote_sticker_id:
                 await bot.send_sticker(
@@ -212,9 +235,9 @@ async def on_message(msg: Message):
 @dp.chat_member()
 async def on_chat_member(update: ChatMemberUpdated):
     """Реагируем на добавление бота в чат или на изменения участников."""
-    uid = update.from_user.id
-    cid = update.chat.id
     user = update.from_user
+    uid = int(user.id)
+    cid = (int(update.chat.id))
 
     # Если в чат добавили именно бота
     if uid == (await bot.me()).id and update.new_chat_member.status in ("administrator", "member"):

@@ -11,7 +11,7 @@ class AllMessagesMiddleware(BaseMiddleware):
         # Это будет выполняться для каждого сообщения
         user = event.from_user
         chat = event.chat
-        if user:
+        if user and chat.type in ["group", "supergroup"]:
             await upsert_user(int(chat.id), int(user.id), user.username, user.first_name)
 
             quotable_media_id = await get_quotable_media_id(event)
