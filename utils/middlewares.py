@@ -10,6 +10,7 @@ class AllMessagesMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data: dict):
         # Это будет выполняться для каждого сообщения
         user = event.from_user
+        if event.forward_from: user = event.forward_from
         chat = event.chat
         if user and chat.type in ["group", "supergroup"]:
             await upsert_user(int(chat.id), int(user.id), user.username, user.first_name)

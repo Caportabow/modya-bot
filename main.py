@@ -94,7 +94,11 @@ async def help_handler(msg: Message):
 
 @dp.message((F.text.lower().startswith("/q")) & (F.chat.type.in_(["group", "supergroup"])))
 async def quotes_handler(msg: Message):
-    if not msg.reply_to_message or not msg.reply_to_message.from_user: await msg.reply("❌ Ответьте на сообщение, чтобы создать цитату."); return
+    """Команда: /q [кол-во сообщений]"""
+    reply = msg.reply_to_message
+    if not reply or not reply.from_user:
+        await msg.reply("❌ Ответьте на сообщение, чтобы создать цитату.")
+        return
     
     parts = msg.text.split()
     one_quote = len(parts) == 1 or not parts[1].isdigit() or int(parts[1]) < 1
@@ -104,14 +108,13 @@ async def quotes_handler(msg: Message):
 
     avatars = {}
     
-    text = msg.reply_to_message.text or msg.reply_to_message.caption or ""
-    media = await get_message_media(bot, msg.reply_to_message)
+    text = reply.text or reply.caption or ""
+    media = await get_message_media(bot, reply)
     if not text.strip() and not media:
         await msg.reply("❌ Это сообщение невозможно цитировать.")
         return
     
-    user = msg.reply_to_message.from_user
-    if msg.reply_to_message.forward_from: user = msg.reply_to_message.forward_from
+    user = reply.from_user if not reply.forward_from else reply.forward_from
     name = user.full_name
     avatar = await get_user_avatar(bot, int(user.id))
     avatars[int(user.id)] = avatar
@@ -170,8 +173,8 @@ async def сall_members(msg: Message):
         return
     
     arg = re.sub(r'^(\/call|созвать)\s*', '', msg.text, flags=re.IGNORECASE)
-    if len(arg) > 150:
-        await msg.reply("❌ Слишком длинный текст для созыва (макс 150 символов).")
+    if len(arg) > 300:
+        await msg.reply("❌ Слишком длинный текст для созыва (макс 300 символов).")
         return
 
     admin = await is_admin(bot, chat_id, int(msg.from_user.id))
@@ -186,6 +189,8 @@ async def сall_members(msg: Message):
         await msg.reply("❌ Нет участников для созыва.")
         return
     
+    reply_msg_id = msg.reply_to_message.message_id if msg.reply_to_message else None
+    
     for i in range(0, len(users), 5):
         chunk = users[i:i+5]
         text = f"⚡ {arg if arg.strip() else 'Внимание!'}\n\n"
@@ -193,7 +198,10 @@ async def сall_members(msg: Message):
         mentions = await asyncio.gather(*(mention_user(bot=bot, chat_id=chat_id, user_id=u) for u in chunk))
         text += "\n".join(mentions)
 
-        await msg.reply(text, parse_mode="HTML")
+        if reply_msg_id:
+            await bot.send_message(chat_id=chat_id, text=text, reply_to_message_id=reply_msg_id, parse_mode="HTML")
+        else:
+            await msg.reply(text, parse_mode="HTML")
 
 @dp.message((F.text.lower().startswith("норма")) & (F.chat.type.in_(["group", "supergroup"])))
 async def minmsg_handler(msg: Message):
