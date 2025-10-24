@@ -22,6 +22,7 @@ async def mention_user(
     return mention
 
 async def parse_user_mention(
+        bot,
         msg,
     ):
     """Парсит пользователя из сообщения."""

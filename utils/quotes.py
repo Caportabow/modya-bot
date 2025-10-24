@@ -119,7 +119,7 @@ async def make_quote(materials: list) -> bytes:
             headless=True,
             args=["--disable-gpu", "--no-sandbox"]
         )
-        page = await browser.new_page()
+        page = await browser.new_page(viewport={"width": 1920, "height": 1080})
         
         # Устанавливаем HTML
         await page.set_content(html_code)

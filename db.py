@@ -5,9 +5,11 @@ import time
 import io
 from collections import Counter
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import matplotlib.pyplot as plt
 import pandas as pd
+
+from utils.stats import format_timedelta
 
 DB_PATH = "resources/stats.db"
 
@@ -61,6 +63,28 @@ async def init_db():
     )
     """)
 
+    await db.execute("""
+    CREATE TABLE IF NOT EXISTS warnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        administrator_user_id INTEGER NOT NULL,
+        assigment_date TIMESTAMP NOT NULL,
+        reason TEXT
+    )
+    """)
+
+    await db.execute("""
+    CREATE TABLE IF NOT EXISTS awards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        giver_user_id INTEGER NOT NULL,
+        assigment_date TIMESTAMP NOT NULL,
+        award TEXT NOT NULL
+    )
+    """)
+
     await db.commit()
 
 
@@ -93,20 +117,19 @@ async def remove_user(chat_id: int, uid: int):
         await db.execute("DELETE FROM user_profiles WHERE chat_id=? AND user_id=?", (chat_id, uid))
         await db.commit()
 
+async def get_all_users_in_chat(chat_id: int) -> list[int] | None:
+    """Возвращает всех пользователей, зарегистрированных в чате."""
+    global db
+    async with db_lock:
+        cursor = await db.execute(
+            "SELECT user_id FROM user_profiles WHERE chat_id=?",
+            (chat_id,)
+        )
+        rows = await cursor.fetchall()
+        return [row[0] for row in rows] if rows else None
+
 # Cтатистика
 async def user_stats(chat_id: int, user_id: int):
-    def format_timedelta(delta: timedelta) -> str:
-        seconds = int(delta.total_seconds())
-        if seconds <= 1:
-            return "только что"
-        elif seconds <= 60:
-            return f"{seconds} сек."
-        elif seconds <= 3600:
-            return f"{seconds//60} мин."
-        elif seconds <= 86400:
-            return f"{seconds//3600} ч."
-        else:
-            return f"{delta.days} дн."
     now = int(time.time())
     one_day = now - 86400
     one_week = now - 7 * 86400
@@ -179,6 +202,148 @@ async def get_nickname(chat_id: int, uid: int | None = None, username: str | Non
         row = await cursor.fetchone()
         return row[0] if row else None
 
+# Варны
+async def add_warning(chat_id: int, user_id: int, admin_user_id: int, reason: str | None) -> int | None:
+    """Добавляет варн пользователю в чате."""
+    now = int(time.time())
+
+    global db
+    async with db_lock:
+        await db.execute(
+            """
+            INSERT INTO warnings (chat_id, user_id, administrator_user_id, assigment_date, reason)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (chat_id, user_id, admin_user_id, now, reason)
+        )
+        await db.commit()
+
+        # Считаем количество варнов после добавления
+        cursor = await db.execute(
+            """
+            SELECT COUNT(*) FROM warnings
+            WHERE chat_id = ? AND user_id = ?
+            """,
+            (chat_id, user_id)
+        )
+        result = await cursor.fetchone()
+        return result[0] if result else None
+
+async def get_warnings(chat_id: int, user_id: int) -> list[dict]:
+    """Возвращает список варнов пользователя в чате."""
+    global db
+    async with db_lock:
+        cursor = await db.execute(
+            """
+            SELECT administrator_user_id, assigment_date, reason
+            FROM warnings
+            WHERE chat_id=? AND user_id=?
+            ORDER BY assigment_date ASC
+            """,
+            (chat_id, user_id)
+        )
+        rows = await cursor.fetchall()
+
+    return [
+        {   
+            "administrator_user_id": row[0],
+            "assigment_date": row[1],
+            "reason": row[2]
+        }
+        for row in rows
+    ]
+
+async def remove_warning(chat_id: int, user_id: int, warn_index: int | None) -> bool:
+    """Удаляет варн пользователя в чате по индексу (0 - первый варн). Возвращает True, если удаление прошло успешно."""
+    global db
+    async with db_lock:
+        cursor = await db.execute(
+            """
+            SELECT id FROM warnings
+            WHERE chat_id=? AND user_id=?
+            ORDER BY assigment_date ASC
+            LIMIT 1 OFFSET ?
+            """,
+            (chat_id, user_id, warn_index or 0)
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return False  # Варн с таким индексом не найден
+
+        warn_id = row[0]
+        await db.execute(
+            "DELETE FROM warnings WHERE id=?",
+            (warn_id,)
+        )
+        await db.commit()
+        return True
+
+# Награды
+async def add_award(chat_id: int, user_id: int, giver_user_id: int, award: str) -> int | None:
+    """Добавляет награду пользователю в чате."""
+    now = int(time.time())
+
+    global db
+    async with db_lock:
+        сursor = await db.execute(
+            """
+            INSERT INTO awards (chat_id, user_id, giver_user_id, assigment_date, award)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (chat_id, user_id, giver_user_id, now, award)
+        )
+        await db.commit()
+        return сursor.lastrowid
+
+async def get_awards(chat_id: int, user_id: int) -> list[dict]:
+    """Возвращает список наград пользователя в чате."""
+    global db
+    async with db_lock:
+        cursor = await db.execute(
+            """
+            SELECT giver_user_id, assigment_date, award
+            FROM awards
+            WHERE chat_id=? AND user_id=?
+            ORDER BY assigment_date ASC
+            """,
+            (chat_id, user_id)
+        )
+        rows = await cursor.fetchall()
+
+    return [
+        {   
+            "giver_user_id": row[0],
+            "assigment_date": row[1],
+            "award": row[2]
+        }
+        for row in rows
+    ]
+
+async def remove_award(chat_id: int, user_id: int, award_index: int | None) -> bool:
+    """Удаляет награду пользователя в чате по индексу (0 - первая награда). Возвращает True, если удаление прошло успешно."""
+    global db
+    async with db_lock:
+        cursor = await db.execute(
+            """
+            SELECT id FROM awards
+            WHERE chat_id=? AND user_id=?
+            ORDER BY assigment_date ASC
+            LIMIT 1 OFFSET ?
+            """,
+            (chat_id, user_id, award_index or 0)
+        )
+        row = await cursor.fetchone()
+        if not row:
+            return False  # Награда с таким индексом не найдена
+
+        warn_id = row[0]
+        await db.execute(
+            "DELETE FROM awards WHERE id=?",
+            (warn_id,)
+        )
+        await db.commit()
+        return True
+
 # Хелперы для ТГ
 async def get_uid(chat_id: int, username: str) -> int | None:
     """Возвращает user_id пользователя в чате по username."""
@@ -196,7 +361,7 @@ async def get_uid(chat_id: int, username: str) -> int | None:
 # Работа с сообщениями
 # --------------------
 
-async def add_message(m_id:int, chat_id: int, user_id: int, name: str, text: str, date: int, file_id: str | None = None):
+async def add_message(m_id:int, chat_id: int, user_id: int, name: str, text: str, date: float, file_id: str | None = None):
     """Добавляем сообщение пользователя в чате."""
     global db
     async with db_lock:
@@ -347,6 +512,23 @@ async def top_users(chat_id: int, limit: int = 10, since: int | None = None):
 
         rows = await cursor.fetchall()
         return [{"user_id": row[0], "nickname": row[1], "count": row[2]} for row in rows]
+
+async def minmsg_users(chat_id: int, min_messages: int) -> list[dict] | None:
+    """Возвращает список user_id пользователей, у которых сообщений меньше, чем требуется."""
+    cutoff_date = int(time.time()) - 7 * 86400  # за последние 7 дней
+    global db
+    async with db_lock:
+        cursor = await db.execute("""
+            SELECT user_id, COUNT(*) as message_count
+            FROM messages
+            WHERE chat_id = ?
+            AND date >= ?
+            GROUP BY user_id
+            HAVING COUNT(*) < ?
+            ORDER BY message_count ASC
+        """, (chat_id, cutoff_date, min_messages))
+        rows = await cursor.fetchall()
+        return [{"user_id": row[0], "count": row[1]} for row in rows] if rows else None
 
 # --------------------
 # Работа с цитатами

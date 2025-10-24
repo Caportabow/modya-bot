@@ -15,10 +15,15 @@ class AllMessagesMiddleware(BaseMiddleware):
             await upsert_user(int(chat.id), int(user.id), user.username, user.first_name)
 
             quotable_media_id = await get_quotable_media_id(event)
+
+            file_id = quotable_media_id["file_id"] if quotable_media_id else None
+            date = event.date.timestamp() or time.time()
+            text = event.text or event.caption or ""
+            
             await add_message(int(event.message_id), int(chat.id),
                     int(user.id), user.full_name,
-                    event.text or event.caption or "", int(time.time()),
-                    file_id=quotable_media_id["file_id"] if quotable_media_id else None
+                    text, date,
+                    file_id=file_id
             )
 
         # Продолжаем выполнение хэндлера

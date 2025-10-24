@@ -1,4 +1,5 @@
 import time
+from datetime import timedelta
 
 DAY = 86400
 WEEK = 7 * DAY
@@ -7,7 +8,7 @@ YEAR = 365 * DAY
 ALL_TIME = None
 
 periods = {
-    "day": ["день", "сегодня"],
+    "day": ["день", "сегодня", "сутки"],
     "week": ["неделя"],
     "month": ["месяц"],
     "year": ["год",],
@@ -28,3 +29,17 @@ def get_since(period: str):
         return ALL_TIME, "всё время"
     else:
         raise ValueError("Unknown period")
+
+def format_timedelta(delta: timedelta) -> str:
+        seconds = int(delta.total_seconds())
+        if seconds <= 1:
+            return "только что"
+        elif seconds <= 60:
+            return f"{seconds} сек."
+        elif seconds <= 3600:
+            return f"{seconds//60} мин."
+        elif seconds <= 86400:
+            return f"{seconds//3600} ч."
+        else:
+            return f"{delta.days} дн."
+        
