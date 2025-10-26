@@ -66,10 +66,10 @@ async def generate_warnings_msg(chat_id: int, target_user):
 
     ans = f"⚠ Варны пользователя {mention}:\n\n"
     for i, w in enumerate(warnings):
-        reason = w["reason"] or "не указана"
+        reason = w["reason"] or "Причина не указана"
         date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"])) + " назад"
-        moderator_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=w["administrator_user_id"])
-        ans += f"🔸{i+1}. {reason} | {date}\n     Модератор: {moderator_mention}\n\n"
+        moderator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
+        ans += f"🔸{i+1}. {reason} | {date}\n      Модератор: {moderator_mention}\n\n"
     
     return ans
 
@@ -227,6 +227,22 @@ async def minmsg_handler(msg: Message):
 
     await msg.reply(ans, parse_mode="HTML")
 
+@dp.message((F.text.lower().startswith("варны")) & (F.chat.type.in_(["group", "supergroup"])))
+async def get_warnings_handler(msg: Message):
+    """Команда: варны @user"""
+    target_user = None
+
+    if msg.reply_to_message and msg.reply_to_message.from_user:
+        target_user = msg.reply_to_message.from_user
+    else:
+        target_user = await parse_user_mention(bot, msg)
+
+    if not target_user: target_user = msg.from_user
+
+    ans = await generate_warnings_msg(int(msg.chat.id), target_user)
+
+    await msg.reply(ans, parse_mode="HTML")
+
 @dp.message(((F.text.lower().startswith("+варн")) | (F.text.lower().startswith("варн"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def add_warning_handler(msg: Message):
     """Команда: +варн @user [причина]"""
@@ -263,22 +279,6 @@ async def add_warning_handler(msg: Message):
 
     if warn_id and warn_id >= 3:
         await msg.reply(f"⚠ Пользователь {mention} получил 3 и более варнов. Рекомендуется рассмотреть возможность бана.", parse_mode="HTML")
-
-@dp.message((F.text.lower().startswith("варны")) & (F.chat.type.in_(["group", "supergroup"])))
-async def get_warnings_handler(msg: Message):
-    """Команда: варны @user"""
-    target_user = None
-
-    if msg.reply_to_message and msg.reply_to_message.from_user:
-        target_user = msg.reply_to_message.from_user
-    else:
-        target_user = await parse_user_mention(bot, msg)
-
-    if not target_user: target_user = msg.from_user
-
-    ans = await generate_warnings_msg(int(msg.chat.id), target_user)
-
-    await msg.reply(ans, parse_mode="HTML")
 
 @dp.message((F.text.lower().startswith("-варн")) & (F.chat.type.in_(["group", "supergroup"])))
 async def remove_warning_handler(msg: Message):
