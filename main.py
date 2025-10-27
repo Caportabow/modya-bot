@@ -172,7 +172,7 @@ async def сall_members(msg: Message):
         await msg.reply("❌ Команду можно использовать только раз в 60 секунд.")
         return
     
-    arg = re.sub(r'^(\/call|созвать)\s*', '', msg.text, flags=re.IGNORECASE)
+    arg = re.sub(r'^(\/call(?:@\w+)?|созвать)\s*', '', msg.text, flags=re.IGNORECASE)
     if len(arg) > 300:
         await msg.reply("❌ Слишком длинный текст для созыва (макс 300 символов).")
         return
