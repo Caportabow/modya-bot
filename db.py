@@ -253,19 +253,30 @@ async def get_warnings(chat_id: int, user_id: int) -> list[dict]:
         for row in rows
     ]
 
-async def remove_warning(chat_id: int, user_id: int, warn_index: int | None) -> bool:
+async def remove_warning(chat_id: int, user_id: int, warn_index: int | None = None) -> bool:
     """Удаляет варн пользователя в чате по индексу (0 - первый варн). Возвращает True, если удаление прошло успешно."""
     global db
     async with db_lock:
-        cursor = await db.execute(
-            """
-            SELECT id FROM warnings
-            WHERE chat_id=? AND user_id=?
-            ORDER BY assigment_date ASC
-            LIMIT 1 OFFSET ?
-            """,
-            (chat_id, user_id, warn_index or 0)
-        )
+        if warn_index:
+            cursor = await db.execute(
+                """
+                SELECT id FROM warnings
+                WHERE chat_id=? AND user_id=?
+                ORDER BY assigment_date ASC
+                LIMIT 1 OFFSET ?
+                """,
+                (chat_id, user_id, warn_index)
+            )
+        else:
+            cursor = await db.execute(
+                """
+                SELECT id FROM warnings
+                WHERE chat_id=? AND user_id=?
+                ORDER BY assigment_date DESC
+                LIMIT 1
+                """,
+                (chat_id, user_id)
+            )
         row = await cursor.fetchone()
         if not row:
             return False  # Варн с таким индексом не найден
@@ -319,19 +330,31 @@ async def get_awards(chat_id: int, user_id: int) -> list[dict]:
         for row in rows
     ]
 
-async def remove_award(chat_id: int, user_id: int, award_index: int | None) -> bool:
+async def remove_award(chat_id: int, user_id: int, award_index: int | None = None) -> bool:
     """Удаляет награду пользователя в чате по индексу (0 - первая награда). Возвращает True, если удаление прошло успешно."""
     global db
     async with db_lock:
-        cursor = await db.execute(
-            """
-            SELECT id FROM awards
-            WHERE chat_id=? AND user_id=?
-            ORDER BY assigment_date ASC
-            LIMIT 1 OFFSET ?
-            """,
-            (chat_id, user_id, award_index or 0)
-        )
+        if award_index:
+                cursor = await db.execute(
+                """
+                SELECT id FROM awards
+                WHERE chat_id=? AND user_id=?
+                ORDER BY assigment_date ASC
+                LIMIT 1 OFFSET ?
+                """,
+                (chat_id, user_id, award_index or 0)
+            )
+        else:
+            cursor = await db.execute(
+                """
+                SELECT id FROM awards
+                WHERE chat_id=? AND user_id=?
+                ORDER BY assigment_date DESC
+                LIMIT 1
+                """,
+                (chat_id, user_id)
+            )
+        
         row = await cursor.fetchone()
         if not row:
             return False  # Награда с таким индексом не найдена
@@ -515,18 +538,25 @@ async def top_users(chat_id: int, limit: int = 10, since: int | None = None):
 
 async def minmsg_users(chat_id: int, min_messages: int) -> list[dict] | None:
     """Возвращает список user_id пользователей, у которых сообщений меньше, чем требуется."""
-    cutoff_date = int(time.time()) - 7 * 86400  # за последние 7 дней
+    cutoff_date = int(time.time()) - 7 * 86400  # анализ за последние 7 дней
+    min_activity_age = int(time.time()) - 4 * 86400  # минимум 4 дня с первого сообщения
+
     global db
     async with db_lock:
         cursor = await db.execute("""
-            SELECT user_id, COUNT(*) as message_count
-            FROM messages
-            WHERE chat_id = ?
-            AND date >= ?
-            GROUP BY user_id
+            SELECT m.user_id, COUNT(*) AS message_count
+            FROM messages m
+            WHERE m.chat_id = ?
+              AND m.date >= ?
+              AND (
+                  SELECT MIN(date)
+                  FROM messages
+                  WHERE chat_id = m.chat_id AND user_id = m.user_id
+              ) <= ?
+            GROUP BY m.user_id
             HAVING COUNT(*) < ?
             ORDER BY message_count ASC
-        """, (chat_id, cutoff_date, min_messages))
+        """, (chat_id, cutoff_date, min_activity_age, min_messages))
         rows = await cursor.fetchall()
         return [{"user_id": row[0], "count": row[1]} for row in rows] if rows else None
 

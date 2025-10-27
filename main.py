@@ -77,11 +77,11 @@ async def generate_warnings_msg(chat_id: int, target_user):
 # Aiogram handlers
 # --------------------
 
+# TODO: системные сообщения
 # TODO: больше картинок в описание команд
 # TODO: система роутеров
 # TODO: реворк ДБ где мы чекаем чтобы файлы не повторялись
 # (таблица files где у каждого id, и проверяем чтобы id телеги не повторялся), 
-# кроме того у каждой цитаты msg_id, и следим чтобы он не повторялся в рамках чата
 # возможно перенос на mySQL
 
 @dp.message(F.text.lower().startswith("/help"))
@@ -292,7 +292,9 @@ async def remove_warning_handler(msg: Message):
         return
 
     parts = msg.text.split()
-    if parts[2].isdigit():
+    if len(parts) >= 1:
+        warn_index = None
+    elif parts[2].isdigit():
         warn_index = int(parts[2]) - 1  # пользователь вводит с 1, а в коде с 0
     elif parts[1].isdigit():
         warn_index = int(parts[1]) - 1  # пользователь вводит с 1, а в коде с 0
@@ -311,10 +313,9 @@ async def remove_warning_handler(msg: Message):
 
     success = await remove_warning(chat_id, int(target_user.id), warn_index)
     if success:
-        mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-        await msg.reply(f"✅ Варн #{(warn_index or 0) + 1} снят у пользователя {mention}.", parse_mode="HTML")
+        await msg.reply(f"✅ Варн{f' #{warn_index+1}' if warn_index else ''} снят успешно.", parse_mode="HTML")
     else:
-        await msg.reply("❌ Не удалось снять варн. Проверьте правильность индекса.")
+        await msg.reply("❌ Не удалось снять варн. Проверьте правильность индекса." if warn_index is not None else "❌ У пользователя нет варнов.")
 
 @dp.message(((F.text.lower().startswith("наградить")) | (F.text.lower().startswith("+награда"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def add_award_handler(msg: Message):
@@ -379,10 +380,9 @@ async def remove_award_handler(msg: Message):
 
     success = await remove_award(chat_id, target_id, award_index)
     if success:
-        mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
-        await msg.reply(f"✅ Награда #{(award_index or 0) + 1} снята.", parse_mode="HTML")
+        await msg.reply(f"✅ Награда{f' #{award_index+1}' if award_index else ''} снята успешно.", parse_mode="HTML")
     else:
-        await msg.reply("❌ Не удалось снять награду. Проверьте правильность индекса.")
+        await msg.reply("❌ Не удалось снять награду. Проверьте правильность индекса." if award_index is not None else "❌ У вас нет наград.")
 
 @dp.message((F.text.lower().startswith("кто")) & (F.chat.type.in_(["group", "supergroup"])))
 async def user_info_handler(msg: Message):
@@ -516,7 +516,8 @@ async def on_message(msg: Message):
             )
 
             if command:
-                await msg.reply(command, parse_mode="HTML")
+                reply_message = msg.reply_to_message if msg.reply_to_message else msg
+                await reply_message.reply(command, parse_mode="HTML")
                 return
         
         # выдача рандомной цитаты
