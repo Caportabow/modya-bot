@@ -530,6 +530,20 @@ async def on_message(msg: Message):
                     reply_to_message_id=msg.message_id
                 )
 
+@dp.my_chat_member()
+async def on_my_chat_member(update: ChatMemberUpdated):
+    """Реагируем на изменения статуса бота в чате."""
+    user = update.from_user
+    cid = (int(update.chat.id))
+
+    # Если в чат добавили именно бота
+    if update.new_chat_member.status in ("administrator", "member"):
+        # Приветственное сообщение
+        await send_welcome_message(cid)
+
+        # Бот только что добавлен в чат → синкаем участников
+        asyncio.create_task(sync_members(cid))
+
 @dp.chat_member()
 async def on_chat_member(update: ChatMemberUpdated):
     """Реагируем на добавление бота в чат или на изменения участников."""
@@ -537,17 +551,9 @@ async def on_chat_member(update: ChatMemberUpdated):
     uid = int(user.id)
     cid = (int(update.chat.id))
 
-    # Если в чат добавили именно бота
-    if uid == (await bot.me()).id and update.new_chat_member.status in ("administrator", "member"):
-        # Приветственное сообщение
-        await send_welcome_message(update.chat.id)
-
-        # Бот только что добавлен в чат → синкаем участников
-        asyncio.create_task(sync_members(update.chat.id))
-
-    elif update.new_chat_member.status in ("left", "kicked"):
+    if update.new_chat_member.status in ("left", "kicked"):
         await remove_user(cid, uid)
-    elif update.new_chat_member.status in ("member", "administrator"):
+    elif update.new_chat_member.status in ("member"):
         await upsert_user(cid, uid, user.username, user.first_name)
 
 @dp.callback_query()
