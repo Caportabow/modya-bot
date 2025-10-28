@@ -52,7 +52,7 @@ async def generate_awards_msg(chat_id: int, target_user):
     ans = f"🏆 Награды пользователя {mention}:\n\n"
     for i, w in enumerate(awards):
         award = w["award"]
-        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"])) + " назад"
+        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"]))
         ans += f"🎗{i+1}. {award} | {date}\n\n"
     
     return ans
@@ -67,7 +67,7 @@ async def generate_warnings_msg(chat_id: int, target_user):
     ans = f"⚠ Варны пользователя {mention}:\n\n"
     for i, w in enumerate(warnings):
         reason = w["reason"] or "Причина не указана"
-        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"])) + " назад"
+        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"]))
         moderator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
         ans += f"🔸{i+1}. {reason} | {date}\n      Модератор: {moderator_mention}\n\n"
     
@@ -115,7 +115,7 @@ async def quotes_handler(msg: Message):
         return
     
     user = reply.from_user if not reply.forward_from else reply.forward_from
-    name = user.full_name
+    name = reply.forward_sender_name or user.full_name
     avatar = await get_user_avatar(bot, int(user.id))
     avatars[int(user.id)] = avatar
     quote_materials = [{"name": name, "text": text, "avatar": avatar, "media": media}]

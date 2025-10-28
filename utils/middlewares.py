@@ -18,11 +18,12 @@ class AllMessagesMiddleware(BaseMiddleware):
             quotable_media_id = await get_quotable_media_id(event)
 
             file_id = quotable_media_id["file_id"] if quotable_media_id else None
+            name = event.forward_sender_name or user.full_name
             date = event.date.timestamp() or time.time()
             text = event.text or event.caption or ""
             
             await add_message(int(event.message_id), int(chat.id),
-                    int(user.id), user.full_name,
+                    int(user.id), name,
                     text, date,
                     file_id=file_id
             )

@@ -35,11 +35,11 @@ def format_timedelta(delta: timedelta) -> str:
         if seconds <= 1:
             return "только что"
         elif seconds <= 60:
-            return f"{seconds} сек."
+            return f"{seconds} сек. назад"
         elif seconds <= 3600:
-            return f"{seconds//60} мин."
+            return f"{seconds//60} мин. назад"
         elif seconds <= 86400:
-            return f"{seconds//3600} ч."
+            return f"{seconds//3600} ч. назад"
         else:
-            return f"{delta.days} дн."
+            return f"{delta.days} дн. назад"
         
