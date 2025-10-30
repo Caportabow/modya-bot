@@ -107,17 +107,22 @@ async def quotes_handler(msg: Message):
         return
 
     avatars = {}
+    avatar = None
     
     text = reply.text or reply.caption or ""
     media = await get_message_media(bot, reply)
     if not text.strip() and not media:
         await msg.reply("❌ Это сообщение невозможно цитировать.")
         return
-    
+
     user = reply.from_user if not reply.forward_from else reply.forward_from
     name = reply.forward_sender_name or user.full_name
-    avatar = await get_user_avatar(bot, int(user.id))
-    avatars[int(user.id)] = avatar
+
+    is_forward = bool(reply.forward_from or reply.forward_sender_name)
+    if not is_forward:
+        avatar = await get_user_avatar(bot, int(user.id))
+        avatars[int(user.id)] = avatar
+
     quote_materials = [{"name": name, "text": text, "avatar": avatar, "media": media}]
 
     if not one_quote:
@@ -129,6 +134,7 @@ async def quotes_handler(msg: Message):
             text = m["text"]
             uid = int(m["user_id"])
             media_id = m["file_id"]
+            is_forward = m["is_forward"]
 
             # Получаем медиа, если есть
             media = None
@@ -139,12 +145,15 @@ async def quotes_handler(msg: Message):
                     media = {"source": media_bytes, "type": mime_type}
 
             if not text.strip() and not media: continue
-
-            if uid in avatars:
-                avatar = avatars[uid]
+            
+            if not is_forward:
+                if uid in avatars:
+                    avatar = avatars[uid]
+                else:
+                    avatar = await get_user_avatar(bot, uid)
+                    avatars[uid] = avatar
             else:
-                avatar = await get_user_avatar(bot, uid)
-                avatars[uid] = avatar
+                avatar = None
 
             quote_materials.append({"name": name, "text": text, "avatar": avatar, "media": media})
             if len(quote_materials) >= msg_quantity: break

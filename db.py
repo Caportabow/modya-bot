@@ -49,6 +49,7 @@ async def init_db():
         text TEXT,
         file_id TEXT NULL,
         date TIMESTAMP NOT NULL,
+        is_forward INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(chat_id, id)
     );
     """)
@@ -384,13 +385,14 @@ async def get_uid(chat_id: int, username: str) -> int | None:
 # Работа с сообщениями
 # --------------------
 
-async def add_message(m_id:int, chat_id: int, user_id: int, name: str, text: str, date: float, file_id: str | None = None):
+async def add_message(m_id:int, chat_id: int, user_id: int, name: str, text: str, date: float, is_forward: bool, file_id: str | None = None):
     """Добавляем сообщение пользователя в чате."""
+    is_forward_int = 1 if is_forward else 0
     global db
     async with db_lock:
         await db.execute(
-            "INSERT INTO messages (id, chat_id, user_id, name, text, file_id, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (m_id, chat_id, user_id, name, text, file_id, date)
+            "INSERT INTO messages (id, chat_id, user_id, name, text, date, is_forward, file_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (m_id, chat_id, user_id, name, text, date, is_forward_int, file_id)
         )
         await db.commit()
 
@@ -398,7 +400,7 @@ async def get_next_messages(chat_id: int, message_id: int, limit: int = 5):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             """
-            SELECT user_id, name, text, file_id FROM messages
+            SELECT user_id, name, text, is_forward, file_id FROM messages
             WHERE chat_id = ? AND id > ?
             ORDER BY id ASC
             LIMIT ?
@@ -406,7 +408,7 @@ async def get_next_messages(chat_id: int, message_id: int, limit: int = 5):
             (chat_id, message_id, limit)
         )
         rows = await cursor.fetchall()
-    return [{"user_id": r[0], "name": r[1], "text": r[2], "file_id": r[3]} for r in rows]
+    return [{"user_id": r[0], "name": r[1], "text": r[2], "is_forward": r[3], "file_id": r[4]} for r in rows]
 
 async def get_favorite_word(chat_id: int, user_id: int) -> dict | None:
     global db
