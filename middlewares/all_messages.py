@@ -4,7 +4,7 @@ from aiogram.types import Message
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
 from db import upsert_user, add_message
-from utils.media import get_quotable_media_id
+from utils.telegram.media import get_quotable_media_id
 
 class AllMessagesMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data: dict):
@@ -32,7 +32,3 @@ class AllMessagesMiddleware(BaseMiddleware):
         # Продолжаем выполнение хэндлера
         return await handler(event, data)
 
-def setup_middlewares(dp):
-    dp.message.middleware(AllMessagesMiddleware())
-    
-    return dp

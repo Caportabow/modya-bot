@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from utils.stats import format_timedelta
+from utils.time import format_timedelta
 
 DB_PATH = "resources/stats.db"
 

@@ -1,5 +1,5 @@
 import json
-from utils import mention_user
+from .telegram.users import mention_user
 
 def _load_commands():
     with open("resources/rp_commands.json", "r") as f:
