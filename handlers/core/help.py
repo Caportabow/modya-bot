@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import Command
 from aiogram.types import Message
 
 from utils.telegram.message_templates import send_welcome_message
@@ -7,8 +7,7 @@ from utils.telegram.message_templates import send_welcome_message
 router = Router(name="help")
 
 
-@router.message(CommandStart())
-@router.message(F.text.lower().startswith("/help"))
+@router.message(Command("start", "help"))
 async def help_handler(msg: Message):
     """Команда: /help"""
     bot = msg.bot

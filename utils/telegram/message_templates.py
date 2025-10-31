@@ -2,6 +2,7 @@ from aiogram import Bot
 
 from datetime import datetime
 
+from config import HELLO_PICTURE_ID
 from db import get_awards, get_warnings
 from .users import mention_user
 from utils.time import format_timedelta
@@ -9,11 +10,10 @@ from utils.time import format_timedelta
 
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
     """Отправляем приветственное сообщение в чат."""
-    pic_id = "AgACAgIAAyEGAAS7wxNHAANAaPrGTWcs7T0JzbfL8UzY_aqOyg0AAgbxMRuZh9lL7mXuJTHRdj8BAAMCAAN3AAM2BA"
     pre_text = "Привет! Спасибо, что добавили меня!\n\n"
 
     text = (pre_text if not private_msg else "") + '⚙️ С полным списком моих команд можно ознакомится в <a href="https://teletype.in/@caportabow/ModyaTheBot">этом списке</a>.'
-    await bot.send_photo(photo=pic_id, caption=text, chat_id=chat_id, parse_mode="HTML")
+    await bot.send_photo(photo=HELLO_PICTURE_ID, caption=text, chat_id=chat_id, parse_mode="HTML")
 
 async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
     """Генерируем сообщение с наградами пользователя."""

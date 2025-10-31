@@ -19,7 +19,7 @@ async def on_message(msg: Message):
     text = msg.text or msg.caption
     if text:
         target_user_entity = None
-        reply_message = msg.reply_to_message or msg.reply_to_message
+        reply_message = msg.reply_to_message or msg
         target_user_entity = reply_message.from_user
         
         if not target_user_entity and msg.entities:

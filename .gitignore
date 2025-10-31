@@ -1,6 +1,12 @@
 /venv/
 /__pycache__/
 /utils/__pycache__/
+/utils/telegram/__pycache__/
+/utils/functionalities/__pycache__/
+/handlers/__pycache__/
+/middlewares/__pycache__/
+/handlers/core/__pycache__/
+/handlers/functionalities/__pycache__/
 
 .DS_Store
 .idea/

@@ -1,3 +1,3 @@
-from . import all_messages
+from . import message
 
-middlewares = [all_messages]
+middlewares = [message.MessageOnlyMiddleware()]

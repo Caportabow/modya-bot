@@ -1,56 +1,103 @@
-from db import get_nickname, get_uid
+from aiogram import Bot
+from aiogram.types import Message, User
+from aiogram.exceptions import TelegramBadRequest
+from db import get_nickname, get_uid, remove_user
 
-async def mention_user(
-        bot = None,
-        user_entity = None, chat_id: int | None = None,
-        user_id: int | None = None, user_username: str | None = None
-        ):
-    if not user_entity:
-        if not user_id:
-            user_id = await get_uid(chat_id=chat_id, username=user_username)
-            if not user_id:
-                return f"@{user_username}" or "неизвестный"
-        
-        user_member = await bot.get_chat_member(chat_id, int(user_id))
-        user_entity = user_member.user
-    else:
-        user_id = user_entity.id
-    
-    user_nickname = await get_nickname(chat_id=chat_id, uid=int(user_id))
 
-    mention = user_entity.mention_html(name=user_nickname)
-    return mention
-
-async def parse_user_mention(
-        bot,
-        msg,
-    ):
-    """Парсит пользователя из сообщения."""
-    user = None
-    for entity in msg.entities:
-        if entity.type == "text_mention" and entity.user:
-            user = entity.user
-            break
-        elif entity.type == "mention":
-            username = msg.text[entity.offset + 1: entity.offset + entity.length]
-            try:
-                uid = await get_uid(int(msg.chat.id), username)
-                if uid: user = await bot.get_chat_member(chat_id=msg.chat.id, user_id=uid)
-                if user:
-                    user = user.user
-                    break
-            except:
-                pass
-    return user
-
-async def is_admin(bot, chat_id: int, user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором чата."""
+async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
+    member = None
     try:
         member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+    except TelegramBadRequest as e:
+        await remove_user(chat_id=chat_id, uid=user_id)
+    
+    return member
+
+async def mention_user(
+    bot: Bot,
+    *,
+    chat_id: int | None = None,
+    user_entity: User | None = None,
+    user_id: int | None = None,
+    user_username: str | None = None,
+) -> str:
+    """
+    Возвращает HTML-упоминание пользователя в чате.
+    Если невозможно определить пользователя — возвращает 'неизвестный' или @username.
+    """
+    # 1. Если есть готовый объект пользователя — используем его напрямую.
+    if user_entity:
+        user_id = user_entity.id
+
+    # 2. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
+    elif user_id and chat_id:
+        member = await get_chat_member_or_fall(bot, chat_id, user_id)
+        if member:
+            user_entity = member.user
+
+    # 3. Если нет user_id, но есть username — пробуем получить id из базы
+    elif user_username and chat_id:
+        user_id = await get_uid(chat_id=chat_id, username=user_username)
+        if user_id:
+            member = await get_chat_member_or_fall(bot, chat_id, user_id)
+            if member:
+                user_entity = member.user
+        else:
+            # fallback: не нашли id — просто вернем @username
+            return f"@{user_username}"
+
+    # 4. Получаем никнейм (если доступен)
+    nickname = None
+    if chat_id:
+        if not user_id and user_entity: user_id = user_entity.id
+        
+        if user_id: nickname = await get_nickname(chat_id=chat_id, uid=user_id)
+
+    # 5. Если после всего user_entity всё ещё нет — возвращаем безопасный текст
+    if not user_entity:
+
+        # Если есть id, пробуем отметить самостоятельно
+        if user_id:
+            return f'<a href="tg://user?id={user_id}">{nickname or f"@{user_id}"}</a>'
+
+        return "неизвестный пользователь"
+
+    # 6. Возвращаем форматированное HTML-упоминание
+    name = nickname or user_entity.full_name or "Пользователь"
+    return user_entity.mention_html(name=name)
+
+async def parse_user_mention(bot: Bot, msg: Message):
+    """Парсит пользователя из сообщения."""
+    user = None
+    if msg.entities:
+        for entity in msg.entities:
+            if entity.type == "text_mention" and entity.user:
+                user = entity.user
+                break
+            elif entity.type == "mention":
+                username = msg.text[entity.offset + 1: entity.offset + entity.length]
+                try:
+                    uid = await get_uid(int(msg.chat.id), username)
+
+                    if uid:
+                        user = await get_chat_member_or_fall(bot=bot,
+                                                chat_id=msg.chat.id, user_id=uid)
+
+                    if user:
+                        user = user.user
+                        break
+                except:
+                    pass
+    return user
+
+async def is_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
+    """Проверяет, является ли пользователь администратором чата."""
+    try:
+        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
+
         return (
             member.status == "creator" or
             (member.status == "administrator" and member.can_restrict_members)
-        )
+        ) if member else False
     except:
         return False
-    

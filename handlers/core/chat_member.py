@@ -15,7 +15,8 @@ router = Router(name="chat_member")
 async def sync_members(telethon_client: TelegramClient, chat_id: int):
     """Синхронизируем список участников чата."""
     async for user in telethon_client.iter_participants(chat_id):
-        await upsert_user(int(chat_id), int(user.id), user.username, user.first_name)
+        if not user.is_bot:
+            await upsert_user(int(chat_id), int(user.id), user.username, user.first_name)
 # --------------------
 
 
@@ -42,5 +43,5 @@ async def on_chat_member(update: ChatMemberUpdated):
 
     if update.new_chat_member.status in ("left", "kicked"):
         await remove_user(cid, uid)
-    elif update.new_chat_member.status in ("member"):
+    elif not user.is_bot:
         await upsert_user(cid, uid, user.username, user.first_name)
