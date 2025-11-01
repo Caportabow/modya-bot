@@ -3,7 +3,8 @@ from aiogram.types import Message
 
 from utils.telegram.users import is_admin, mention_user, parse_user_mention
 from utils.telegram.message_templates import generate_warnings_msg
-from db import add_warning, remove_warning
+
+from db.warnings import add_warning, remove_warning
 
 router = Router(name="warnings")
 

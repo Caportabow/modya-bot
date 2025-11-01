@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 
 from utils.telegram.users import mention_user
-from db import minmsg_users
+from db.messages.cleaning import minmsg_users
 
 router = Router(name="cleaning")
 

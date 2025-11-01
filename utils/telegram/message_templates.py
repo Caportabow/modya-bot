@@ -3,7 +3,10 @@ from aiogram import Bot
 from datetime import datetime
 
 from config import HELLO_PICTURE_ID
-from db import get_awards, get_warnings
+
+from db.warnings import get_warnings
+from db.awards import get_awards
+
 from .users import mention_user
 from utils.time import format_timedelta
 

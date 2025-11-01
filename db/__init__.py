@@ -1,0 +1,142 @@
+import asyncpg
+from contextlib import asynccontextmanager
+from config import DATABASE_URL
+
+
+pool: asyncpg.Pool | None = None
+
+
+async def init_db():
+    """Создаёт пул соединений при запуске приложения."""
+    global pool
+    pool = await asyncpg.create_pool(
+        DATABASE_URL,
+        min_size=1,
+        max_size=5,
+        command_timeout=100  # чтобы не зависало при долгих запросах
+    )
+    print("✅ Database pool created")
+
+    # Создаём таблицы, если их нет
+    async with pool.acquire() as conn:
+        await create_tables(conn)
+        print("📦 Tables checked/created")
+
+
+async def close_db():
+    """Закрывает пул при завершении."""
+    global pool
+    if pool is not None:
+        await pool.close()
+        print("🔒 Database pool closed")
+
+
+@asynccontextmanager
+async def connection():
+    """Асинхронный контекстный менеджер для безопасного доступа к БД."""
+    if pool is None:
+        raise RuntimeError("Database pool is not initialized. Call init_db() first.")
+    async with pool.acquire() as conn:
+        yield conn
+
+
+# Упрощённые функции для выполнения запросов
+
+async def fetchmany(query: str, *args):
+    """Возвращает список записей (аналог cursor.fetchall())."""
+    async with connection() as conn:
+        rows = await conn.fetch(query, *args)
+        return [dict(r) for r in rows]
+
+
+async def fetchone(query: str, *args):
+    """Возвращает одну запись (аналог cursor.fetchone())."""
+    async with connection() as conn:
+        row = await conn.fetchrow(query, *args)
+        return dict(row) if row else None
+
+
+async def fetchval(query: str, *args):
+    """Возвращает только одно значение (аналог cursor.fetchval())."""
+    async with connection() as conn:
+        val = await conn.fetchval(query, *args)
+        return val or None
+
+async def count(query: str, *args):
+    """Выполняет COUNT запросы (аналог cursor.fetchval())."""
+    async with connection() as conn:
+        val = await conn.fetchval(query, *args)
+        return val or 0
+
+
+async def execute(query: str, *args):
+    """Выполняет INSERT/UPDATE/DELETE без возврата данных."""
+    async with connection() as conn:
+        return await conn.execute(query, *args)
+
+
+
+# ----------------------------------------------------
+# 🧱 Создание таблиц
+# ----------------------------------------------------
+
+async def create_tables(conn: asyncpg.Connection):
+    """Создаёт нужные таблицы, если их ещё нет."""
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            chat_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            username TEXT,
+            nickname VARCHAR(50),
+            PRIMARY KEY (chat_id, user_id)
+        )
+    """)
+
+    # Сообщения
+    # TODO: изменить get_user_avatar
+    await conn.execute("""
+    CREATE TABLE IF NOT EXISTS messages (
+        message_id BIGINT NOT NULL, -- Начало параметров для статистики
+        chat_id BIGINT NOT NULL,
+        sender_user_id BIGINT NOT NULL,
+        date TIMESTAMPTZ NOT NULL,
+        forward_user_id BIGINT NULL, -- Начало параметров для цитат
+        name TEXT NOT NULL,
+        text TEXT NULL,
+        file_id TEXT NULL,
+        PRIMARY KEY (chat_id, id)
+    );
+    """)
+
+    # Цитаты
+    await conn.execute("""
+    CREATE TABLE IF NOT EXISTS quotes (
+        id BIGSERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL,
+        sticker_file_id TEXT NOT NULL UNIQUE,
+    );
+    """)
+
+    # Варны
+    await conn.execute("""
+    CREATE TABLE IF NOT EXISTS warnings (
+        id BIGSERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
+        administrator_user_id BIGINT NOT NULL,
+        assignment_date TIMESTAMPTZ NOT NULL,
+        reason TEXT NULL
+    );
+    """)
+
+    # Награды
+    await conn.execute("""
+    CREATE TABLE IF NOT EXISTS awards (
+        id BIGSERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL,
+        user_id BIGINT NOT NULL,
+        giver_user_id BIGINT NOT NULL,
+        assignment_date TIMESTAMPTZ NOT NULL,
+        award TEXT NOT NULL
+    )
+    """)

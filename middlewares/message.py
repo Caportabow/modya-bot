@@ -1,10 +1,13 @@
-import time
+from datetime import datetime, timezone
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
 from config import PRODUCTION, DEVELOPERS_ID
-from db import upsert_user, add_message
+
+from db.users import upsert_user
+from db.messages import add_message
+
 from utils.telegram.media import get_quotable_media_id
 
 class MessageOnlyMiddleware(BaseMiddleware):
@@ -18,19 +21,21 @@ class MessageOnlyMiddleware(BaseMiddleware):
             user = event.from_user
             chat = event.chat
             await upsert_user(int(chat.id), int(user.id),
-                              user.username, user.first_name)
+                              user.first_name, user.username)
 
             quotable_media_id = await get_quotable_media_id(event)
 
             file_id = quotable_media_id["file_id"] if quotable_media_id else None
             name = event.forward_sender_name or user.full_name
-            is_forward = bool(event.forward_from or event.forward_sender_name)
-            date = event.date.timestamp() or time.time()
+
+            forward_user_id = event.forward_from.id if event.forward_from else (1 if event.forward_sender_name else None)
+
+            date = event.date or datetime.now(timezone.utc)
             text = event.text or event.caption or ""
             
             await add_message(int(event.message_id), int(chat.id),
-                    int(user.id), name,
-                    text, date, is_forward,
+                    int(user.id), date, name,
+                    text, forward_user_id=forward_user_id,
                     file_id=file_id
             )
 

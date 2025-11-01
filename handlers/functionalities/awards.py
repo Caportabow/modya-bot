@@ -3,7 +3,7 @@ from aiogram.types import Message
 
 from utils.telegram.users import mention_user, parse_user_mention
 from utils.telegram.message_templates import generate_awards_msg
-from db import add_award, remove_award
+from db.awards import add_award, remove_award
 
 router = Router(name="awards")
 
@@ -69,7 +69,8 @@ async def remove_award_handler(msg: Message):
     parts = msg.text.split()
     if len(parts) < 2 or not parts[1].isdigit():
         award_index = None
-    else: award_index = int(parts[1]) - 1  # пользователь вводит с 1, а в коде с 0
+    else: 
+        award_index = int(parts[1]) - 1  # пользователь вводит с 1, а в коде с 0
 
     success = await remove_award(chat_id, target_id, award_index)
     if success:

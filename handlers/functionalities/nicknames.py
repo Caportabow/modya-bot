@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from db import set_nickname
+from db.users.nicknames import set_nickname
 
 router = Router(name="nicknames")
 

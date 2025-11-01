@@ -5,7 +5,7 @@ from aiogram import Router, F
 from aiogram.types import Message
 
 from utils.telegram.users import is_admin, mention_user
-from db import get_all_users_in_chat
+from db.users import get_all_users_in_chat
 
 router = Router(name="call")
 

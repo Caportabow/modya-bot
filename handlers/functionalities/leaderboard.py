@@ -3,7 +3,7 @@ from aiogram.types import Message
 
 from utils.telegram.users import mention_user
 from utils.time import get_since
-from db import top_users
+from db.leaderboard import user_leaderboard
 
 router = Router(name="leaderboard")
 
@@ -20,7 +20,7 @@ async def stats_handler(msg: Message):
     except ValueError:
         return
     
-    top = await top_users(int(msg.chat.id), since=since)
+    top = await user_leaderboard(int(msg.chat.id), since=since)
     ans = f"📊 Топ сообщений за {beauty_since}:\n\n"
     msg_count = 0
 

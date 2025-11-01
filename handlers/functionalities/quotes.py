@@ -3,7 +3,9 @@ from aiogram.types import Message, BufferedInputFile
 
 from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type
 from utils.quotes import make_quote
-from db import add_quote, get_next_messages
+
+from db.quotes import add_quote
+from db.messages import get_next_messages
 
 router = Router(name="quotes")
 
@@ -52,7 +54,12 @@ async def quotes_handler(msg: Message):
             text = m["text"]
             uid = int(m["user_id"])
             media_id = m["file_id"]
-            is_forward = m["is_forward"]
+            no_avatar_forward = False
+
+            forward_user_id = m["forward_user_id"]
+            if forward_user_id and forward_user_id.isdigit():
+                if int(forward_user_id) != 1: uid = int(m["forward_user_id"])
+                else: no_avatar_forward = True
 
             # Получаем медиа, если есть
             media = None
@@ -64,14 +71,13 @@ async def quotes_handler(msg: Message):
 
             if not text.strip() and not media: continue
             
-            if not is_forward:
-                if uid in avatars:
-                    avatar = avatars[uid]
-                else:
-                    avatar = await get_user_avatar(bot, uid)
-                    avatars[uid] = avatar
-            else:
+            if no_avatar_forward:
                 avatar = None
+            elif uid in avatars:
+                avatar = avatars[uid]
+            else:
+                avatar = await get_user_avatar(bot, uid)
+                avatars[uid] = avatar
 
             quote_materials.append({"name": name, "text": text, "avatar": avatar, "media": media})
             if len(quote_materials) >= msg_quantity: break

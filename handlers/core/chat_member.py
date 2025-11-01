@@ -5,7 +5,7 @@ from aiogram.types import ChatMemberUpdated
 from telethon import TelegramClient
 
 from utils.telegram.message_templates import send_welcome_message
-from db import upsert_user, remove_user
+from db.users import upsert_user, remove_user
 
 router = Router(name="chat_member")
 
@@ -16,7 +16,7 @@ async def sync_members(telethon_client: TelegramClient, chat_id: int):
     """Синхронизируем список участников чата."""
     async for user in telethon_client.iter_participants(chat_id):
         if not user.is_bot:
-            await upsert_user(int(chat_id), int(user.id), user.username, user.first_name)
+            await upsert_user(int(chat_id), int(user.id), user.first_name, user.username)
 # --------------------
 
 
@@ -44,4 +44,4 @@ async def on_chat_member(update: ChatMemberUpdated):
     if update.new_chat_member.status in ("left", "kicked"):
         await remove_user(cid, uid)
     elif not user.is_bot:
-        await upsert_user(cid, uid, user.username, user.first_name)
+        await upsert_user(cid, uid, user.first_name, user.username)

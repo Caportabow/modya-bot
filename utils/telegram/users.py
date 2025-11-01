@@ -1,7 +1,9 @@
 from aiogram import Bot
 from aiogram.types import Message, User
 from aiogram.exceptions import TelegramBadRequest
-from db import get_nickname, get_uid, remove_user
+
+from db.users import get_uid, remove_user
+from db.users.nicknames import get_nickname
 
 
 async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
@@ -9,7 +11,7 @@ async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
     try:
         member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
     except TelegramBadRequest as e:
-        await remove_user(chat_id=chat_id, uid=user_id)
+        await remove_user(chat_id=chat_id, user_id=user_id)
     
     return member
 
@@ -51,7 +53,7 @@ async def mention_user(
     if chat_id:
         if not user_id and user_entity: user_id = user_entity.id
         
-        if user_id: nickname = await get_nickname(chat_id=chat_id, uid=user_id)
+        if user_id: nickname = await get_nickname(chat_id=chat_id, user_id=user_id)
 
     # 5. Если после всего user_entity всё ещё нет — возвращаем безопасный текст
     if not user_entity:

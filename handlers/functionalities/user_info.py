@@ -3,7 +3,10 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, InlineKeyboardButton, BufferedInputFile
 
 from utils.telegram.users import parse_user_mention, mention_user
-from db import user_stats, plot_user_activity, get_uid
+from utils.activity_chart import make_activity_chart
+
+from db.messages.statistics import user_stats
+from db.users import get_uid
 
 router = Router(name="call")
 
@@ -29,7 +32,7 @@ async def user_info_handler(msg: Message):
     else: return
 
     stats = await user_stats(int(msg.chat.id), int(user.id))
-    img = await plot_user_activity(int(msg.chat.id), int(user.id))
+    img = await make_activity_chart(int(msg.chat.id), int(user.id))
     if not stats or not img:
         if user.is_bot:
             await msg.reply("❌ Эта команда не поддерживает ботов.")

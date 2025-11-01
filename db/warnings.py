@@ -1,0 +1,69 @@
+import db
+from datetime import datetime, timezone
+
+
+async def add_warning(chat_id: int, user_id: int, admin_user_id: int, reason: str | None) -> int | None:
+    """Добавляет варн пользователю в чате."""
+    await db.execute(
+        """
+        INSERT INTO warnings(chat_id, user_id, administrator_user_id, assignment_date, reason)
+        VALUES ($1, $2, $3, $4, $5)
+        """,
+        chat_id, user_id, admin_user_id, datetime.now(timezone.utc), reason
+    )
+
+    # Считаем количество варнов после добавления
+    count = await db.count(
+        """
+        SELECT COUNT(*)
+        FROM warnings
+        WHERE chat_id = $1 AND user_id = $2
+        """, chat_id, user_id
+    )
+    return count
+
+async def get_warnings(chat_id: int, user_id: int) -> list[dict]:
+    """Возвращает список варнов пользователя в чате."""
+    rows = await db.fetchmany(
+        """
+        SELECT administrator_user_id, assignment_date, reason
+        FROM warnings
+        WHERE chat_id = $1 AND user_id = $2
+        ORDER BY assignment_date ASC;
+        """, chat_id, user_id
+    )
+
+    return [
+        {   
+            "administrator_user_id": row['administrator_user_id'],
+            "assignment_date": row['assignment_date'],
+            "reason": row['reason']
+        }
+        for row in rows
+    ]
+
+async def remove_warning(chat_id: int, user_id: int,
+                        warn_index: int | None = None) -> bool:
+    """Удаляет варн пользователя в чате по индексу (None - последний варн).
+                            Возвращает True, если удаление прошло успешно."""
+    is_indexed = warn_index is not None
+    args = [chat_id, user_id] + ([warn_index] if is_indexed else [])
+
+    warn_id = await db.fetchval(
+        f"""
+        SELECT id FROM warnings
+        WHERE chat_id = $1 AND user_id = $2
+        ORDER BY assignment_date {'ASC' if is_indexed else 'DESC'}
+        LIMIT 1{' OFFSET $3' if is_indexed else ''}
+        """,
+        *args
+    )
+
+    if not warn_id: return False  # Варн с таким индексом не найден
+
+    await db.execute(
+        "DELETE FROM warnings WHERE id = $1",
+        warn_id
+    )
+
+    return True

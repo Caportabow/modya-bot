@@ -3,7 +3,7 @@ from aiogram.types import Message
 
 from random import random
 
-from db import get_random_quote
+from db.quotes import get_random_quote
 from utils.roleplay import parse_rp_command
 
 router = Router(name="groups")
