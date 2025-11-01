@@ -1,6 +1,6 @@
 from aiogram import Bot
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config import HELLO_PICTURE_ID
 
@@ -29,7 +29,7 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
     ans = f"🏆 Награды пользователя {mention}:\n\n"
     for i, w in enumerate(awards):
         award = w["award"]
-        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"]))
+        date = format_timedelta(datetime.now(timezone.utc) - w["assignment_date"])
         ans += f"🎗{i+1}. {award} | {date}\n\n"
     
     return ans
@@ -42,10 +42,10 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
     if not warnings:
         return f"❕У пользователя {mention} нет варнов."
 
-    ans = f"⚠ Варны пользователя {mention}:\n\n"
+    ans = f"⚠️ Варны пользователя {mention}:\n\n"
     for i, w in enumerate(warnings):
         reason = w["reason"] or "Причина не указана"
-        date = format_timedelta(datetime.now() - datetime.fromtimestamp(w["assigment_date"]))
+        date = format_timedelta(datetime.now(timezone.utc) - w["assignment_date"])
         moderator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
         ans += f"🔸{i+1}. {reason} | {date}\n      Модератор: {moderator_mention}\n\n"
     

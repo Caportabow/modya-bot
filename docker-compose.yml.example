@@ -1,0 +1,27 @@
+services:
+  # --- PostgreSQL ---
+  db:
+    image: postgres:17
+    container_name: modya_db
+    restart: always
+    environment:
+      POSTGRES_USER: modya
+      POSTGRES_PASSWORD: YOUR PASSWORD
+      POSTGRES_DB: modyadb
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # --- Aiogram Bot ---
+  bot:
+    build: .
+    container_name: modya
+    restart: always
+    depends_on:
+      - db
+    environment:
+      TELEGRAM_TOKEN: "YOUR BOT TOKEN" # @BotFather in Telegram
+      API_ID: YOUR_API_ID # my.telegram.org
+      API_HASH: "YOUR_API_HASH" # my.telegram.org
+      DATABASE_URL: "postgresql://modya:YOUR PASSWORD@db:5432/modyadb"

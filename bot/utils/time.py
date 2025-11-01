@@ -1,11 +1,4 @@
-import time
-from datetime import timedelta
-
-DAY = 86400
-WEEK = 7 * DAY
-MONTH = 30 * DAY
-YEAR = 365 * DAY
-ALL_TIME = None
+from datetime import timedelta, datetime, timezone
 
 periods = {
     "day": ["день", "сегодня", "сутки"],
@@ -16,17 +9,23 @@ periods = {
 }
 
 def get_since(period: str):
-    now = int(time.time())
+    now = datetime.now(timezone.utc)
+    one_day = now - timedelta(days=1)
+    one_week = now - timedelta(days=7)
+    one_month = now - timedelta(days=30)
+    one_year = now - timedelta(days=365)
+    all_time = None
+
     if period.lower() in periods["day"]:
-        return now - DAY, "сегодня"
+        return one_day, "сегодня"
     elif period.lower() in periods["week"]:
-        return now - WEEK, "неделю"
+        return one_week, "неделю"
     elif period.lower() in periods["month"]:
-        return now - MONTH, "месяц"
+        return one_month, "месяц"
     elif period.lower() in periods["year"]:
-        return now - YEAR, "год"
+        return one_year, "год"
     elif period.lower() in periods["all"]:
-        return ALL_TIME, "всё время"
+        return all_time, "всё время"
     else:
         raise ValueError("Unknown period")
 

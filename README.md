@@ -21,28 +21,13 @@
    git clone https://github.com/Caportabow/modya-bot.git
    ```
 
-2.	Create and activate virtual environment and install dependencies:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install --upgrade pip
-    ```
+2.	Install Docker
 
-3.	Install dependencies:
-    ```bash
-    pip install playwright
-    ```
+3. Create a new file - `docker-compose.yml` based on the example `docker-compose.yml.example` and  delete the above-mentioned
 
-4.	Install playwright:
+4. Usage
     ```bash
-    playwright install chromium
-    ```
-
-5.	Create a new file - “config.py” based on the example “example.config.py” and delete the above-mentioned
-
-6.	Run the bot:
-    ```bash
-    python main.py
+    docker compose up -d --build
     ```
 
 

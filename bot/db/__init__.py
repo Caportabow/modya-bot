@@ -87,7 +87,7 @@ async def create_tables(conn: asyncpg.Connection):
             chat_id BIGINT NOT NULL,
             user_id BIGINT NOT NULL,
             username TEXT,
-            nickname VARCHAR(50),
+            nickname VARCHAR(30),
             PRIMARY KEY (chat_id, user_id)
         )
     """)
@@ -104,7 +104,7 @@ async def create_tables(conn: asyncpg.Connection):
         name TEXT NOT NULL,
         text TEXT NULL,
         file_id TEXT NULL,
-        PRIMARY KEY (chat_id, id)
+        PRIMARY KEY (message_id, chat_id)
     );
     """)
 
@@ -113,7 +113,7 @@ async def create_tables(conn: asyncpg.Connection):
     CREATE TABLE IF NOT EXISTS quotes (
         id BIGSERIAL PRIMARY KEY,
         chat_id BIGINT NOT NULL,
-        sticker_file_id TEXT NOT NULL UNIQUE,
+        sticker_file_id TEXT NOT NULL UNIQUE
     );
     """)
 

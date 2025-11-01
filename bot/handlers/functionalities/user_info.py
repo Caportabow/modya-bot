@@ -31,12 +31,13 @@ async def user_info_handler(msg: Message):
     
     else: return
 
+    if user.is_bot:
+        await msg.reply("❌ Эта команда не поддерживает ботов.")
+        return
+    
     stats = await user_stats(int(msg.chat.id), int(user.id))
     img = await make_activity_chart(int(msg.chat.id), int(user.id))
     if not stats or not img:
-        if user.is_bot:
-            await msg.reply("❌ Эта команда не поддерживает ботов.")
-            return
         await msg.reply("❌ Нет данных по этому пользователю.")
         return
     
@@ -63,7 +64,7 @@ async def user_info_handler(msg: Message):
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(text="🏆 Награды", callback_data=f"awards,{int(user.id)}"),
-        InlineKeyboardButton(text="⚠ Варны", callback_data=f"warnings,{int(user.id)}")
+        InlineKeyboardButton(text="⚠️ Варны", callback_data=f"warnings,{int(user.id)}")
     )
 
     await bot.send_photo(chat_id=msg.chat.id,

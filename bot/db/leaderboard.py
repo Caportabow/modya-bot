@@ -1,13 +1,14 @@
 import db
+from datetime import datetime
 
 
-async def user_leaderboard(chat_id: int, limit: int = 10, since: int | None = None):
+async def user_leaderboard(chat_id: int, limit: int = 10, since: datetime | None = None):
     """
     Возвращает топ пользователей в чате по количеству сообщений.
     """
     if since is not None:
         query = """
-            SELECT u.user_id, u.nickname, COUNT(m.id) AS msg_count
+            SELECT u.user_id, u.nickname, COUNT(m.message_id) AS msg_count
             FROM users u
             LEFT JOIN messages m
                 ON u.chat_id = m.chat_id
@@ -21,7 +22,7 @@ async def user_leaderboard(chat_id: int, limit: int = 10, since: int | None = No
         rows = await db.fetchmany(query, since, chat_id, limit)
     else:
         query = """
-            SELECT u.user_id, u.nickname, COUNT(m.id) AS msg_count
+            SELECT u.user_id, u.nickname, COUNT(m.message_id) AS msg_count
             FROM users u
             LEFT JOIN messages m
                 ON u.chat_id = m.chat_id

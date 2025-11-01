@@ -77,14 +77,14 @@ async def user_stats(chat_id: int, user_id: int):
     # преобразуем время в нормальный вид
     first_dt = rows["first_seen"]
     last_dt = rows["last_active"]
-    age = datetime.now() - first_dt
-    last_diff = datetime.now() - last_dt
+    age = now_dt - first_dt
+    last_diff = now_dt - last_dt
 
     # Поиск любимого слова
     fav_word = await get_favorite_word(chat_id, user_id)
 
     return {
-        "first_seen": f"{first_dt:%d.%m.%Y} ({(f'{age.days} д. ' if age.days > 0 else '')}{age.seconds//3600} ч.)",
+        "first_seen": f"{first_dt:%d.%m.%Y} ({(f'{age.days} д. ' if age.days > 0 else '')}{age.seconds//3600} ч. назад)",
         "last_active": format_timedelta(last_diff),
         "activity": f"{rows["day_count"]} | {rows["week_count"]} | {rows["month_count"]} | {rows["total"]}",
         "favorite_word": fav_word

@@ -1,6 +1,6 @@
 import db
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 async def add_message(message_id:int, chat_id: int, sender_user_id: int, date: datetime,
@@ -11,7 +11,7 @@ async def add_message(message_id:int, chat_id: int, sender_user_id: int, date: d
         """
         INSERT INTO messages(message_id, chat_id, sender_user_id, date, forward_user_id, name, text, file_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        """, message_id, chat_id, sender_user_id, datetime.fromtimestamp(date, timezone.utc),
+        """, message_id, chat_id, sender_user_id, date,
         forward_user_id, name, text, file_id
     )
 
@@ -49,7 +49,12 @@ async def plot_user_activity(chat_id: int, user_id: int):
             LIMIT 365;
         """, chat_id, user_id
     )
-    return rows
+    return [
+        {
+            "date": r['day'],
+            "count": r['count'],
+        } for r in rows
+    ]
 
 async def count_messages(chat_id: int, user_id: int, since: int | None = None):
     """Считаем количество сообщений пользователя в чате (если since=None → за всё время)."""

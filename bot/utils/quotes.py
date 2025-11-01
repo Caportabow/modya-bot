@@ -1,6 +1,7 @@
 import base64
 import random
 from playwright.async_api import async_playwright
+from config import QUOTE_TEMPLATE
 
 async def make_quote(materials: list) -> bytes:
     """Создаёт цитату из сообщения."""
@@ -104,8 +105,7 @@ async def make_quote(materials: list) -> bytes:
         i = j
 
     # Читаем HTML-шаблон
-    with open("resources/quote_template.html", "r", encoding="utf-8") as f:
-        template = f.read()
+    template = QUOTE_TEMPLATE
 
     # подставляем данные
     html_code = (
@@ -124,25 +124,9 @@ async def make_quote(materials: list) -> bytes:
         # Устанавливаем HTML
         await page.set_content(html_code)
 
+        # Находим элемент и делаем скриншот
         element = page.locator(".chat-container")
-        # Получаем координаты элемента
-        box = await element.bounding_box()
-
-        # Размер страницы
-        viewport_size = page.viewport_size
-        w, page_height = viewport_size["width"], viewport_size["height"]
-
-        # Расширяем область на 20px со всех сторон, не выходя за границы
-        padding = 20
-        clip = {
-            "x": box["x"],  # без отступа слева
-            "y": max(box["y"] - padding, 0),  # padding сверху
-            "width": box["width"],  # уменьшаем ширину справа
-            "height": min(box["height"] + 2 * padding, page_height - max(box["y"] - padding, 0))  # padding сверху и снизу
-        }
-
-        # Скриншот с учетом расширенной области
-        screenshot_bytes = await page.screenshot(clip=clip, omit_background=True)
+        screenshot_bytes = await element.screenshot(omit_background=True)
         
         await browser.close()
 

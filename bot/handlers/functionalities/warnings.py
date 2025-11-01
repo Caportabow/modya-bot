@@ -62,7 +62,7 @@ async def add_warning_handler(msg: Message):
     await msg.reply(f"✅ Варн{warn_info} выдан пользователю {mention}.\nПричина: {reason or 'не указана'}", parse_mode="HTML")
 
     if warn_id and warn_id >= 3:
-        await msg.reply(f"⚠ Пользователь {mention} получил 3 и более варнов. Рекомендуется рассмотреть возможность бана.", parse_mode="HTML")
+        await msg.reply(f"⚠️ Пользователь {mention} получил 3 и более варнов. Рекомендуется рассмотреть возможность бана.", parse_mode="HTML")
 
 @router.message((F.text.lower().startswith("-варн")) & (F.chat.type.in_(["group", "supergroup"])))
 async def remove_warning_handler(msg: Message):

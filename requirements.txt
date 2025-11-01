@@ -1,7 +1,8 @@
-aiosqlite
+asyncpg
 aiogram
 telethon
 matplotlib
 pandas
 playwright
 filetype
+watchfiles

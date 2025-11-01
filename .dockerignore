@@ -1,8 +1,6 @@
 # Python cache (во всех папках)
 **/__pycache__/
 **/*.pyc
-/bot/bot.session
-/bot/bot.session-journal
 
 # IDE
 .idea/
@@ -22,16 +20,3 @@ pgdata/
 *.swp
 *.swo
 *.tmp
-.DS_Store
-
-# Testing files
-sendm.py
-test.py
-stats.db
-
-# Config
-docker-compose.yml
-docker-compose.dev.yml
-
-# Database
-/pgdata/

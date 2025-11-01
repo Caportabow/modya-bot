@@ -1,9 +1,5 @@
-import json
 from .telegram.users import mention_user
-
-def _load_commands():
-    with open("resources/rp_commands.json", "r") as f:
-        return json.load(f)
+from config import RP_COMMANDS
 
 def _find_command(text, rp_commands):
     words = text.split(" ")
@@ -38,7 +34,7 @@ async def parse_rp_command(bot, chat_id:int, text:str, trigger_user_entity, targ
     if not rest: return None
 
     # Наконец ищем команду
-    command, rest = _find_command(rest, _load_commands())
+    command, rest = _find_command(rest, RP_COMMANDS)
     if not command:
         return None
     

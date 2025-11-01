@@ -15,8 +15,8 @@ async def set_nick(msg: Message):
         return
     nickname = parts[1].strip()
 
-    if len(nickname) > 50:
-        await msg.reply("❌ Слишком длинный ник (макс 50 символов).")
+    if len(nickname) > 30:
+        await msg.reply("❌ Слишком длинный ник (макс 30 символов).")
         return
 
     await set_nickname(int(msg.chat.id), int(msg.from_user.id), nickname)
