@@ -55,6 +55,7 @@ async def user_info_handler(msg: Message):
         else:
             fav_user_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(fav_user_id))
             ans += f'Любимый участник: {fav_user_mention} ({fav_word_count} р.)\n'
+    else: ans += f"Любимое слово: (данных недостаточно)\n"
     ans += f"Первое появление: {stats["first_seen"]}\n"
     ans += f"Последний актив: {stats["last_active"]}\n"
     ans += f"Актив за последние (24ч|7дн|30дн|∞): {stats["activity"]}\n"

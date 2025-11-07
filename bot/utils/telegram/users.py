@@ -1,3 +1,4 @@
+import asyncio
 from aiogram import Bot
 from aiogram.types import Message, User
 from aiogram.exceptions import TelegramBadRequest
@@ -31,22 +32,19 @@ async def mention_user(
     if user_entity:
         user_id = user_entity.id
 
-    # 2. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
+    # 2. Если нет user_id, но есть username — пробуем получить id из базы
+    elif not user_id and user_username and chat_id:
+        user_id = await get_uid(chat_id=chat_id, username=user_username)
+        if not user_id:
+            # fallback: не нашли id — просто вернем @username
+            return f"@{user_username}"
+
+    # 3. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
     elif user_id and chat_id:
+        # 
         member = await get_chat_member_or_fall(bot, chat_id, user_id)
         if member:
             user_entity = member.user
-
-    # 3. Если нет user_id, но есть username — пробуем получить id из базы
-    elif user_username and chat_id:
-        user_id = await get_uid(chat_id=chat_id, username=user_username)
-        if user_id:
-            member = await get_chat_member_or_fall(bot, chat_id, user_id)
-            if member:
-                user_entity = member.user
-        else:
-            # fallback: не нашли id — просто вернем @username
-            return f"@{user_username}"
 
     # 4. Получаем никнейм (если доступен)
     nickname = None
@@ -57,6 +55,8 @@ async def mention_user(
 
     # 5. Если после всего user_entity всё ещё нет — возвращаем безопасный текст
     if not user_entity:
+        if chat_id and user_id:
+            await remove_user(chat_id=chat_id, user_id=user_id) # убираем пользователя, которого нет в чате
 
         # Если есть id, пробуем отметить самостоятельно
         if user_id:
@@ -65,8 +65,12 @@ async def mention_user(
         return "неизвестный пользователь"
 
     # 6. Возвращаем форматированное HTML-упоминание
-    name = nickname or user_entity.full_name or "Пользователь"
+    name = nickname or user_entity.full_name or "неизвестный пользователь"
     return user_entity.mention_html(name=name)
+
+async def mention_user_with_delay(bot, chat_id, user_id):
+    await asyncio.sleep(0.15) # or random.randrange(15, 30) / 100
+    return await mention_user(bot=bot, chat_id=chat_id, user_id=user_id)
 
 async def parse_user_mention(bot: Bot, msg: Message):
     """Парсит пользователя из сообщения."""

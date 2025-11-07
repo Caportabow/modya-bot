@@ -1,8 +1,10 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from utils.telegram.users import mention_user
-from utils.time import get_since
+from datetime import timedelta, datetime, timezone
+
+from utils.telegram.users import mention_user_with_delay
+from utils.time import get_duration, format_timedelta
 from db.leaderboard import user_leaderboard
 
 router = Router(name="leaderboard")
@@ -10,22 +12,31 @@ router = Router(name="leaderboard")
 
 @router.message((F.text.lower().startswith("топ")) & (F.chat.type.in_(["group", "supergroup"])))
 async def stats_handler(msg: Message):
-    """Команда: топ [день|неделя|месяц|год|вся]"""
+    """Команда: топ {период}"""
     bot = msg.bot
     parts = msg.text.split()
-    period = parts[1] if len(parts) > 1 else "вся"
+    period = " ".join(parts[1:]) if len(parts) > 1 else "вся"
 
-    try:
-        since, beauty_since = get_since(period)
-    except ValueError:
+    duration = get_duration(period)
+
+    if isinstance(duration, timedelta):
+        since = datetime.now(timezone.utc) - duration
+        beauty_since = format_timedelta(duration, adder=False)
+    else:
+        since = None
+        beauty_since = "всё время"
+    
+    limit = 15
+    top = await user_leaderboard(int(msg.chat.id), limit=limit, since=since)
+    if not top or len(top) == 0:
+        await msg.reply("❌ Недостаточно информации.")
         return
     
-    top = await user_leaderboard(int(msg.chat.id), since=since)
-    ans = f"📊 Топ сообщений за {beauty_since}:\n\n"
+    ans = f"📊 Топ{(' ' + str(limit)) if len(top) == limit else ''} пользователей за {beauty_since}:\n\n"
     msg_count = 0
 
     for i, u in enumerate(top):
-        mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
+        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
         
         ans += f"{i+1}. {mention} - {u["count"]}\n"
         msg_count += u["count"]

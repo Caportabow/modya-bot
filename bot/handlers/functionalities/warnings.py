@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
+from config import WARNINGS_PICTURE_ID
 from utils.telegram.users import is_admin, mention_user, parse_user_mention
 from utils.telegram.message_templates import generate_warnings_msg
 
@@ -22,9 +23,10 @@ async def get_warnings_handler(msg: Message):
 
     if not target_user: target_user = msg.from_user
 
-    ans = await generate_warnings_msg(bot, int(msg.chat.id), target_user)
+    answers = await generate_warnings_msg(bot, int(msg.chat.id), target_user)
 
-    await msg.reply(ans, parse_mode="HTML")
+    for ans in answers:
+        await msg.reply_photo(photo=WARNINGS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message(((F.text.lower().startswith("+варн")) | (F.text.lower().startswith("варн"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def add_warning_handler(msg: Message):

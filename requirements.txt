@@ -5,4 +5,3 @@ matplotlib
 pandas
 playwright
 filetype
-watchfiles

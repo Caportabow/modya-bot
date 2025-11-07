@@ -1,44 +1,84 @@
-from datetime import timedelta, datetime, timezone
+import re
+from datetime import timedelta
 
-periods = {
-    "day": ["день", "сегодня", "сутки"],
-    "week": ["неделя"],
-    "month": ["месяц"],
-    "year": ["год",],
-    "all": ["вся", "весь", "всё время"],
-}
 
-def get_since(period: str):
-    now = datetime.now(timezone.utc)
-    one_day = now - timedelta(days=1)
-    one_week = now - timedelta(days=7)
-    one_month = now - timedelta(days=30)
-    one_year = now - timedelta(days=365)
-    all_time = None
+def get_duration(text: str) -> timedelta | None:
+    """
+        Парсит человеческое время в машинное.
+        Возвращает None если не получилось.
+    """
+    # Слова с фиксированным значением
+    fixed_words = {
+        "день": timedelta(hours=24),
+        "сегодня": timedelta(hours=24),
+        "сутки": timedelta(hours=24),
+        "неделя": timedelta(weeks=1),
+        "месяц": timedelta(days=30),
+        "год": timedelta(days=365)
+    }
 
-    if period.lower() in periods["day"]:
-        return one_day, "сегодня"
-    elif period.lower() in periods["week"]:
-        return one_week, "неделю"
-    elif period.lower() in periods["month"]:
-        return one_month, "месяц"
-    elif period.lower() in periods["year"]:
-        return one_year, "год"
-    elif period.lower() in periods["all"]:
-        return all_time, "всё время"
-    else:
-        raise ValueError("Unknown period")
+    text_lower = text.lower().strip()
 
-def format_timedelta(delta: timedelta) -> str:
-        seconds = int(delta.total_seconds())
-        if seconds <= 1:
-            return "только что"
-        elif seconds <= 60:
-            return f"{seconds} сек. назад"
-        elif seconds <= 3600:
-            return f"{seconds//60} мин. назад"
-        elif seconds <= 86400:
-            return f"{seconds//3600} ч. назад"
-        else:
-            return f"{delta.days} дн. назад"
+    # Сначала проверяем полностью совпадающие слова
+    if text_lower in fixed_words:
+        return fixed_words[text_lower]
+    
+    # Теперь проверяем полноценные периоды:
+    # Поддерживаемые единицы времени
+    units = {
+        "сек": "seconds",
+        "секунд": "seconds",
+        "секунды": "seconds",
+
+        "мин": "minutes",
+        "минут": "minutes",
+
+        "ч": "hours",
+        "час": "hours",
+        "часов": "hours",
+
+        "дн": "days",
+        "день": "days",
+        "дней": "days",
+        "дня": "days",
+
+        "нед": "weeks",
+        "недели": "weeks",
+        "неделя": "weeks",
+        "недели": "weeks",
+        "недель": "weeks",
+    }
+
+    pattern = r"(\d+)\s*([а-яА-Я]+)"
+    matches = re.findall(pattern, text.lower())
+
+    if not matches: return None # Совпадений не найдено
+
+    kwargs = {"weeks": 0,"days": 0, "hours": 0, "minutes": 0, "seconds": 0}
+
+    for value, unit in matches:
+        value = int(value)
+        for key, td_name in units.items():
+            if unit.startswith(key):
+                kwargs[td_name] += value
+                break
+
+    return timedelta(**kwargs)
+
+def format_timedelta(delta: timedelta, adder: bool = True) -> str:
+    days = delta.days
+    hours = delta.seconds // 3600
+    minutes = (delta.seconds % 3600) // 60
+    seconds = delta.seconds % 60
+
+    parts = []
+    if days > 0:
+        parts.append(f"{days} д.")
+    if hours > 0:
+        parts.append(f"{hours} ч.")
+    if minutes > 0 and days == 0:  # показываем минуты только если нет дней
+        parts.append(f"{minutes} мин.")
+    if seconds > 0 and days == 0 and hours == 0:  # показываем секунды только если нет дней и часов
+        parts.append(f"{seconds} сек.")
         
+    return (' '.join(parts) + (" назад" if adder else "")) if parts else "только-что"

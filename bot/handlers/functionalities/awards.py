@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
+from config import AWARDS_PICTURE_ID
 from utils.telegram.users import mention_user, parse_user_mention
 from utils.telegram.message_templates import generate_awards_msg
 from db.awards import add_award, remove_award
@@ -56,9 +57,10 @@ async def get_awards_handler(msg: Message):
 
     if not target_user: target_user = msg.from_user
 
-    ans = await generate_awards_msg(bot, int(msg.chat.id), target_user)
+    answers = await generate_awards_msg(bot, int(msg.chat.id), target_user)
 
-    await msg.reply(ans, parse_mode="HTML")
+    for ans in answers:   
+        await msg.reply_photo(photo=AWARDS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message(((F.text.lower().startswith("снять награду")) | (F.text.lower().startswith("-награда"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def remove_award_handler(msg: Message):

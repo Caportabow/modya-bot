@@ -84,7 +84,7 @@ async def user_stats(chat_id: int, user_id: int):
     fav_word = await get_favorite_word(chat_id, user_id)
 
     return {
-        "first_seen": f"{first_dt:%d.%m.%Y} ({(f'{age.days} д. ' if age.days > 0 else '')}{age.seconds//3600} ч. назад)",
+        "first_seen": f"{first_dt:%d.%m.%Y} ({format_timedelta(age)})",
         "last_active": format_timedelta(last_diff),
         "activity": f"{rows["day_count"]} | {rows["week_count"]} | {rows["month_count"]} | {rows["total"]}",
         "favorite_word": fav_word

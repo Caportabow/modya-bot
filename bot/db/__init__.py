@@ -62,6 +62,12 @@ async def fetchval(query: str, *args):
         val = await conn.fetchval(query, *args)
         return val or None
 
+async def case(query: str, *args):
+    """Выполняет CASE запросы (аналог cursor.fetchval())."""
+    async with connection() as conn:
+        val = await conn.fetchval(query, *args)
+        return bool(val)
+
 async def count(query: str, *args):
     """Выполняет COUNT запросы (аналог cursor.fetchval())."""
     async with connection() as conn:
@@ -87,13 +93,12 @@ async def create_tables(conn: asyncpg.Connection):
             chat_id BIGINT NOT NULL,
             user_id BIGINT NOT NULL,
             username TEXT,
-            nickname VARCHAR(30),
+            nickname TEXT NOT NULL,
             PRIMARY KEY (chat_id, user_id)
         )
     """)
 
     # Сообщения
-    # TODO: изменить get_user_avatar
     await conn.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         message_id BIGINT NOT NULL, -- Начало параметров для статистики

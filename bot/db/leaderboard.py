@@ -2,7 +2,7 @@ import db
 from datetime import datetime
 
 
-async def user_leaderboard(chat_id: int, limit: int = 10, since: datetime | None = None):
+async def user_leaderboard(chat_id: int, limit: int = 15, since: datetime | None = None):
     """
     Возвращает топ пользователей в чате по количеству сообщений.
     """
