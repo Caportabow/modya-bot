@@ -20,3 +20,8 @@ pgdata/
 *.swp
 *.swo
 *.tmp
+
+# Testing files
+bot/sendm.py
+bot/sendu.py
+test.py

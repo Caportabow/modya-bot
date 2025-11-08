@@ -23,6 +23,10 @@ async def get_warnings_handler(msg: Message):
 
     if not target_user: target_user = msg.from_user
 
+    if target_user.is_bot:
+        await msg.reply("❌ Вы не можете просмотреть варны бота.")
+        return
+
     answers = await generate_warnings_msg(bot, int(msg.chat.id), target_user)
 
     for ans in answers:
@@ -55,6 +59,10 @@ async def add_warning_handler(msg: Message):
 
     if not target_user:
         await msg.reply("❌ Не удалось найти пользователя.")
+        return
+    
+    if target_user.is_bot:
+        await msg.reply("❌ Вы не можете выдать варн боту.")
         return
 
     warn_id = await add_warning(chat_id, int(target_user.id), admin_id, reason)
@@ -96,6 +104,10 @@ async def remove_warning_handler(msg: Message):
 
     if not target_user:
         await msg.reply("❌ Не удалось найти пользователя.")
+        return
+    
+    if target_user.is_bot:
+        await msg.reply("❌ Эта команда не работает с ботами.")
         return
 
     success = await remove_warning(chat_id, int(target_user.id), warn_index)

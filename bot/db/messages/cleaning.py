@@ -37,19 +37,21 @@ async def minmsg_users(chat_id: int, min_messages: int):
         INNER JOIN users u 
             ON u.user_id = m.sender_user_id
             AND u.chat_id = m.chat_id
-        WHERE m.chat_id = $1
-        AND m.date >= $2
+            AND u.rest IS NULL
+            AND u.rest > $1
+        WHERE m.chat_id = $2
+        AND m.date >= $3
         AND (
             SELECT MIN(date)
             FROM messages
             WHERE chat_id = m.chat_id AND sender_user_id = m.sender_user_id
-        ) <= $3
+        ) <= $4
         GROUP BY m.sender_user_id
-        HAVING COUNT(*) < $4
+        HAVING COUNT(*) < $5
         ORDER BY message_count DESC;
     """
 
-    rows = await db.fetchmany(query, chat_id, cutoff_date,
+    rows = await db.fetchmany(query, now_dt, chat_id, cutoff_date,
             min_activity_age, min_messages)
 
     return [{
@@ -63,7 +65,8 @@ async def inactive_users(chat_id: int, duration: timedelta):
     раньше писали сообщения, но не писали за указанный период.
     Для каждого пользователя указывается дата его последнего сообщения.
     """
-    since = datetime.now() - duration
+    now_dt = datetime.now(timezone.utc)
+    since = now_dt - duration
 
     query = """
         SELECT 
@@ -75,15 +78,16 @@ async def inactive_users(chat_id: int, duration: timedelta):
             AND m.sender_user_id = u.user_id
         WHERE 
             u.chat_id = $1
+            AND u.rest IS NULL
+            AND u.rest > $2
         GROUP BY u.user_id
         HAVING 
-            COALESCE(MAX(m.date), '1970-01-01') < $2
+            COALESCE(MAX(m.date), '1970-01-01') < $3
         ORDER BY last_message_date ASC;
     """
 
-    rows = await db.fetchmany(query, chat_id, since)
+    rows = await db.fetchmany(query, chat_id, now_dt, since)
 
-    now_dt = datetime.now(timezone.utc)
     return [
         {
             "user_id": int(row["user_id"]),

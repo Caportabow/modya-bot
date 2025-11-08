@@ -1,6 +1,7 @@
 from aiogram import Bot
+from aiogram.types import User
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from config import HELLO_PICTURE_ID
 
@@ -8,7 +9,8 @@ from db.warnings import get_warnings
 from db.awards import get_awards
 
 from .users import mention_user, mention_user_with_delay
-from utils.time import format_timedelta
+from utils.time import get_duration, format_timedelta
+from db.users.rests import set_rest
 
 
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
@@ -78,3 +80,30 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
     if ans.strip(): answers.append(ans)
 
     return answers
+
+async def generate_rest_msg(bot: Bot, chat_id: int,
+                            data: str, trigger_user: User, target_user: User):
+    trigger_user_mention = await mention_user(bot=bot, user_entity=trigger_user)
+    target_user_mention = await mention_user(bot=bot, user_entity=target_user)
+    
+    if data == 'decline':
+        return f"❗️Пользователю {target_user_mention} отказано в ресте.\n\nАдмин: {trigger_user_mention}"
+    
+    # Определяем временной диапазон
+    duration = get_duration(data)
+
+    if duration is None:
+        return "❌ Не удалось распознать период."
+    
+    if isinstance(duration, str):
+        return "❌ Вы не можете выдать рест навсегда."
+    
+    if duration < timedelta(days=1):
+        return "❌ Вы не можете выдать рест на период меньше одной добы."
+
+    until = datetime.now(timezone.utc) + duration
+    beauty_until = format_timedelta(duration, adder=False)
+
+    await set_rest(chat_id, int(target_user.id), until)
+
+    return f"⏰ Пользователю {target_user_mention} успешно выдан рест на {beauty_until}\n\nАдмин: {trigger_user_mention}"

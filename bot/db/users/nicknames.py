@@ -11,7 +11,7 @@ async def set_nickname(chat_id: int, user_id: int, nickname: str | None):
         """, nickname, chat_id, user_id
     )
 
-async def get_nickname(chat_id: int, user_id: int | None = None) -> str | None:
+async def get_nickname(chat_id: int, user_id: int) -> str | None:
     """Возвращает nickname пользователя в чате по uid."""
     nickname = await db.fetchval(
         """

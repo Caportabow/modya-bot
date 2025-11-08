@@ -60,6 +60,10 @@ def get_duration(text: str) -> timedelta | str | None:
             "месяц": timedelta(days=30),
             "год": timedelta(days=365)
         }
+        for w in text.split():
+            duration = fixed_words.get(w)
+            if duration: return duration
+
         return fixed_words.get(text)
 
 def format_timedelta(delta: timedelta, adder: bool = True) -> str:

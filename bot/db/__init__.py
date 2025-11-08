@@ -94,6 +94,7 @@ async def create_tables(conn: asyncpg.Connection):
             user_id BIGINT NOT NULL,
             username TEXT,
             nickname TEXT NOT NULL,
+            rest TIMESTAMPTZ DEFAULT NULL,
             PRIMARY KEY (chat_id, user_id)
         )
     """)

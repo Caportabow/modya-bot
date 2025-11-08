@@ -7,6 +7,7 @@ from utils.activity_chart import make_activity_chart
 
 from db.messages.statistics import user_stats
 from db.users import get_uid
+from db.users.rests import get_rest
 
 router = Router(name="call")
 
@@ -37,6 +38,7 @@ async def user_info_handler(msg: Message):
     
     stats = await user_stats(int(msg.chat.id), int(user.id))
     img = await make_activity_chart(int(msg.chat.id), int(user.id))
+    rest = await get_rest(int(msg.chat.id), int(user.id))
     if not stats or not img:
         await msg.reply("❌ Нет данных по этому пользователю.")
         return
@@ -58,6 +60,7 @@ async def user_info_handler(msg: Message):
     else: ans += f"Любимое слово: (данных недостаточно)\n"
     ans += f"Первое появление: {stats["first_seen"]}\n"
     ans += f"Последний актив: {stats["last_active"]}\n"
+    ans += f"Рест: {rest or '(не активен)'}\n"
     ans += f"Актив за последние (24ч|7дн|30дн|∞): {stats["activity"]}\n"
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
