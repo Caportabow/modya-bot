@@ -63,7 +63,7 @@ async def inactive_handler(msg: Message):
     chat_id = int(msg.chat.id)
     if len(parts) > 1:
         duration = get_duration(" ".join(parts[1:]))
-        if not duration:
+        if not duration or not isinstance(duration, timedelta):
             await msg.reply("❌ Укажите период корректно.")
             return
     else:

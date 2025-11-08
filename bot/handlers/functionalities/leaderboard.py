@@ -15,10 +15,19 @@ async def stats_handler(msg: Message):
     """Команда: топ {период}"""
     bot = msg.bot
     parts = msg.text.split()
-    period = " ".join(parts[1:]) if len(parts) > 1 else "вся"
 
-    duration = get_duration(period)
+    # Проверяем, указан ли период пользователем
+    if len(parts) > 1:
+        duration = get_duration(" ".join(parts[1:]))
 
+        # Если указано что-то непонятное — предупреждаем
+        if duration is None:
+            await msg.reply("❌ Не удалось распознать период.")
+            return
+    else:
+        duration = "forever"
+
+    # Определяем временной диапазон
     if isinstance(duration, timedelta):
         since = datetime.now(timezone.utc) - duration
         beauty_since = format_timedelta(duration, adder=False)
