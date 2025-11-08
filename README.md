@@ -1,13 +1,8 @@
 # Modya - Your Efficient Chat Assistant
 
+![Modya](./materials/description%20picture/description%20picture.png)
+
 **Modya** is a versatile and efficient assistant for Telegram chats. I created this bot because the alternatives I tried no longer met my expectations. List of commands and functions can be found <a href="https://teletype.in/@caportabow/ModyaTheBot">here</a>.
-
-## Features
-
-- **Message Counting** – Tracks users' activity in the chat.  
-- **Beautiful Telegram Quotes** – Creates visually appealing quotes from messages.  
-- **RP Commands** – Supports roleplay actions in chat.  
-- **User Leaderboards** – Shows rankings based on activity and engagement.  
 
 ## Important Notes
 
