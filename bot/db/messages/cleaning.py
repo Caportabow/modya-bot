@@ -37,8 +37,7 @@ async def minmsg_users(chat_id: int, min_messages: int):
         INNER JOIN users u 
             ON u.user_id = m.sender_user_id
             AND u.chat_id = m.chat_id
-            AND u.rest IS NULL
-            AND u.rest > $1
+            AND (u.rest IS NULL OR u.rest < $1)
         WHERE m.chat_id = $2
         AND m.date >= $3
         AND (
@@ -78,8 +77,7 @@ async def inactive_users(chat_id: int, duration: timedelta):
             AND m.sender_user_id = u.user_id
         WHERE 
             u.chat_id = $1
-            AND u.rest IS NULL
-            AND u.rest > $2
+            AND (u.rest IS NULL OR u.rest < $1)
         GROUP BY u.user_id
         HAVING 
             COALESCE(MAX(m.date), '1970-01-01') < $3

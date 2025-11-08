@@ -10,8 +10,7 @@ async def get_all_rests(chat_id:int) -> list[dict] | None:
         SELECT user_id, rest
         FROM users
         WHERE chat_id = $1
-        AND rest IS NOT NULL
-        AND rest > $2
+        AND (rest IS NOT NULL OR rest > $2)
         """, chat_id, now
     )
 
@@ -61,7 +60,7 @@ async def get_rest(chat_id: int, user_id: int) -> str | None:
         FROM users
         WHERE chat_id = $1
         AND user_id = $2
-        AND rest > $3
+        AND (rest IS NOT NULL OR rest > $3)
         """, chat_id, user_id, now
     )
 
