@@ -1,3 +1,4 @@
+from aiogram import Bot
 from .telegram.users import mention_user
 from config import RP_COMMANDS
 
@@ -26,7 +27,7 @@ def _find_target(text):
     return None, text
 
 
-async def parse_rp_command(bot, chat_id:int, text:str, trigger_user_entity, target_user_entity = None):
+async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity, target_user_entity = None):
     comment, rest = _find_comment(text) # сначала ищем комментарий (!иначе может быть вырезан случайно)
     if not rest: return None
 
@@ -49,5 +50,6 @@ async def parse_rp_command(bot, chat_id:int, text:str, trigger_user_entity, targ
     command = command.format(trigger=trigger_user, target=target_user)
     if rest: command += " " + rest
     if comment: command += f"\n💬 С комментарием: {comment}"
+    #if interraction_success: command += f"\n💖 Крепкость брака увеличилась"
 
     return command

@@ -3,12 +3,13 @@ import os
 
 # Values
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-API_ID = os.getenv("API_ID")
-API_HASH = os.getenv("API_HASH")
 
-# Production
+# Production / Development
 PRODUCTION = True # (ON/OFF)
-DEVELOPERS_ID = [2142151597] # (Telegram user IDs)
+DEVELOPERS_ID = [2142151597, 6038133594] # (Telegram user IDs)
+
+# Misc
+MAX_MESSAGE_LENGTH = 4000  # Максимальная длинна сообщения
 
 # Pictures
 HELLO_PICTURE_ID = "AgACAgIAAyEGAAS7wxNHAANAaPrGTWcs7T0JzbfL8UzY_aqOyg0AAgbxMRuZh9lL7mXuJTHRdj8BAAMCAAN3AAM2BA"
@@ -31,3 +32,6 @@ with open(os.path.join(BASE_DIR, "resources", "rp_commands.json"), "r") as f:
 
 with open(os.path.join(BASE_DIR, "resources", "quote_template.html"), "r", encoding="utf-8") as f:
     QUOTE_TEMPLATE = f.read()
+
+with open(os.path.join(BASE_DIR, "resources", "family_template.html"), "r", encoding="utf-8") as f:
+    FAMILY_TEMPLATE = f.read()

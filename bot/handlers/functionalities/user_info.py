@@ -38,7 +38,6 @@ async def user_info_handler(msg: Message):
     
     stats = await user_stats(int(msg.chat.id), int(user.id))
     img = await make_activity_chart(int(msg.chat.id), int(user.id))
-    rest = await get_rest(int(msg.chat.id), int(user.id))
     if not stats or not img:
         await msg.reply("❌ Нет данных по этому пользователю.")
         return
@@ -56,16 +55,19 @@ async def user_info_handler(msg: Message):
             ans += f"Любимое слово: {fav_word} ({fav_word_count} р.)\n"
         else:
             fav_user_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(fav_user_id))
-            ans += f'Любимый участник: {fav_user_mention} ({fav_word_count} р.)\n'
-    else: ans += f"Любимое слово: (данных недостаточно)\n"
-    ans += f"Первое появление: {stats["first_seen"]}\n"
+            ans += f"Любимый юзер: {fav_user_mention} ({fav_word_count} р.)\n"
+    else: ans += f"(данных недостаточно)\n"
+    ans += f"Дебют: {stats["first_seen"]}\n"
     ans += f"Последний актив: {stats["last_active"]}\n"
-    ans += f"Рест: {rest or '(не активен)'}\n"
-    ans += f"Актив за последние (24ч|7дн|30дн|∞): {stats["activity"]}\n"
+    ans += f"Рест: {stats["rest"] or '(не активен)'}\n"
+    ans += f"Актив (24ч|7дн|30дн|∞): {stats["activity"]}\n"
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
 
     builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="👩‍👩‍👦 Семья", callback_data=f"family,{int(user.id)}"),
+    )
     builder.row(
         InlineKeyboardButton(text="🏆 Награды", callback_data=f"awards,{int(user.id)}"),
         InlineKeyboardButton(text="⚠️ Варны", callback_data=f"warnings,{int(user.id)}")

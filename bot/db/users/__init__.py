@@ -5,9 +5,10 @@ async def upsert_user(chat_id: int, user_id: int, first_name: str, username: str
     """Добавит аккаунт пользователя в чате в ДБ."""
     await db.execute(
         """
-        INSERT INTO users(chat_id, user_id, username, nickname)
+        INSERT INTO users (chat_id, user_id, username, nickname)
         VALUES ($1, $2, $3, $4)
-        ON CONFLICT (chat_id, user_id) DO NOTHING;
+        ON CONFLICT (chat_id, user_id) DO UPDATE
+        SET username = EXCLUDED.username;
         """,
         chat_id, user_id, username, first_name
     )
@@ -37,7 +38,8 @@ async def get_uid(chat_id: int, username: str) -> int | None:
     user_id = await db.fetchval(
         """
         SELECT user_id
-        FROM users WHERE chat_id = $1 AND username = $2
+        FROM users
+        WHERE chat_id = $1 AND username ILIKE $2;
         """, chat_id, username
     )
 

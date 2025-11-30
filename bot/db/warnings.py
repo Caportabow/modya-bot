@@ -1,28 +1,33 @@
 import db
+from asyncpg import Connection
 from datetime import datetime, timezone
 
 
 async def add_warning(chat_id: int, user_id: int, admin_user_id: int, reason: str | None) -> int | None:
     """Добавляет варн пользователю в чате."""
-    await db.execute(
-        """
-        INSERT INTO warnings(chat_id, user_id, administrator_user_id, assignment_date, reason)
-        VALUES ($1, $2, $3, $4, $5)
-        """,
-        chat_id, user_id, admin_user_id, datetime.now(timezone.utc), reason
-    )
+    async with db.transaction() as conn:
+        conn: Connection
 
-    # Считаем количество варнов после добавления
-    count = await db.count(
-        """
-        SELECT COUNT(*)
-        FROM warnings
-        WHERE chat_id = $1 AND user_id = $2
-        """, chat_id, user_id
-    )
+        await conn.execute(
+            """
+            INSERT INTO warnings(chat_id, user_id, administrator_user_id, assignment_date, reason)
+            VALUES ($1, $2, $3, $4, $5)
+            """,
+            chat_id, user_id, admin_user_id, datetime.now(timezone.utc), reason
+        )
+
+        # Считаем количество варнов после добавления
+        count = await conn.fetchval(
+            """
+            SELECT COUNT(*)
+            FROM warnings
+            WHERE chat_id = $1 AND user_id = $2
+            """, chat_id, user_id
+        )
+
     return count
 
-async def get_warnings(chat_id: int, user_id: int) -> list[dict]:
+async def get_user_warnings(chat_id: int, user_id: int) -> list[dict]:
     """Возвращает список варнов пользователя в чате."""
     rows = await db.fetchmany(
         """
@@ -38,6 +43,26 @@ async def get_warnings(chat_id: int, user_id: int) -> list[dict]:
             "administrator_user_id": row['administrator_user_id'],
             "assignment_date": row['assignment_date'],
             "reason": row['reason']
+        }
+        for row in rows
+    ]
+
+async def get_all_warnings(chat_id: int) -> list[dict]:
+    """Возвращает список пользователей с варнами в чате."""
+    rows = await db.fetchmany(
+        """
+        SELECT user_id, COUNT(*) AS warning_count
+        FROM warnings
+        WHERE chat_id = $1
+        GROUP BY user_id
+        ORDER BY warning_count DESC;
+        """, chat_id
+    )
+
+    return [
+        {   
+            "user_id": row['user_id'],
+            "count": row['warning_count'],
         }
         for row in rows
     ]

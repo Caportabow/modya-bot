@@ -20,8 +20,9 @@ async def stats_handler(msg: Message):
     if len(parts) > 1:
         duration = get_duration(" ".join(parts[1:]))
 
-        # Если указано что-то непонятное — предупреждаем
-        if duration is None:
+        # parts[0].lower() == "топ" нужно для избежания моментов когда юзер
+        # пишет что-то по типу Топовый ПК, а бот реагирует на это
+        if duration is None and parts[0].lower() == "топ":
             await msg.reply("❌ Не удалось распознать период.")
             return
     else:

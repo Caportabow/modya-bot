@@ -1,17 +1,44 @@
 from aiogram import Router, F
 from aiogram.types import Message
 
-from config import WARNINGS_PICTURE_ID
-from utils.telegram.users import is_admin, mention_user, parse_user_mention
+from config import WARNINGS_PICTURE_ID, MAX_MESSAGE_LENGTH
+from utils.telegram.users import is_admin, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
 
-from db.warnings import add_warning, remove_warning
+from db.warnings import add_warning, remove_warning, get_all_warnings
 
 router = Router(name="warnings")
 
 
+@router.message(((F.text.lower().startswith("все варны")) | (F.text.lower().startswith("всё варны"))) & (F.chat.type.in_(["group", "supergroup"])))
+async def stats_handler(msg: Message):
+    """Команда: все варны"""
+    bot = msg.bot
+
+    users_with_warnings = await get_all_warnings(int(msg.chat.id))
+    if not users_with_warnings or len(users_with_warnings) == 0:
+        await msg.reply("❌ У пользователей этого чата нет варнов.")
+        return
+    
+    ans = f"⚠️ Топ пользователей по кол-ву варнов в чате:\n\n"
+
+    for i, u in enumerate(users_with_warnings):
+        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
+        line = f"{i+1}. {mention} - {u["count"]}\n"
+
+        # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
+        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            await msg.reply(ans, parse_mode="HTML")
+            ans = ""  # сбрасываем накопленное сообщение
+
+        ans += line
+    
+    # отправляем остаток, если есть
+    if ans.strip():
+        await msg.reply(ans, parse_mode="HTML")
+
 @router.message((F.text.lower().startswith("варны")) & (F.chat.type.in_(["group", "supergroup"])))
-async def get_warnings_handler(msg: Message):
+async def get_user_warnings_handler(msg: Message):
     """Команда: варны @user"""
     bot = msg.bot
     target_user = None

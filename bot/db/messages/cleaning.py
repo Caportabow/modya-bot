@@ -77,7 +77,7 @@ async def inactive_users(chat_id: int, duration: timedelta):
             AND m.sender_user_id = u.user_id
         WHERE 
             u.chat_id = $1
-            AND (u.rest IS NULL OR u.rest < $1)
+            AND (u.rest IS NULL OR u.rest < $2)
         GROUP BY u.user_id
         HAVING 
             COALESCE(MAX(m.date), '1970-01-01') < $3

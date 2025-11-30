@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, BufferedInputFile
 
 from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type
-from utils.quotes import make_quote
+from utils.web.quotes import make_quote
 
 from db.quotes import add_quote
 from db.messages import get_next_messages

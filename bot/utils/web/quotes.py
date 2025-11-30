@@ -1,6 +1,6 @@
 import base64
 import random
-from playwright.async_api import async_playwright
+from . import screenshot
 from config import QUOTE_TEMPLATE
 
 async def make_quote(materials: list) -> bytes:
@@ -104,30 +104,7 @@ async def make_quote(materials: list) -> bytes:
         # Переходим к следующему уникальному элементу
         i = j
 
-    # Читаем HTML-шаблон
-    template = QUOTE_TEMPLATE
+    # делаем скриншот
+    ss = await screenshot(quote_content, QUOTE_TEMPLATE, ".chat-container")
 
-    # подставляем данные
-    html_code = (
-        template
-        .replace("{{messages}}", quote_content)
-    )
-
-    # Рендеринг через Playwright
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--disable-gpu", "--no-sandbox"]
-        )
-        page = await browser.new_page(viewport={"width": 1920, "height": 1080})
-        
-        # Устанавливаем HTML
-        await page.set_content(html_code)
-
-        # Находим элемент и делаем скриншот
-        element = page.locator(".chat-container")
-        screenshot_bytes = await element.screenshot(omit_background=True)
-        
-        await browser.close()
-
-    return screenshot_bytes
+    return ss

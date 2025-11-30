@@ -1,6 +1,5 @@
 asyncpg
 aiogram
-telethon
 matplotlib
 pandas
 playwright

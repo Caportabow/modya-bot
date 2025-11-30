@@ -18,6 +18,10 @@ async def on_message(msg: Message):
     # рп команды
     text = msg.text or msg.caption
     if text:
+        # Удаляем префиксы
+        prefixes = ["!", "/", "-", "—", "."]
+        text = text.lstrip("".join(prefixes))
+
         target_user_entity = None
         reply_message = msg.reply_to_message or msg
         target_user_entity = reply_message.from_user

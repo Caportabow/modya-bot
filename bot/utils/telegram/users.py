@@ -3,16 +3,16 @@ from aiogram import Bot
 from aiogram.types import Message, User
 from aiogram.exceptions import TelegramBadRequest
 
-from db.users import get_uid, remove_user
+from db.users import get_uid
 from db.users.nicknames import get_nickname
 
-
 async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
-    member = None
+    """Пытается получить информацию о пользователе в чате, возвращает None при ошибке."""
     try:
         member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
     except TelegramBadRequest as e:
-        await remove_user(chat_id=chat_id, user_id=user_id)
+        print(f"⚠️ Failed to get chat member {user_id} in chat {chat_id}: {e}")
+        return None
     
     return member
 
@@ -42,7 +42,7 @@ async def mention_user(
     # 3. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
     elif user_id and chat_id:
         # 
-        member = await get_chat_member_or_fall(bot, chat_id, user_id)
+        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
         if member:
             user_entity = member.user
 
@@ -55,9 +55,6 @@ async def mention_user(
 
     # 5. Если после всего user_entity всё ещё нет — возвращаем безопасный текст
     if not user_entity:
-        if chat_id and user_id:
-            await remove_user(chat_id=chat_id, user_id=user_id) # убираем пользователя, которого нет в чате
-
         # Если есть id, пробуем отметить самостоятельно
         if user_id:
             return f'<a href="tg://user?id={user_id}">{nickname or f"@{user_id}"}</a>'
@@ -86,12 +83,10 @@ async def parse_user_mention(bot: Bot, msg: Message):
                     uid = await get_uid(int(msg.chat.id), username)
 
                     if uid:
-                        user = await get_chat_member_or_fall(bot=bot,
-                                                chat_id=msg.chat.id, user_id=uid)
-
-                    if user:
-                        user = user.user
-                        break
+                        member = await get_chat_member_or_fall(bot=bot, chat_id=msg.chat.id, user_id=uid)
+                        if member:
+                            user = member.user
+                            break
                 except:
                     pass
     return user
@@ -99,11 +94,20 @@ async def parse_user_mention(bot: Bot, msg: Message):
 async def is_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
     """Проверяет, является ли пользователь администратором чата."""
     try:
-        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
+        member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
 
         return (
             member.status == "creator" or
             (member.status == "administrator" and member.can_restrict_members)
         ) if member else False
+    except:
+        return False
+    
+async def is_creator(bot: Bot, chat_id: int, user_id: int) -> bool:
+    """Проверяет, является ли пользователь создателем чата."""
+    try:
+        member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+
+        return member.status == "creator" if member else False
     except:
         return False

@@ -36,19 +36,28 @@ def get_duration(text: str) -> timedelta | str | None:
             "ч": "hours", "час": "hours", "часов": "hours",
             "дн": "days", "день": "days", "дней": "days", "дня": "days",
             "нед": "weeks", "неделя": "weeks", "недели": "weeks", "недель": "weeks",
+            "год": "years", "года": "years", "лет": "years"
         }
 
         matches = re.findall(r"(\d+)\s*([а-яА-Я]+)", text)
         if not matches:
             return None
 
-        kwargs = {"weeks": 0,"days": 0, "hours": 0, "minutes": 0, "seconds": 0}
+        kwargs = {"weeks": 0, "days": 0, "hours": 0, "minutes": 0, "seconds": 0}
+        years = 0
+
         for value, unit in matches:
             value = int(value)
             for key, td_name in units.items():
                 if unit.startswith(key):
-                    kwargs[td_name] += value
+                    if td_name == "years":
+                        years += value
+                    else:
+                        kwargs[td_name] += value
                     break
+
+        # Перевод лет в дни (приблизительно)
+        kwargs["days"] += years * 365
 
         return timedelta(**kwargs)
     else:
@@ -67,19 +76,34 @@ def get_duration(text: str) -> timedelta | str | None:
         return fixed_words.get(text)
 
 def format_timedelta(delta: timedelta, adder: bool = True) -> str:
+    total_seconds = int(delta.total_seconds())
     days = delta.days
-    hours = delta.seconds // 3600
-    minutes = (delta.seconds % 3600) // 60
-    seconds = delta.seconds % 60
+    seconds = total_seconds % 86400
+
+    years = days // 365
+    days %= 365
+    months = days // 30
+    days %= 30
+    weeks = days // 7
+    days %= 7
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds %= 60
 
     parts = []
-    if days > 0:
+    if years > 0:
+        parts.append(f"{years} г.")
+    if months > 0 and years == 0:
+        parts.append(f"{months} мес.")
+    if weeks > 0 and years == 0 and months == 0:
+        parts.append(f"{weeks} нед.")
+    if days > 0 and years == 0 and months == 0:
         parts.append(f"{days} д.")
-    if hours > 0:
+    if hours > 0 and years == 0 and months == 0 and weeks == 0:
         parts.append(f"{hours} ч.")
-    if minutes > 0 and days == 0:  # показываем минуты только если нет дней
+    if minutes > 0 and years == 0 and months == 0 and weeks == 0 and days == 0:
         parts.append(f"{minutes} мин.")
-    if seconds > 0 and days == 0 and hours == 0:  # показываем секунды только если нет дней и часов
+    if seconds > 0 and years == 0 and months == 0 and weeks == 0 and days == 0 and hours == 0:
         parts.append(f"{seconds} сек.")
-        
+
     return (' '.join(parts) + (" назад" if adder else "")) if parts else "только-что"

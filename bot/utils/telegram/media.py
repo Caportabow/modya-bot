@@ -1,11 +1,11 @@
 import aiohttp
 import filetype
-from aiogram import types
-from aiogram.types import Message
+from aiogram import Bot
+from aiogram.types import Message, UserProfilePhotos
 
 from config import TELEGRAM_TOKEN
 
-async def get_file_bytes(bot, file_id: str) -> bytes:
+async def get_file_bytes(bot: Bot, file_id: str) -> bytes:
     file = await bot.get_file(file_id)
 
     async with aiohttp.ClientSession() as sess:
@@ -21,11 +21,11 @@ async def get_mime_type(file_bytes: bytes) -> str | None:
         return kind.mime
     return None
 
-async def get_user_avatar(bot, user_id: int) -> bytes | None:
-    photos: types.UserProfilePhotos = await bot.get_user_profile_photos(user_id)
-    if photos.total_count == 0: return None
+async def get_user_avatar(bot: Bot, user_id: int) -> bytes | None:
+    avatar_data: UserProfilePhotos = await bot.get_user_profile_photos(user_id, offset=0, limit=1)
+    if avatar_data.total_count == 0: return None
 
-    sizes = photos.photos[0]  # список PhotoSize
+    sizes = avatar_data.photos[0]  # список PhotoSize
     best = max(sizes, key=lambda p: (p.width or 0) * (p.height or 0))
     bytes = await get_file_bytes(bot, best.file_id)
     return bytes

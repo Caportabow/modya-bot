@@ -7,10 +7,12 @@ from utils.telegram.users import mention_user_with_delay
 from utils.time import get_duration, format_timedelta
 from db.messages.cleaning import minmsg_users, verify_cleaning_possibility, inactive_users
 
+from config import MAX_MESSAGE_LENGTH
+
 router = Router(name="cleaning")
 
 
-@router.message((F.text.lower().startswith("норма")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message((F.text.lower().startswith("норма ")) & (F.chat.type.in_(["group", "supergroup"])))
 async def minmsg_handler(msg: Message):
     """Команда: норма {кол-во сообщений}"""
     bot = msg.bot
@@ -36,16 +38,14 @@ async def minmsg_handler(msg: Message):
         await msg.reply(f"✅ Все участники успешно набрали норму!")
         return
 
-    MAX_LENGTH = 4000  # небольшой запас, чтобы не упереться в лимит
-
     ans_header = f"❗️Следующие участники не набрали норму в {msg_count} сообщений:\n\n"
     ans = ans_header
     for i, u in enumerate(users):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-        line = f"{i+1}. {mention} - {u['count']} сообщений\n"
+        line = f"{i+1}. {mention} ({u['count']} соо.)\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_LENGTH:
+        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
             await msg.reply(ans, parse_mode="HTML")
             ans = ""  # сбрасываем накопленное сообщение
 
@@ -55,7 +55,7 @@ async def minmsg_handler(msg: Message):
     if ans.strip():
         await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("неактив")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message((F.text.lower().startswith("неактив ")) & (F.chat.type.in_(["group", "supergroup"])))
 async def inactive_handler(msg: Message):
     """Команда: неактив {период}"""
     bot = msg.bot
@@ -80,8 +80,6 @@ async def inactive_handler(msg: Message):
         await msg.reply(f"✅ Все участники акивны!")
         return
 
-    MAX_LENGTH = 4000  # небольшой запас, чтобы не упереться в лимит
-
     ans_header = f"❗️Следующие участники не активили последние {format_timedelta(duration, adder=False)}:\n\n"
     ans = ans_header
     for i, u in enumerate(users):
@@ -89,7 +87,7 @@ async def inactive_handler(msg: Message):
         line = f"{i+1}. {mention} ({u['last_message_date']})\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_LENGTH:
+        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
             await msg.reply(ans, parse_mode="HTML")
             ans = ""  # сбрасываем накопленное сообщение
 

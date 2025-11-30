@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+    <style>
+        /* Основные стили */
+        body { 
+            background-color: #1e1e2e; 
+            font-family: 'Inter', 'Noto Color Emoji';
+            padding: 50px; 
+            color: #cdd6f4;
+            display: flex; 
+            justify-content: center;
+        }
+
+        /* === МАГИЯ CSS ДЕРЕВА === */
+        .tree ul {
+            padding-top: 20px;
+            padding-left: 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .tree li {
+            text-align: center;
+            list-style-type: none;
+            position: relative;
+            padding: 20px 5px 0 5px;
+        }
+
+        /* Линии-коннекторы (Сверху вниз) */
+        .tree li::before, .tree li::after {
+            content: ''; position: absolute; top: 0; right: 50%;
+            border-top: 2px solid #585b70;
+            width: 50%; height: 20px;
+        }
+        .tree li::after {
+            right: auto; left: 50%;
+            border-left: 2px solid #585b70;
+        }
+
+        /* Убираем линии у крайних элементов */
+        .tree li:only-child::after, .tree li:only-child::before { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        
+        /* Добавляем вертикальную линию последнему узлу перед группой */
+        .tree li:last-child::before {
+            border-right: 2px solid #585b70;
+            border-radius: 0 5px 0 0;
+        }
+        .tree li:first-child::after {
+            border-radius: 5px 0 0 0;
+        }
+
+        /* Линия вниз от родителя к детям */
+        .tree ul ul::before {
+            content: ''; position: absolute; top: 0; left: 50%;
+            border-left: 2px solid #585b70;
+            width: 0; height: 20px;
+        }
+
+        /* === КАРТОЧКИ ЛЮДЕЙ === */
+        .family-node {
+            display: inline-flex;
+            gap: 5px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #45475a;
+            position: relative;
+            z-index: 10;
+        }
+
+        .family-node.root-couple {
+            border-color: #ffd700 !important; /* золотая рамка */
+        }
+        
+        .member-card {
+            background: #313244;
+            padding: 8px 12px;
+            border-radius: 8px;
+            min-width: 80px;
+            border: 1px solid #45475a;
+        }
+
+        /* Подсветка меня */
+        .me-card {
+            border-color: #8aa0f8 !important;
+            background: #45475a !important;
+        }
+
+        .name { font-weight: bold; font-size: 14px; margin-bottom: 2px;}
+        .id { font-size: 10px; color: #a6adc8; }
+    </style>
+</head>
+<body>
+
+        <div class="tree">
+            <ul>
+    <li><div class="family-node">
+                <div class="member-card ">
+                    <div class="name">Отец</div>
+                </div>
+                
+                <div class="member-card ">
+                    <div class="name">Мать</div>
+                </div>
+                </div><ul><li><div class="family-node">
+                <div class="member-card me-card">
+                    <div class="name">Вы (User)</div>
+                </div>
+                
+                <div class="member-card ">
+                    <div class="name">Жена</div>
+                </div>
+                </div><ul><li><div class="family-node">
+                <div class="member-card ">
+                    <div class="name">Сын</div>
+                </div>
+                </div></li></ul></li><li><div class="family-node">
+                <div class="member-card ">
+                    <div class="name">Брат</div>
+                </div>
+                </div></li></ul></li>
+            </ul>
+        </div>
+</body>
+</html>

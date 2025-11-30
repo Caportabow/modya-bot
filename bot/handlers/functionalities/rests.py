@@ -4,10 +4,11 @@ from aiogram.types import Message, InlineKeyboardButton
 
 from datetime import timedelta, datetime, timezone
 
-from utils.telegram.users import mention_user, parse_user_mention, is_admin, mention_user_with_delay
+from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
 from utils.time import get_duration, format_timedelta
 from db.messages.statistics import user_stats
 from db.users.rests import set_rest, get_all_rests
+from config import MAX_MESSAGE_LENGTH
 
 router = Router(name="rests")
 
@@ -23,8 +24,6 @@ async def stats_handler(msg: Message):
         await msg.reply(f"✅ В этом чате нету участников с активным рестом.")
         return
 
-    MAX_LENGTH = 4000  # небольшой запас, чтобы не упереться в лимит
-
     ans_header = f"❗️Следующие участники находяться в ресте:\n\n"
     ans = ans_header
     for i, r in enumerate(rests):
@@ -32,7 +31,7 @@ async def stats_handler(msg: Message):
         line = f"{i+1}. {mention} - {r['rest']}\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_LENGTH:
+        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
             await msg.reply(ans, parse_mode="HTML")
             ans = ""  # сбрасываем накопленное сообщение
 
@@ -70,6 +69,10 @@ async def ask_for_rest(msg: Message):
     if duration < timedelta(days=1):
         await msg.reply("❌ Вы не можете взять рест на период меньше одной добы.")
         return
+    
+    if duration > timedelta(days=365):
+        await msg.reply("❌ Вы не можете взять рест на период больше года.")
+        return
 
     # Определяем временной диапазон
     beauty_until = format_timedelta(duration, adder=False)
@@ -78,6 +81,9 @@ async def ask_for_rest(msg: Message):
     builder.row(
         InlineKeyboardButton(text="✅ Одобрить", callback_data=f"rest,{rest_info}"),
         InlineKeyboardButton(text="❌ Отказать", callback_data=f"rest,decline")
+    )
+    builder.row(
+        InlineKeyboardButton(text="🏃 Отозвать просьбу", callback_data=f"rest,retire")
     )
 
     stats = await user_stats(int(msg.chat.id), int(target_user.id))
@@ -97,7 +103,21 @@ async def give_rest(msg: Message):
     chat_id = int(msg.chat.id)
     trigger_user_id = int(msg.from_user.id)
     duration = None
+    
+    duration = get_duration(" ".join(parts[1:]))
 
+    if duration is None:
+        await msg.reply("❌ Не удалось распознать период.")
+        return
+    
+    if isinstance(duration, str):
+        await msg.reply("❌ Вы не можете выдать рест навсегда.")
+        return
+    
+    if duration < timedelta(days=1):
+        await msg.reply("❌ Вы не можете выдать рест на период меньше одной добы.")
+        return
+    
     target_user = await parse_user_mention(bot, msg)
 
     if msg.reply_to_message and not target_user:
@@ -114,22 +134,10 @@ async def give_rest(msg: Message):
     target_user_id = int(target_user.id)
 
     if target_user_id == trigger_user_id:
-        await msg.reply("❌ Вы не можете выдать рест самому себе.")
-        return
-    
-    duration = get_duration(" ".join(parts[1:]))
-
-    if duration is None:
-        await msg.reply("❌ Не удалось распознать период.")
-        return
-    
-    if isinstance(duration, str):
-        await msg.reply("❌ Вы не можете выдать рест навсегда.")
-        return
-    
-    if duration < timedelta(days=1):
-        await msg.reply("❌ Вы не можете выдать рест на период меньше одной добы.")
-        return
+        creator = await is_creator(bot, chat_id, trigger_user_id)
+        if not creator:
+            await msg.reply("❌ Вы не можете выдать рест самому себе.")
+            return
 
     admin = await is_admin(bot, chat_id, trigger_user_id)
     if not admin:
