@@ -28,35 +28,43 @@ async def minmsg_users(chat_id: int, min_messages: int):
     (анализ за последние 7 дней, при условии, что с первого сообщения прошло ≥ 4 дней).
     """
     now_dt = datetime.now(timezone.utc)
-    cutoff_date = now_dt - timedelta(days=7) # последние 7 дней
-    min_activity_age = now_dt - timedelta(days=4) # минимум 4 дня с первого сообщения
+    cutoff_date = now_dt - timedelta(days=7)
+    min_activity_age = now_dt - timedelta(days=4)
 
-    query = f"""
+    query = """
+        WITH first_message_dates AS (
+            SELECT 
+                chat_id, 
+                sender_user_id,
+                MIN(date) as first_message_date
+            FROM messages
+            WHERE chat_id = $2
+            GROUP BY chat_id, sender_user_id
+        )
         SELECT m.sender_user_id, COUNT(*) AS message_count
         FROM messages m
         INNER JOIN users u 
             ON u.user_id = m.sender_user_id
             AND u.chat_id = m.chat_id
             AND (u.rest IS NULL OR u.rest < $1)
+        INNER JOIN first_message_dates fmd
+            ON fmd.chat_id = m.chat_id
+            AND fmd.sender_user_id = m.sender_user_id
+            AND fmd.first_message_date <= $4
         WHERE m.chat_id = $2
-        AND m.date >= $3
-        AND (
-            SELECT MIN(date)
-            FROM messages
-            WHERE chat_id = m.chat_id AND sender_user_id = m.sender_user_id
-        ) <= $4
+          AND m.date >= $3
         GROUP BY m.sender_user_id
         HAVING COUNT(*) < $5
         ORDER BY message_count DESC;
     """
-
+    
     rows = await db.fetchmany(query, now_dt, chat_id, cutoff_date,
             min_activity_age, min_messages)
-
+    
     return [{
-            "user_id": row["sender_user_id"],
-            "count": row["message_count"]
-        } for row in rows ] if rows else None
+        "user_id": row["sender_user_id"],
+        "count": row["message_count"]
+    } for row in rows] if rows else None
 
 async def inactive_users(chat_id: int, duration: timedelta):
     """
