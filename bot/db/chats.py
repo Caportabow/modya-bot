@@ -18,3 +18,12 @@ async def forget_chat(chat_id: int):
         WHERE chat_id = $1;
         """, chat_id
     )
+
+async def get_all_chat_ids():
+    """Получаем айди всех чатов из датабазы."""
+    chats = await db.fetchmany(
+        """
+            SELECT * FROM chats
+        """
+    )
+    return [chat['chat_id'] for chat in chats]

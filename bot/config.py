@@ -2,7 +2,7 @@ import json
 import os
 
 # Values
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 
 # Production / Development
 PRODUCTION = True # (ON/OFF)
@@ -20,7 +20,7 @@ AWARDS_PICTURE_ID = "AgACAgIAAxkDAAM3aQ4h2VyWuWuHZvawnr6fuVNPSgEAAn4Laxsq9nlILkQ
 WARNINGS_PICTURE_ID = "AgACAgIAAxkDAAM4aQ4h2qsd4nqp5LrvZ9CSMpyf2D0AAn8Laxsq9nlIWLKcJyh1sqcBAAMCAAN3AAM2BA"
 
 # Modules
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

@@ -21,9 +21,14 @@
 3. Create a new file - `docker-compose.yml` based on the example `docker-compose.yml.example` and  delete the above-mentioned
 
 4. Usage
-    ```bash
-    docker compose up -d --build
-    ```
+    1. Run Bot
+        ```bash
+        docker compose up -d --build
+        ```
+    2. Send a Mailing (container should be running)
+        ```bash
+        docker exec -it modya python mailing.py
+        ```
 
 
 ## License

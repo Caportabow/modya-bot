@@ -7,7 +7,6 @@ from utils.activity_chart import make_activity_chart
 
 from db.messages.statistics import user_stats
 from db.users import get_uid
-from db.users.rests import get_rest
 
 router = Router(name="call")
 
