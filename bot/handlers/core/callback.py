@@ -2,9 +2,9 @@ from aiogram import Router, Bot
 from aiogram.types import CallbackQuery, Message, BufferedInputFile
 
 from utils.web.families import make_family_tree
-from config import WARNINGS_PICTURE_ID, AWARDS_PICTURE_ID, MARRIAGES_PICTURE_ID
+from config import WARNINGS_PICTURE_ID, AWARDS_PICTURE_ID
 from db.marriages import make_marriage
-from db.marriages.families import adopt_child, check_adoption_possibility, get_family_tree_data
+from db.marriages.families import adopt_child, check_adoption_possibility, get_family_tree_data, incest_cycle
 from utils.telegram.users import is_admin, is_creator, get_chat_member_or_fall, mention_user
 from utils.telegram.message_templates import generate_awards_msg, generate_warnings_msg, generate_rest_msg, check_marriage_loyality
 
@@ -109,12 +109,18 @@ async def handle_marriage(callback: CallbackQuery, bot: Bot, msg: Message, chat_
         loyality = await check_marriage_loyality(bot, chat_id, trigger_user_id, target_user_id)
         if not loyality:
             return
+        
+        ic = await incest_cycle(int(msg.chat.id), trigger_user_id, target_user_id)
+        if ic:
+            ans = "❌ Вы не можете заключить брак со своим предком."
+            await msg.reply(text=ans, parse_mode="HTML")
+            return
 
         result = await make_marriage(chat_id, [trigger_user_id, target_user_id])
         failure = not result.get("success", False) if isinstance(result, dict) else False
 
         if failure:
-            ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке"
+            ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке."
             await msg.reply(text=ans, parse_mode="HTML")
             return
         

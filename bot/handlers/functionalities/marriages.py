@@ -6,7 +6,7 @@ from utils.telegram.message_templates import check_marriage_loyality, delete_mar
 from utils.telegram.users import mention_user_with_delay, parse_user_mention, mention_user
 from config import MARRIAGES_PICTURE_ID, MAX_MESSAGE_LENGTH
 from db.marriages import get_marriages, get_user_marriage
-from db.marriages.families import check_adoption_possibility, is_parent, is_child, abandon, get_family_tree_data
+from db.marriages.families import check_adoption_possibility, is_parent, is_child, abandon, get_family_tree_data, incest_cycle
 from utils.web.families import make_family_tree
 
 router = Router(name="marriages")
@@ -93,6 +93,12 @@ async def propose(msg: Message):
     
     loyality = await check_marriage_loyality(bot, chat_id, trigger_user_id, target_user_id)
     if not loyality: return
+
+    ic = await incest_cycle(int(msg.chat.id), trigger_user_id, target_user_id)
+    if ic:
+        ans = "❌ Вы не можете заключить брак со своим предком."
+        await msg.reply(text=ans, parse_mode="HTML")
+        return
 
     builder = InlineKeyboardBuilder()
     builder.row(

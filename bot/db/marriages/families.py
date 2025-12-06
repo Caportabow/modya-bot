@@ -4,6 +4,47 @@ from utils.time import format_timedelta
 import db
 from . import get_user_marriage
 
+async def incest_cycle(chat_id: int, first_user_id: int, second_user_id: int) -> bool:
+    """
+    Проверяет, является ли один из пользователей предком другого.
+    """
+    
+    result = await db.fetchone(
+        """
+        WITH RECURSIVE family_tree AS (
+            -- Начальная точка: находим родителей ОБОИХ пользователей
+            SELECT 
+                parent.user_id, 
+                parent.parent_marriage_id,
+                parent.marriage_id,
+                child.user_id as child_id
+            FROM users parent
+            JOIN users child ON parent.marriage_id = child.parent_marriage_id
+            WHERE child.user_id IN ($1, $2) AND child.chat_id = $3
+
+            UNION ALL
+
+            -- Рекурсивная часть: поднимаемся по дереву предков
+            SELECT 
+                grandparent.user_id, 
+                grandparent.parent_marriage_id,
+                grandparent.marriage_id,
+                ft.child_id
+            FROM users grandparent
+            JOIN family_tree ft ON grandparent.marriage_id = ft.parent_marriage_id
+            WHERE grandparent.chat_id = $3
+        )
+        -- Проверяем: есть ли первый пользователь среди предков второго ИЛИ наоборот
+        SELECT 1 FROM family_tree 
+        WHERE (child_id = $1 AND user_id = $2) 
+           OR (child_id = $2 AND user_id = $1)
+        LIMIT 1;
+        """, 
+        first_user_id, second_user_id, chat_id
+    )
+    
+    return bool(result)
+
 async def is_ancestor(chat_id: int, potential_ancestor_id: int, subject_id: int) -> bool:
     """
     Проверяет, является ли potential_ancestor_id предком для subject_id.

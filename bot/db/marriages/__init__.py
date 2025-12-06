@@ -218,4 +218,3 @@ async def delete_marriage(chat_id: int, user_id: int):
         "partner": partners[0] if partners else None,
         "abandoned_children": abandoned_child_ids,
     }
-
