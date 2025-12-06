@@ -24,6 +24,8 @@ async def screenshot(html_body: str, template: str, core_element_name: str) -> b
         # Устанавливаем HTML
         await page.set_content(html_code)
 
+        await page.wait_for_load_state('domcontentloaded')
+
         # Находим элемент и делаем скриншот
         element = page.locator(core_element_name)
         screenshot_bytes = await element.screenshot(omit_background=True)
