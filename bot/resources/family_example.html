@@ -96,38 +96,104 @@
 
         .name { font-weight: bold; font-size: 14px; margin-bottom: 2px;}
         .id { font-size: 10px; color: #a6adc8; }
+
+        /* Стили для ссылок на повторяющиеся семьи */
+        .reference-node {
+            opacity: 0.65;
+            border: 1px dashed #6c7086 !important;
+            background: rgba(108, 112, 134, 0.1) !important;
+        }
+
+        .reference-card {
+            background: #262637 !important;
+            border-color: #6c7086 !important;
+        }
+
+        .reference-card .name {
+            font-size: 12px;
+            color: #9399b2;
+        }
+
+        .reference-card .id {
+            font-size: 9px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-
-        <div class="tree">
-            <ul>
-    <li><div class="family-node">
-                <div class="member-card ">
-                    <div class="name">Отец</div>
+    <div class="tree">
+        <ul>
+            <li>
+                <div class="family-node root-couple">
+                    <div class="member-card ">
+                        <div class="name">Taemar</div>
+                        <div class="id">пока без родителей</div>
+                    </div>
+                    <div class="member-card ">
+                        <div class="name">Венера.</div>
+                        <div class="id">пока без родителей</div>
+                    </div>
                 </div>
-                
-                <div class="member-card ">
-                    <div class="name">Мать</div>
-                </div>
-                </div><ul><li><div class="family-node">
-                <div class="member-card me-card">
-                    <div class="name">Вы (User)</div>
-                </div>
-                
-                <div class="member-card ">
-                    <div class="name">Жена</div>
-                </div>
-                </div><ul><li><div class="family-node">
-                <div class="member-card ">
-                    <div class="name">Сын</div>
-                </div>
-                </div></li></ul></li><li><div class="family-node">
-                <div class="member-card ">
-                    <div class="name">Брат</div>
-                </div>
-                </div></li></ul></li>
-            </ul>
-        </div>
+                <ul>
+                    <li>
+                        <div class="family-node ">
+                            <div class="member-card ">
+                                <div class="name">Девственность</div>
+                                <div class="id">пока без родителей</div>
+                            </div>
+                            <div class="member-card me-card">
+                                <div class="name">Вы (превысокорассмотри..)</div>
+                                <div class="id">сын/дочь уже 5 д. 17 ч.</div>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>
+                                <div class="family-node ">
+                                    <div class="member-card ">
+                                        <div class="name">𝓛𝓾𝓶𝓲 [her/she🍵]#𝓮𝓷..</div>
+                                        <div class="id">сын/дочь уже 5 д. 16 ч.</div>
+                                    </div>
+                                    <div class="member-card ">
+                                        <div class="name">фальшива жопа</div>
+                                        <div class="id">сын/дочь уже 1 д. 19 ч.</div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <div class="family-node ">
+                            <div class="member-card ">
+                                <div class="name">Ｓｅｉｓｈｉ #Шотикчпокч..</div>
+                                <div class="id">сын/дочь уже 5 д. 15 ч.</div>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="family-node ">
+                            <div class="member-card ">
+                                <div class="name">мямяммя🫩</div>
+                                <div class="id">сын/дочь уже 1 д. 19 ч.</div>
+                            </div>
+                            <div class="member-card ">
+                                <div class="name">***Minka-🎎#intp🌀</div>
+                                <div class="id">сын/дочь уже 1 д. 19 ч.</div>
+                            </div>
+                        </div>
+                        <ul>
+                            <li>
+                                <div class="family-node reference-node">
+                                    <div class="member-card reference-card">
+                                        <div class="name">𝓛𝓾𝓶𝓲 [her/sh.. & фальшива жоп..</div>
+                                        <div class="id">← показано выше</div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
 </body>
 </html>
