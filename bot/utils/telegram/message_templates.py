@@ -38,7 +38,12 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
     for i, a in enumerate(awards):
         award = a["award"]
         date = format_timedelta(datetime.now(timezone.utc) - a["assignment_date"])
-        line = f"🎗{i+1}. {award} | {date}\n\n"
+
+        line = (
+            f"🎗 Награда #{i+1}\n"
+            f"• Название: {award}\n"
+            f"• Выдана: {date}\n\n"
+        )
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
@@ -68,7 +73,8 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
         reason = w["reason"] or "Причина не указана"
         date = format_timedelta(datetime.now(timezone.utc) - w["assignment_date"])
         moderator_mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
-        line = f"🔸{i+1}. {reason} | {date}\n      Модератор: {moderator_mention}\n\n"
+        formatted_expire_date = format_timedelta(w["expire_date"] - datetime.now(timezone.utc), False) if w["expire_date"] else "навсегда"
+        line = f"┌ <b>Варн #{i+1}</b>\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:

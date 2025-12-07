@@ -1,11 +1,14 @@
 from aiogram import Router, F
 from aiogram.types import Message
+from datetime import datetime, timezone, timedelta
 
 from config import WARNINGS_PICTURE_ID, MAX_MESSAGE_LENGTH
-from utils.telegram.users import is_admin, mention_user, parse_user_mention, mention_user_with_delay
+from utils.telegram import remove_message_entities
+from utils.time import get_duration, format_timedelta
+from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
 
-from db.warnings import add_warning, remove_warning, get_all_warnings
+from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
 
 router = Router(name="warnings")
 
@@ -61,14 +64,20 @@ async def get_user_warnings_handler(msg: Message):
 
 @router.message(((F.text.lower().startswith("+варн")) | (F.text.lower().startswith("варн"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def add_warning_handler(msg: Message):
-    """Команда: +варн @user [причина]"""
+    """Команда: +варн {период} @user {отступ} {причина}"""
     bot = msg.bot
     admin_id = int(msg.from_user.id)
     chat_id = int(msg.chat.id)
 
     target_user = None
     text_sep = msg.text.split("\n")
-    reason = text_sep[1] if len(text_sep) > 1 else None
+
+    no_entities_text = remove_message_entities(msg, text_sep[0])
+    period_str = " ".join(no_entities_text.split(" ")[1:]) if no_entities_text else None
+    period = get_duration(period_str) if period_str else None
+    expire_date = (datetime.now(timezone.utc) + period) if isinstance(period, timedelta) else None
+
+    reason = "\n".join(text_sep[1:]) if len(text_sep) > 1 else None
 
     if len(reason or "") > 70:
         await msg.reply("❌ Слишком длинная причина варна (макс 70 символов).")
@@ -92,11 +101,12 @@ async def add_warning_handler(msg: Message):
         await msg.reply("❌ Вы не можете выдать варн боту.")
         return
 
-    warn_id = await add_warning(chat_id, int(target_user.id), admin_id, reason)
+    warn_id = await add_warning(chat_id, int(target_user.id), admin_id, reason, expire_date)
     warn_info = f" (#{warn_id})" if warn_id else ""
 
     mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-    await msg.reply(f"✅ Варн{warn_info} выдан пользователю {mention}.\nПричина: {reason or 'не указана'}", parse_mode="HTML")
+    formatted_period = f"на {format_timedelta(period, False)}" if isinstance(period, timedelta) else "навсегда"
+    await msg.reply(f"✅ Варн{warn_info} {formatted_period} выдан пользователю {mention}.\nПричина: {reason or 'не указана'}", parse_mode="HTML")
 
     if warn_id and warn_id >= 3:
         await msg.reply(f"⚠️ Пользователь {mention} получил 3 и более варнов. Рекомендуется рассмотреть возможность бана.", parse_mode="HTML")
@@ -142,3 +152,18 @@ async def remove_warning_handler(msg: Message):
         await msg.reply(f"✅ Варн{f' #{warn_index+1}' if warn_index else ''} снят успешно.", parse_mode="HTML")
     else:
         await msg.reply("❌ Не удалось снять варн. Проверьте правильность индекса." if warn_index is not None else "❌ У пользователя нет варнов.")
+
+@router.message((F.text.lower().startswith("амнистия")) & (F.chat.type.in_(["group", "supergroup"])))
+async def do_amnesty(msg: Message):
+    """Команда: амнистия"""
+    bot = msg.bot
+    admin_id = int(msg.from_user.id)
+    chat_id = int(msg.chat.id)
+
+    is_admin_user = await is_creator(bot, chat_id, admin_id)
+    if not is_admin_user:
+        await msg.reply("❌ Только создатель чата может использовать эту команду.")
+        return
+
+    await amnesty(chat_id)
+    await msg.reply(f"✅ Все варны очищены.", parse_mode="HTML")

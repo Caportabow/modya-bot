@@ -3,17 +3,17 @@ from asyncpg import Connection
 from datetime import datetime, timezone
 
 
-async def add_warning(chat_id: int, user_id: int, admin_user_id: int, reason: str | None) -> int | None:
+async def add_warning(chat_id: int, user_id: int, admin_user_id: int, reason: str | None, expire_date: datetime | None) -> int | None:
     """Добавляет варн пользователю в чате."""
     async with db.transaction() as conn:
         conn: Connection
 
         await conn.execute(
             """
-            INSERT INTO warnings(chat_id, user_id, administrator_user_id, assignment_date, reason)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO warnings(chat_id, user_id, administrator_user_id, assignment_date, reason, expire_date)
+            VALUES ($1, $2, $3, $4, $5, $6)
             """,
-            chat_id, user_id, admin_user_id, datetime.now(timezone.utc), reason
+            chat_id, user_id, admin_user_id, datetime.now(timezone.utc), reason, expire_date
         )
 
         # Считаем количество варнов после добавления
@@ -31,7 +31,7 @@ async def get_user_warnings(chat_id: int, user_id: int) -> list[dict]:
     """Возвращает список варнов пользователя в чате."""
     rows = await db.fetchmany(
         """
-        SELECT administrator_user_id, assignment_date, reason
+        SELECT administrator_user_id, assignment_date, reason, expire_date
         FROM warnings
         WHERE chat_id = $1 AND user_id = $2
         ORDER BY assignment_date ASC;
@@ -42,7 +42,8 @@ async def get_user_warnings(chat_id: int, user_id: int) -> list[dict]:
         {   
             "administrator_user_id": row['administrator_user_id'],
             "assignment_date": row['assignment_date'],
-            "reason": row['reason']
+            "reason": row['reason'],
+            "expire_date": row['expire_date']
         }
         for row in rows
     ]
@@ -92,3 +93,15 @@ async def remove_warning(chat_id: int, user_id: int,
     )
 
     return True
+
+async def amnesty(chat_id: int):
+    await db.execute(
+        "DELETE FROM warnings WHERE chat_id = $1",
+        chat_id
+    )
+
+async def expire_warnings():
+    await db.execute(
+        "DELETE FROM warnings WHERE expire_date IS NOT NULL AND expire_date <= $1",
+        datetime.now(timezone.utc)
+    )

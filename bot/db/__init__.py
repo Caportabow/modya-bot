@@ -213,6 +213,7 @@ async def create_tables(conn: asyncpg.Connection):
             administrator_user_id BIGINT NOT NULL,
             assignment_date TIMESTAMPTZ NOT NULL,
             reason TEXT NULL,
+            expire_date TIMESTAMPTZ DEFAULT NULL,
 
             -- Relations
             CONSTRAINT warnings_chat_fk
@@ -229,6 +230,10 @@ async def create_tables(conn: asyncpg.Connection):
         
         CREATE INDEX IF NOT EXISTS idx_user_warnings
             ON warnings(chat_id, user_id);
+        
+        CREATE INDEX IF NOT EXISTS idx_warnings_with_expire_date
+            ON warnings(expire_date)
+            WHERE expire_date IS NOT NULL;
     """)
 
     # Награды
