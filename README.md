@@ -51,9 +51,9 @@ For a complete list of commands and functions, visit the [official documentation
    cp docker-compose.yml.example docker-compose.yml
    ```
    
-   Edit `docker-compose.yml` and `config.py` with your configuration:
-   - Bot token from [@BotFather](https://t.me/botfather)
-   - Other required settings
+   Rename `docker-compose.example.yml` to `docker-compose.yml` and configure both it and `config.py`:
+	-	Insert your bot token obtained from [@BotFather](https://t.me/botfather)
+	-	Set up additional required options
 
 3. **Build and start**
    ```
