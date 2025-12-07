@@ -1,31 +1,129 @@
-# Modya - Your Efficient Chat Assistant
+# 🤖 Modya - Your Efficient Chat Assistant
+
+<div align="center">
 
 ![Modya](./materials/description%20picture/description%20picture.png)
 
-**Modya** is a versatile and efficient assistant for Telegram chats. I created this bot because the alternatives I tried no longer met my expectations. List of commands and functions can be found <a href="https://teletype.in/@caportabow/ModyaTheBot">here</a>.
+**A versatile and efficient assistant for Telegram chats**
 
-## Important Notes
+[![License](https://img.shields.io/badge/license-Custom-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
-- **Images** used by the bot are protected by intellectual property rights and **cannot be used in other projects**. Users need to replace them if necessary.  
-- **Code Usage**: You are allowed to use the bot's code **only in non-commercial projects**. Please **credit me** when doing so.  
+[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
-## Installation & Usage
+</div>
 
-1. Clone this repository:
-   ```bash
+---
+
+## 📖 About
+
+Modya is a powerful Telegram bot built from the ground up because existing alternatives no longer met expectations. Designed with efficiency and versatility in mind, Modya brings advanced chat management capabilities to your Telegram groups.
+
+## ✨ Features
+
+- 🔧 **Comprehensive Command System** - Full suite of management and utility commands
+- 📊 **Advanced Analytics** - Track and analyze chat activity patterns
+- 🔔 **Smart Notifications** - Customizable maintenance and event alerts
+- 👥 **User Management** - Automated moderation and activity monitoring
+- 🐳 **Docker Ready** - Easy deployment with containerization
+- 🔄 **Asynchronous Design** - Built with modern async/await patterns for optimal performance
+
+For a complete list of commands and functions, visit the [official documentation](https://teletype.in/@caportabow/ModyaTheBot).
+
+## 🚀 Installation
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Git
+
+### Quick Start
+
+1. **Clone the repository**
+   ```
    git clone https://github.com/Caportabow/modya-bot.git
+   cd modya-bot
    ```
 
-2.	Install Docker
+2. **Configure environment**
+   ```
+   cp docker-compose.yml.example docker-compose.yml
+   ```
+   
+   Edit `docker-compose.yml` and `config.py` with your configuration:
+   - Bot token from [@BotFather](https://t.me/botfather)
+   - Other required settings
 
-3. Create a new file - `docker-compose.yml` based on the example `docker-compose.yml.example` and  delete the above-mentioned
+3. **Build and start**
+   ```
+   docker compose up -d --build
+   ```
 
-4. Usage
-    1. Run Bot
-        ```bash
-        docker compose up -d --build
-        ```
-    2. Send a Mailing (container should be running)
-        ```bash
-        docker exec -it modya python mailing.py
-        ```
+## 💡 Usage
+
+### Running the Bot
+
+Start the bot in detached mode:
+```
+docker compose up -d --build
+```
+
+View logs:
+```
+docker compose logs -f
+```
+
+Stop the bot:
+```
+docker compose down
+```
+
+### Sending Mailings
+
+Execute mailings while the container is running:
+```
+docker exec -it modya python mailing.py
+```
+
+## 📚 Documentation
+
+Detailed documentation, including all available commands and their usage, can be found at:
+https://teletype.in/@caportabow/ModyaTheBot
+
+## 🏗️ Tech Stack
+
+- **Language**: Python 3.9+
+- **Framework**: aiogram (async Telegram Bot API wrapper)
+- **Database**: PostgreSQL with asyncpg
+- **Deployment**: Docker & Docker Compose
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs by opening an issue
+- Suggest new features
+- Submit pull requests
+
+## 📄 License
+
+This project uses a custom license:
+- ✅ Full code use in private projects
+- ✅ Reuse of individual modules in non-commercial projects (with attribution)
+- ❌ Use of artwork and images is prohibited
+
+See [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Telegram**: [@ModyaTheBot](https://t.me/ModyaTheBot)
+- **Documentation**: [teletype.in/@caportabow/ModyaTheBot](https://teletype.in/@caportabow/ModyaTheBot)
+- **Issues**: [GitHub Issues](https://github.com/Caportabow/modya-bot/issues)
+
+---
+
+<div align="center">
+
+Made with ❤️ by [Caportabow](https://github.com/Caportabow)
+
+</div>
