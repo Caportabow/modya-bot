@@ -129,8 +129,7 @@ async def divorce(msg: Message):
 
     success = await delete_marriage_and_notify(bot, chat_id, trigger_user_id)
     if not success:
-        await msg.reply("❌ Вы не женаты.", parse_mode="HTML")
-    
+        await msg.reply("❌ Вы не женаты.", parse_mode="HTML") 
 
 @router.message(((F.text.lower().startswith("усыновить")) | (F.text.lower().startswith("удочерить"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def adopt(msg: Message):
@@ -242,7 +241,7 @@ async def abandon_parent(msg: Message):
     ans = f"🧑‍🧑‍🧒 {trigger_user_mention}, вы успешно покинули семью.\n"
     ans += f"💔 Надеюсь это было взвешенное решение.."
 
-    await abandon_child(chat_id, trigger_user_id)
+    await abandon(chat_id, trigger_user_id)
 
     await msg.reply(text=ans, parse_mode="HTML")
 
