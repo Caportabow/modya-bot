@@ -26,7 +26,6 @@ def _find_target(text):
             return word[1:] if len(word) > 1 else None, " ".join(rest) if rest else None
     return None, text
 
-
 async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity, target_user_entity = None):
     comment, rest = _find_comment(text) # сначала ищем комментарий (!иначе может быть вырезан случайно)
     if not rest: return None
@@ -42,13 +41,13 @@ async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity,
     # Упоминаем юзеров
     trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user_entity)
     if target_user_username:
-        target_user = await mention_user(bot=bot, chat_id=chat_id, user_username=target_user_username)
+        target_user = await mention_user(bot=bot, chat_id=chat_id, user_username=target_user_username, format_nickname='accs')
     else:
-        target_user = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user_entity)
+        target_user = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user_entity, format_nickname='accs')
     
     # Теперь собираем команду.
+    if rest: trigger_user += f" {rest}"
     command = command.format(trigger=trigger_user, target=target_user)
-    if rest: command += " " + rest
     if comment: command += f"\n💬 С комментарием: {comment}"
     #if interraction_success: command += f"\n💖 Крепкость брака увеличилась"
 

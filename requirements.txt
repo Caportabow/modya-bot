@@ -4,3 +4,4 @@ matplotlib
 pandas
 playwright
 filetype
+pymorphy3
