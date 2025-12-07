@@ -29,8 +29,3 @@
         ```bash
         docker exec -it modya python mailing.py
         ```
-
-
-## License
-
-Non-commercial use only. Credit to the creator is required.
