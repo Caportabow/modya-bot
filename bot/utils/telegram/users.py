@@ -1,5 +1,4 @@
 import asyncio
-import pymorphy3
 from aiogram import Bot
 from aiogram.types import Message, User
 from aiogram.exceptions import TelegramBadRequest
@@ -24,7 +23,6 @@ async def mention_user(
     user_entity: User | None = None,
     user_id: int | None = None,
     user_username: str | None = None,
-    format_nickname: str | None = None,
 ) -> str:
     """
     Возвращает HTML-упоминание пользователя в чате.
@@ -65,20 +63,6 @@ async def mention_user(
 
     # 6. Возвращаем форматированное HTML-упоминание
     name = nickname or user_entity.full_name or "неизвестный пользователь"
-
-    # 7. Переводим ник в другую форму (например 'accs')
-    if format_nickname:
-        splitted = name.split(" ")
-        morph = pymorphy3.MorphAnalyzer()
-
-        for i, w in enumerate(splitted):
-            parsed = morph.parse(w)[0]
-            inflected = parsed.inflect({format_nickname}) # Используем метод inflect для прямого склонения
-
-            if inflected:
-                splitted[i] = inflected.word
-
-        name = " ".join(splitted)
 
     return user_entity.mention_html(name=name)
 
