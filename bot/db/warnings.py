@@ -40,7 +40,7 @@ async def get_user_warnings(chat_id: int, user_id: int) -> list[dict]:
 
     return [
         {   
-            "administrator_user_id": row['administrator_user_id'],
+            "administrator_user_id": int(row['administrator_user_id']),
             "assignment_date": row['assignment_date'],
             "reason": row['reason'],
             "expire_date": row['expire_date']
@@ -62,8 +62,8 @@ async def get_all_warnings(chat_id: int) -> list[dict]:
 
     return [
         {   
-            "user_id": row['user_id'],
-            "count": row['warning_count'],
+            "user_id": int(row['user_id']),
+            "count": int(row['warning_count']),
         }
         for row in rows
     ]

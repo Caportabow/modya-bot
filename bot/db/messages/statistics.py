@@ -4,7 +4,6 @@ from collections import Counter
 
 import db
 from asyncpg import Connection
-from utils.time import format_timedelta
 from config import RUSSIAN_STOPWORDS
 
 
@@ -82,19 +81,14 @@ async def user_stats(chat_id: int, user_id: int):
 
     if not rows: return None  # пользователь не найден / нет сообщений
 
-    # преобразуем время в нормальный вид
-    first_dt = rows["first_seen"]
-    last_dt = rows["last_active"]
-    age = now_dt - first_dt
-    last_diff = now_dt - last_dt
-
-    # Поиск любимого слова
-    fav_word = await get_favorite_word(chat_id, user_id)
-
     return {
-        "first_seen": f"{first_dt:%d.%m.%Y} ({format_timedelta(age)})",
-        "last_active": format_timedelta(last_diff),
-        "activity": f"{rows["day_count"]} | {rows["week_count"]} | {rows["month_count"]} | {rows["total"]}",
-        "rest": f"до {rows["rest"]:%d.%m.%Y} (еще {format_timedelta(rows["rest"] - now_dt, adder=False)})" if rows["rest"] else None,
-        "favorite_word": fav_word
+        "first_seen": rows["first_seen"],
+        "last_active": rows["last_active"],
+        "activity": {
+            "day_count": int(rows["day_count"]),
+            "week_count": int(rows["week_count"]),
+            "month_count": int(rows["month_count"]),
+            "total": int(rows["total"])
+        },
+        "rest": rows["rest"],
     }

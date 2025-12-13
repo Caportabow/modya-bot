@@ -26,4 +26,4 @@ async def get_all_chat_ids():
             SELECT * FROM chats
         """
     )
-    return [chat['chat_id'] for chat in chats]
+    return [int(chat['chat_id']) for chat in chats]

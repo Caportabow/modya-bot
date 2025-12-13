@@ -1,3 +1,4 @@
+import re
 from aiogram import Router, F
 from aiogram.types import Message
 
@@ -8,8 +9,10 @@ from db.awards import add_award, remove_award
 
 router = Router(name="awards")
 
-
-@router.message(((F.text.lower().startswith("наградить")) | (F.text.lower().startswith("+награда"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^наградить(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def add_award_handler(msg: Message):
     """Команда: наградить @user [причина]"""
     bot = msg.bot
@@ -42,9 +45,12 @@ async def add_award_handler(msg: Message):
 
     await add_award(chat_id, int(target_user.id), giver_id, award)
     mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-    await msg.reply(f"✅ Награда \"{award}\" выдана пользователю {mention}", parse_mode="HTML")
+    await msg.reply(f"🎖️ Награда \"{award}\" вручена пользователю {mention}", parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("награды")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^награды(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def get_awards_handler(msg: Message):
     """Команда: награды @user"""
     bot = msg.bot
@@ -62,7 +68,10 @@ async def get_awards_handler(msg: Message):
     for ans in answers:   
         await msg.reply_photo(photo=AWARDS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
-@router.message(((F.text.lower().startswith("снять награду")) | (F.text.lower().startswith("-награда"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^снять награду(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def remove_award_handler(msg: Message):
     """Команда: -награда INDEX"""
     target_id = int(msg.from_user.id)

@@ -36,9 +36,9 @@ async def user_leaderboard(chat_id: int, limit: int = 15, since: datetime | None
 
     return [
         {
-            "user_id": row["user_id"],
-            "nickname": row["nickname"],
-            "count": row["msg_count"]
+            "user_id": int(row["user_id"]),
+            "nickname": str(row["nickname"]),
+            "count": int(row["msg_count"])
         }
         for row in rows
     ]

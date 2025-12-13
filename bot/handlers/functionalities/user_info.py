@@ -1,17 +1,23 @@
+import re
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, InlineKeyboardButton, BufferedInputFile
+from datetime import datetime, timezone
 
+from utils.time import TimedeltaFormatter
 from utils.telegram.users import parse_user_mention, mention_user
 from utils.activity_chart import make_activity_chart
 
-from db.messages.statistics import user_stats
+from db.messages.statistics import user_stats, get_favorite_word
 from db.users import get_uid
 
-router = Router(name="call")
+router = Router(name="user_info")
 
 
-@router.message((F.text.lower().startswith("кто")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^кто(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def user_info_handler(msg: Message):
     """Команда: кто [я|ты]"""
     bot = msg.bot
@@ -35,31 +41,41 @@ async def user_info_handler(msg: Message):
         await msg.reply("❌ Эта команда не поддерживает ботов.")
         return
     
-    stats = await user_stats(int(msg.chat.id), int(user.id))
-    img = await make_activity_chart(int(msg.chat.id), int(user.id))
+    chat_id = int(msg.chat.id)
+    user_id = int(user.id)
+    
+    stats = await user_stats(chat_id, user_id)
+    img = await make_activity_chart(chat_id, user_id)
+    fav_word = await get_favorite_word(chat_id, user_id)
     if not stats or not img:
         await msg.reply("❌ Нет данных по этому пользователю.")
         return
     
-    mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_entity=user)
+    now = datetime.now(timezone.utc)
+    mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=user)
 
     ans = f"👤 Это пользователь {mention}\n\n"
-    if stats["favorite_word"]:
-        fav_word = stats["favorite_word"]["word"]
-        fav_word_count = stats["favorite_word"]["count"]
+    if fav_word:
+        fav_word_count = fav_word["count"]
+        fav_word = fav_word["word"]
 
-        fav_user_id = await get_uid(int(msg.chat.id), fav_word)
+        fav_user_id = await get_uid(chat_id, fav_word)
 
         if not fav_user_id:
             ans += f"Любимое слово: {fav_word} ({fav_word_count} р.)\n"
         else:
-            fav_user_mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_id=int(fav_user_id))
+            fav_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(fav_user_id))
             ans += f"Любимый юзер: {fav_user_mention} ({fav_word_count} р.)\n"
     else: ans += f"(данных недостаточно)\n"
-    ans += f"Дебют: {stats["first_seen"]}\n"
-    ans += f"Последний актив: {stats["last_active"]}\n"
-    ans += f"Рест: {stats["rest"] or '(не активен)'}\n"
-    ans += f"Актив (24ч|7дн|30дн|∞): {stats["activity"]}\n"
+    ans += f"Дебют: {stats["first_seen"]:%d.%m.%Y} ({TimedeltaFormatter.format(now - stats["first_seen"])})\n"
+    ans += f"Последний актив: { TimedeltaFormatter.format(now - stats["last_active"])}\n"
+
+    if stats["rest"]:
+        ans += f"Рест: до {stats["rest"]:%d.%m.%Y} (еще {TimedeltaFormatter.format(stats["rest"] - now, suffix="none")})\n"
+    else:
+        ans += f"Рест: (не активен)\n"
+
+    ans += f"Актив (24ч|7дн|30дн|∞): {stats["activity"]["day_count"]} | {stats["activity"]["week_count"]} | {stats["activity"]["month_count"]} | {stats["activity"]["total"]}\n"
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
 

@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
-from utils.time import format_timedelta
 
 import db
-from . import get_user_marriage
+from db.marriages import get_user_marriage
 
 async def incest_cycle(chat_id: int, first_user_id: int, second_user_id: int) -> bool:
     """
@@ -298,8 +297,6 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
             return marriage_id
         return -user_id
 
-    now = datetime.now(timezone.utc)
-
     # === 1. Создаём узлы и заполняем участников ===
     for row in rows:
         node_key = resolve_node_key(row["marriage_id"], row["user_id"])
@@ -316,17 +313,11 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
         node = nodes[node_key]
 
         if not any(m["id"] == row["user_id"] for m in node["members"]):
-            adoption_display = (
-                f"сын/дочь уже {format_timedelta(now - row["adoption_date"], adder=False)}"
-                if row["adoption_date"] 
-                else "пока без родителей"
-            )
-            
             node["members"].append({
                 "id": row["user_id"],
                 "name": row["name"] or str(row["user_id"]),
-                "adoption_date": adoption_display,
-                "is_me": (row["user_id"] == user_id)
+                "is_me": (row["user_id"] == user_id),
+                **({"adoption_date": row["adoption_date"]} if row["adoption_date"] else {}),
             })
 
         person_to_node[row["user_id"]] = node_key
@@ -337,18 +328,13 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
         node = nodes[node_key]
 
         if row["spouse_id"] and row["spouse_id"] not in person_to_node:
-            adoption_display = (
-                f"сын/дочь уже {format_timedelta(now - row["adoption_date"], adder=False)}"
-                if row["adoption_date"] 
-                else "пока без родителей"
-            )
-            
             node["members"].append({
                 "id": row["spouse_id"],
                 "name": row["spouse_name"] or str(row["spouse_id"]),
-                "adoption_date": adoption_display,
-                "is_me": False
+                "is_me": (row["spouse_id"] == user_id),
+                **({"adoption_date": row["adoption_date"]} if row["adoption_date"] else {}),
             })
+
             person_to_node[row["spouse_id"]] = node_key
 
     # === 3. Связываем узлы в дерево ===

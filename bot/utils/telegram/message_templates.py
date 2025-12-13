@@ -1,26 +1,37 @@
 import random
 from aiogram import Bot
-from aiogram.types import User
+from aiogram.types import User, BufferedInputFile
 
 from datetime import datetime, timezone, timedelta
 
 from config import HELLO_PICTURE_ID, MAX_MESSAGE_LENGTH
 
 from db.marriages import get_user_marriage, delete_marriage
+from db.marriages.families import get_family_tree_data
 
 from db.warnings import get_user_warnings
 from db.awards import get_awards
 
-from .users import mention_user, mention_user_with_delay
-from utils.time import get_duration, format_timedelta
+from utils.telegram.users import mention_user, mention_user_with_delay
+from utils.time import DurationParser, TimedeltaFormatter
+from utils.web.families import make_family_tree
 from db.users.rests import set_rest
 
 
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
-    """Отправляем приветственное сообщение в чат."""
-    pre_text = "Привет! Спасибо, что добавили меня!\n\n"
+    pre_text = "👀 О, новый чат. Интересно.\n\n"
 
-    text = (pre_text if not private_msg else "") + '⚙️ С полным списком моих команд можно ознакомится в <a href="https://teletype.in/@caportabow/ModyaTheBot">этом списке</a>.'
+    text = (pre_text if not private_msg else "") + (
+        "Я — Модя. Превращаю хаос флудов в порядок\n\n"
+        "Здесь без спама и бесполезных команд:\n"
+        "• 📣 Умный созыв участников\n"
+        "• 📊 Управление чистками и подробная статистика\n"
+        "• 🛡️ Система варнов и простая админ-панель\n"
+        "• ⏸️ Полное управление рестами\n"
+        "• ✨ И много других полезных функций\n\n"
+        '<a href="https://teletype.in/@caportabow/ModyaTheBot">🔗 Полный список команд</a>'
+    )
+
     await bot.send_photo(photo=HELLO_PICTURE_ID, caption=text, chat_id=chat_id, parse_mode="HTML")
 
 async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
@@ -37,7 +48,7 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
     ans = ans_header
     for i, a in enumerate(awards):
         award = a["award"]
-        date = format_timedelta(datetime.now(timezone.utc) - a["assignment_date"])
+        date = TimedeltaFormatter.format(datetime.now(timezone.utc) - a["assignment_date"])
 
         line = (
             f"🎗 Награда #{i+1}\n"
@@ -67,14 +78,17 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
 
     answers = [] # список для сообщений
 
-    ans_header = f"⚠️ Варны пользователя {mention}:\n\n"
+    warnings_count = len(warnings)
+    max_warns = 3
+
+    ans_header = f"⚠️ Варны пользователя {mention} ({warnings_count}/{max_warns}):\n\n"
     ans = ans_header
     for i, w in enumerate(warnings):
-        reason = w["reason"] or "Причина не указана"
-        date = format_timedelta(datetime.now(timezone.utc) - w["assignment_date"])
+        reason = w["reason"] or "Причина не указана."
+        date = TimedeltaFormatter.format(datetime.now(timezone.utc) - w["assignment_date"])
         moderator_mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
-        formatted_expire_date = format_timedelta(w["expire_date"] - datetime.now(timezone.utc), False) if w["expire_date"] else "навсегда"
-        line = f"┌ <b>Варн #{i+1}</b>\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
+        formatted_expire_date = TimedeltaFormatter.format(w["expire_date"] - datetime.now(timezone.utc), suffix="none") if w["expire_date"] else "навсегда"
+        line = f"┌ Варн #{i+1}\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
@@ -94,10 +108,13 @@ async def generate_rest_msg(bot: Bot, chat_id: int,
     target_user_mention = await mention_user(bot=bot, user_entity=target_user)
     
     if data == 'decline':
-        return f"❗️Пользователю {target_user_mention} отказано в ресте.\n\nАдмин: {trigger_user_mention}"
+        return (
+            f"❗️ {target_user_mention}, вам отказано в ресте.\n"
+            f"👮 Администратор: {trigger_user_mention}."
+        )
     
     # Определяем временной диапазон
-    duration = get_duration(data)
+    duration = DurationParser.parse(data)
 
     if duration is None:
         return "❌ Не удалось распознать период."
@@ -109,11 +126,16 @@ async def generate_rest_msg(bot: Bot, chat_id: int,
         return "❌ Вы не можете выдать рест на период меньше одной добы."
 
     until = datetime.now(timezone.utc) + duration
-    beauty_until = format_timedelta(duration, adder=False)
+    beauty_until = TimedeltaFormatter.format(duration, suffix="none")
 
     await set_rest(chat_id, int(target_user.id), until)
 
-    return f"⏰ Пользователю {target_user_mention} успешно выдан рест на {beauty_until}\n\nАдмин: {trigger_user_mention}"
+    return (
+        f"⏰ Рест выдан успешно!\n\n"
+        f"👤 Пользователь: {target_user_mention}.\n"
+        f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
+        f"👮 Администратор: {trigger_user_mention}."
+    )
 
 async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, target_user_id: int) -> bool:
     """Проверяем чтобы человек был не в браке."""
@@ -127,7 +149,7 @@ async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, 
         else:
             partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=partner)
             random_phrases = ["потяните сильнее за поводок пожалуйста",
-                              "Error 404: верность не найдена",
+                              "error 404: верность не найдена",
                               "ваше уплыло", "ваш партнёр сбежал, заберите пожалуйста"]
             await bot.send_message(chat_id=chat_id, text=f"❗️ {partner_mention}, {random.choice(random_phrases)}!", parse_mode="HTML")
         
@@ -141,7 +163,7 @@ async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int) -> bo
     if users:  # Пользователь был в браке
         # Отправляем сообщение оставшемуся супругу
         partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=users['partner'])
-        await bot.send_message(chat_id, text=f"💔 {partner_mention}, мне очень жаль. Ваш брак распался", parse_mode="HTML")
+        await bot.send_message(chat_id, text=f"💔 {partner_mention}, ваш супруг покинул чат. Семейная жизнь окончена.", parse_mode="HTML")
         
         # Уведомляем всех детей одним сообщением
         if users['abandoned_children']:
@@ -153,9 +175,22 @@ async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int) -> bo
             children_text = ", ".join(child_mentions)
             await bot.send_message(
                 chat_id,
-                text=f"🥀 {children_text}, увы, родители развелись и бросили вас.\nТеперь вы в детдоме.",
+                text=f"🥀 {children_text}, один из родителей покинул семью. Вы официально осиротели.",
                 parse_mode="HTML"
             )
 
         return True
     else: return False
+
+async def family_tree(bot: Bot, chat_id: int, user_id: int, user_entity: User):
+    mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=user_entity)
+    family_tree_data = await get_family_tree_data(chat_id, user_id)
+
+    if not family_tree_data or len(family_tree_data) == 0:
+        await bot.send_message(chat_id=chat_id, text=f"❌ {mention} не состоит в какой-либо семье.", parse_mode="HTML")
+        return
+    
+    family_tree_bytes = await make_family_tree(family_tree_data)
+
+    photo = BufferedInputFile(family_tree_bytes, filename="family_tree.jpeg")
+    await bot.send_photo(chat_id=chat_id, photo=photo, caption=f"🌳 Семейное древо {mention}", parse_mode="HTML")

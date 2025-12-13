@@ -1,10 +1,11 @@
+import re
 from aiogram import Router, F
 from aiogram.types import Message
 from datetime import datetime, timezone, timedelta
 
 from config import WARNINGS_PICTURE_ID, MAX_MESSAGE_LENGTH
 from utils.telegram import remove_message_entities
-from utils.time import get_duration, format_timedelta
+from utils.time import DurationParser, TimedeltaFormatter
 from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
 
@@ -12,8 +13,7 @@ from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
 
 router = Router(name="warnings")
 
-
-@router.message(((F.text.lower().startswith("все варны")) | (F.text.lower().startswith("всё варны"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message((F.text.lower().startswith("все варны")) & (F.chat.type.in_(["group", "supergroup"])))
 async def stats_handler(msg: Message):
     """Команда: все варны"""
     bot = msg.bot
@@ -23,17 +23,23 @@ async def stats_handler(msg: Message):
         await msg.reply("❌ У пользователей этого чата нет варнов.")
         return
     
-    ans = f"⚠️ Топ пользователей по кол-ву варнов в чате:\n\n"
+    ans = f"📛 Список предупреждений:\n\n"
 
     for i, u in enumerate(users_with_warnings):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-        line = f"{i+1}. {mention} - {u["count"]}\n"
-
-        # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
+        
+        # Прогресс-бар для варнов (макс 10 для визуализации)
+        max_warns = 3
+        bar_length = 6
+        filled = min(int((u["count"] / max_warns) * bar_length), bar_length)
+        bar = "▓" * filled + "░" * (bar_length - filled)
+        
+        line = f"▫️ {mention} - {u['count']}/3 {bar}\n"
+        
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
             await msg.reply(ans, parse_mode="HTML")
-            ans = ""  # сбрасываем накопленное сообщение
-
+            ans = ""
+        
         ans += line
     
     # отправляем остаток, если есть
@@ -62,7 +68,10 @@ async def get_user_warnings_handler(msg: Message):
     for ans in answers:
         await msg.reply_photo(photo=WARNINGS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
-@router.message(((F.text.lower().startswith("+варн")) | (F.text.lower().startswith("варн"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^\+варн(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def add_warning_handler(msg: Message):
     """Команда: +варн {период} @user {отступ} {причина}"""
     bot = msg.bot
@@ -74,7 +83,7 @@ async def add_warning_handler(msg: Message):
 
     no_entities_text = remove_message_entities(msg, text_sep[0])
     period_str = " ".join(no_entities_text.split(" ")[1:]) if no_entities_text else None
-    period = get_duration(period_str) if period_str else None
+    period = DurationParser.parse(period_str) if period_str else None
     expire_date = (datetime.now(timezone.utc) + period) if isinstance(period, timedelta) else None
 
     reason = "\n".join(text_sep[1:]) if len(text_sep) > 1 else None
@@ -102,16 +111,39 @@ async def add_warning_handler(msg: Message):
         return
 
     warn_id = await add_warning(chat_id, int(target_user.id), admin_id, reason, expire_date)
-    warn_info = f" (#{warn_id})" if warn_id else ""
-
     mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-    formatted_period = f"на {format_timedelta(period, False)}" if isinstance(period, timedelta) else "навсегда"
-    await msg.reply(f"✅ Варн{warn_info} {formatted_period} выдан пользователю {mention}.\nПричина: {reason or 'не указана'}", parse_mode="HTML")
+    formatted_period = f"на {TimedeltaFormatter.format(period, suffix='none')}" if isinstance(period, timedelta) else "навсегда"
 
-    if warn_id and warn_id >= 3:
-        await msg.reply(f"⚠️ Пользователь {mention} получил 3 и более варнов. Рекомендуется рассмотреть возможность бана.", parse_mode="HTML")
+    # Определяем статус опасности
+    max_warns = 3
+    if warn_id and warn_id >= max_warns:
+        status = "🔴 КРИТИЧНО"
+    elif warn_id and warn_id >= (max_warns/2):
+        status = "🟠 ПОВЫШЕН"
+    else:
+        status = "🟡 НОРМА"
 
-@router.message((F.text.lower().startswith("-варн")) & (F.chat.type.in_(["group", "supergroup"])))
+    ans = f"✅ Варн выдан {mention}\n\n"
+    ans += f"📌 Причина: {reason or 'не указана'}\n"
+    ans += f"⏰ Период: {formatted_period}\n"
+
+    if warn_id:
+        bar_length = 6
+        filled = min(int((warn_id / max_warns) * bar_length), bar_length)
+        bar = "▓" * filled + "░" * (bar_length - filled)
+
+        ans += f"🆔 Номер: #{warn_id}\n"
+        ans += f"📊 Статус: {status} ({bar})"
+        
+        if warn_id >= max_warns:
+            ans += f"\n\n🚨 У пользователя {max_warns} и более варнов! Рекомендуется бан."
+
+    await msg.reply(ans, parse_mode="HTML")
+
+@router.message(
+    (F.text.regexp(r"^-варн(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def remove_warning_handler(msg: Message):
     """Команда: -варн @user INDEX"""
     bot = msg.bot
@@ -149,9 +181,13 @@ async def remove_warning_handler(msg: Message):
 
     success = await remove_warning(chat_id, int(target_user.id), warn_index)
     if success:
-        await msg.reply(f"✅ Варн{f' #{warn_index+1}' if warn_index else ''} снят успешно.", parse_mode="HTML")
+        warn_info = f" #{warn_index+1}" if warn_index is not None else ""
+        await msg.reply(f"✅ Варн{warn_info} снят.", parse_mode="HTML")
     else:
-        await msg.reply("❌ Не удалось снять варн. Проверьте правильность индекса." if warn_index is not None else "❌ У пользователя нет варнов.")
+        if warn_index is not None:
+            await msg.reply(f"⚠️ Варн #{warn_index+1} не существует.", parse_mode="HTML")
+        else:
+            await msg.reply(f"ℹ️ Предупреждений не найдено.", parse_mode="HTML")
 
 @router.message((F.text.lower().startswith("амнистия")) & (F.chat.type.in_(["group", "supergroup"])))
 async def do_amnesty(msg: Message):

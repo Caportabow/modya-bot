@@ -1,13 +1,16 @@
+import re
+from datetime import datetime, timezone
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, InlineKeyboardButton, BufferedInputFile
+from aiogram.types import Message, InlineKeyboardButton
 
-from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
+from utils.time import TimedeltaFormatter
+
+from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify, family_tree
 from utils.telegram.users import mention_user_with_delay, parse_user_mention, mention_user
 from config import MARRIAGES_PICTURE_ID, MAX_MESSAGE_LENGTH
 from db.marriages import get_marriages, get_user_marriage
-from db.marriages.families import check_adoption_possibility, is_parent, is_child, abandon, get_family_tree_data, incest_cycle
-from utils.web.families import make_family_tree
+from db.marriages.families import check_adoption_possibility, is_parent, is_child, abandon, incest_cycle
 
 router = Router(name="marriages")
 
@@ -23,27 +26,26 @@ async def all_marriages_handler(msg: Message):
         await msg.reply("❌ В этом чате нет браков.")
         return
     
-    ans_header = f"💍 Браки этого чата:\n\n"
-    answers = []
+    now = datetime.now(timezone.utc)
+    ans_header = f"💕 Пары нашего чата:\n\n"
     ans = ans_header
 
     for i, m in enumerate(marriages):
         mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][0]))
         mention_2 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][1]))
         
-        line = f"{i+1}. {mention_1} + {mention_2} - {m["date"]}\n"
+        date = f"{m['date']:%d.%m.%Y} ({TimedeltaFormatter.format(now - m['date'])})"
+        line = f"▫️ {mention_1} & {mention_2}\n   └ Вместе с {date}\n\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            answers.append(ans)
+            await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
             ans = ans_header  # сбрасываем накопленное сообщение
         
         ans += line
     
     # добавляем остаток, если есть
-    if ans.strip(): answers.append(ans)
-
-    for ans in answers:   
+    if ans.strip():
         await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message((F.text.lower().startswith("мой брак")) & (F.chat.type.in_(["group", "supergroup"])))
@@ -60,14 +62,19 @@ async def my_marriage_handler(msg: Message):
     
     mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][0]))
     mention_2 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][1]))
+    now = datetime.now(timezone.utc)
+    duration = TimedeltaFormatter.format(now-marriage["date"], suffix="none")
 
     ans = f"👰👨‍⚖️ Брак между {mention_1} и {mention_2}:\n\n"
     ans += f"🗓 Зарегистрирован {marriage["date"]:%d.%m.%Y}\n"
-    ans += f"⌛ Длится уже {marriage["duration"]}\n"
+    ans += f"⌛ Длится уже {duration}\n"
 
     await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("брак")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^брак(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def propose(msg: Message):
     """Команда: брак {упоминание}"""
     bot = msg.bot
@@ -102,18 +109,19 @@ async def propose(msg: Message):
 
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="✅ Принять", callback_data=f"marriage,{trigger_user_id},{target_user_id},accept"),
-        InlineKeyboardButton(text="❌ Отказаться", callback_data=f"marriage,{trigger_user_id},{target_user_id},decline")
+        InlineKeyboardButton(text="💍 Сказать «Да»", callback_data=f"marriage,{trigger_user_id},{target_user_id},accept"),
+        InlineKeyboardButton(text="💔 Отказать", callback_data=f"marriage,{trigger_user_id},{target_user_id},decline")
     )
     builder.row(
-        InlineKeyboardButton(text="🏃 Отозвать предложение", callback_data=f"marriage,{trigger_user_id},{target_user_id},retire")
+        InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"marriage,{trigger_user_id},{target_user_id},retire")
     )
 
     target_user_mention = await mention_user(bot=bot, user_entity=target_user)
     trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
 
-    ans = f"💍 {target_user_mention}, минуточку внимания.\n"
-    ans += f"💖 {trigger_user_mention} делает вам предложение руки и сердца!"
+    ans = f"🎊 {target_user_mention}, вас приглашают к алтарю!\n"
+    ans += f"💞 {trigger_user_mention} просит вашей руки и сердца.\n"
+    ans += f"💫 Согласны ли вы стать парой?"
 
     await msg.reply_photo(
         photo=MARRIAGES_PICTURE_ID, caption=ans,
@@ -122,7 +130,7 @@ async def propose(msg: Message):
 
 @router.message((F.text.lower().startswith("развод")) & (F.chat.type.in_(["group", "supergroup"])))
 async def divorce(msg: Message):
-    """Команда: брак {упоминание}"""
+    """Команда: развод"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
     trigger_user_id = int(msg.from_user.id)
@@ -131,10 +139,14 @@ async def divorce(msg: Message):
     if not success:
         await msg.reply("❌ Вы не женаты.", parse_mode="HTML") 
 
-@router.message(((F.text.lower().startswith("усыновить")) | (F.text.lower().startswith("удочерить"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (
+        (F.text.regexp(r"^усыновить(?:\s|$)", flags=re.IGNORECASE)) | 
+        (F.text.regexp(r"^удочерить(?:\s|$)", flags=re.IGNORECASE))
+    ) & (F.chat.type.in_(["group", "supergroup"]))
+)
 async def adopt(msg: Message):
     """Команда: усыновить/удочерить {упоминание}"""
-    action = msg.text.split()[0].lower()
     bot = msg.bot
     chat_id = int(msg.chat.id)
     trigger_user_id = int(msg.from_user.id)
@@ -144,21 +156,21 @@ async def adopt(msg: Message):
         target_user = msg.reply_to_message.from_user
     
     if not target_user:
-        await msg.reply(f"❌ Укажите пользователя, которого хотите {action}.", parse_mode="HTML")
+        await msg.reply(f"❌ Укажите пользователя, родителем которого хотите стать.", parse_mode="HTML")
         return
     target_user_id = int(target_user.id)
 
     if target_user.is_bot:
-        await msg.reply(f"❌ Вы не можете {action} бота.", parse_mode="HTML")
+        await msg.reply(f"❌ Вы не можете стать родителем бота.", parse_mode="HTML")
         return
 
     if target_user_id == trigger_user_id:
-        await msg.reply(f"❌ Вы не можете {action} самого себя.", parse_mode="HTML")
+        await msg.reply(f"❌ Вы не можете стать своим родителем.", parse_mode="HTML")
         return
     
     marriage = await get_user_marriage(chat_id, trigger_user_id)
     if not marriage:
-        await msg.reply(f"❌ Вы должны быть в браке, чтобы {action} кого-нибудь.", parse_mode="HTML")
+        await msg.reply(f"❌ Вы должны быть в браке, стать родителем.", parse_mode="HTML")
         return
 
     adoption_possibility = await check_adoption_possibility(chat_id, target_user_id, marriage)
@@ -168,24 +180,27 @@ async def adopt(msg: Message):
 
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="✅ Принять", callback_data=f"adoption,{trigger_user_id},{target_user_id},accept"),
-        InlineKeyboardButton(text="❌ Отказаться", callback_data=f"adoption,{trigger_user_id},{target_user_id},decline")
+        InlineKeyboardButton(text="💝 Вступить", callback_data=f"adoption,{trigger_user_id},{target_user_id},accept"),
+        InlineKeyboardButton(text="😔 Отказать", callback_data=f"adoption,{trigger_user_id},{target_user_id},decline")
     )
     builder.row(
-        InlineKeyboardButton(text="🏃 Отозвать предложение", callback_data=f"adoption,{trigger_user_id},{target_user_id},retire")
+        InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"adoption,{trigger_user_id},{target_user_id},retire")
     )
 
     target_user_mention = await mention_user(bot=bot, user_entity=target_user)
     trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
 
-    ans = f"❗️{target_user_mention}, внимание.\n"
-    ans += f"🍼 {trigger_user_mention} хочет принять вас в свою семью!"
+    ans = f"👨‍👩‍👧 {target_user_mention}, {trigger_user_mention} хочет стать вашим родителем!\n"
+    ans += f"🏡 Готовы ли вы вступить в эту семью?"
 
     await msg.reply(text=ans,
         reply_markup=builder.as_markup(), parse_mode="HTML"
     )
 
-@router.message(((F.text.lower().startswith("сдать в детдом")) | (F.text.lower().startswith("отказаться от ребёнка"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^бросить(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def abandon_child(msg: Message):
     """Команда: сдать в детдом"""
     bot = msg.bot
@@ -217,8 +232,9 @@ async def abandon_child(msg: Message):
     target_user_mention = await mention_user(bot=bot, user_entity=target_user)
     trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
 
-    ans = f"💔 {target_user_mention}, мне очень жаль..\n"
-    ans += f"🏠 {trigger_user_mention} сдает вас в детдом, вы больше не являетесь его ребёнком"
+    ans = f"💔 {target_user_mention}, тяжёлые новости...\n"
+    ans += f"😔 {trigger_user_mention} отказался от родительских прав.\n"
+    ans += f"🍂 Вы больше не часть их семьи..."
 
     await abandon(chat_id, target_user_id)
 
@@ -248,17 +264,4 @@ async def abandon_parent(msg: Message):
 @router.message(((F.text.lower().startswith("семейное древо")) | (F.text.lower().startswith("моя семья"))) & (F.chat.type.in_(["group", "supergroup"])))
 async def family_tree_handler(msg: Message):
     """Команда: семейное древо/моя семья"""
-    bot = msg.bot
-    chat_id = int(msg.chat.id)
-    user_id = int(msg.from_user.id)
-    
-    family_tree_data = await get_family_tree_data(chat_id, user_id)
-    if not family_tree_data or len(family_tree_data) == 0:
-        await msg.reply("❌ Вы не состоите в какой-либо семье.")
-        return
-    
-    family_tree_bytes = await make_family_tree(family_tree_data)
-    family_tree = BufferedInputFile(family_tree_bytes, filename="family_tree.jpeg")
-    mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
-
-    await msg.reply_photo(photo=family_tree, caption=f"🌳 Семейное древо {mention}:", parse_mode="HTML")
+    await family_tree(msg.bot, int(msg.chat.id), int(msg.from_user.id), msg.from_user)

@@ -1,3 +1,4 @@
+import re
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, InlineKeyboardButton
@@ -5,7 +6,7 @@ from aiogram.types import Message, InlineKeyboardButton
 from datetime import timedelta, datetime, timezone
 
 from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
-from utils.time import get_duration, format_timedelta
+from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
 from db.users.rests import set_rest, get_all_rests
 from config import MAX_MESSAGE_LENGTH
@@ -14,21 +15,21 @@ router = Router(name="rests")
 
 
 @router.message((F.text.lower().startswith("ресты")) & (F.chat.type.in_(["group", "supergroup"])))
-async def stats_handler(msg: Message):
+async def rests_handler(msg: Message):
     """Команда: ресты"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
     rests = await get_all_rests(chat_id)
 
     if not rests or len(rests) == 0:
-        await msg.reply(f"✅ В этом чате нету участников с активным рестом.")
+        await msg.reply(f"❗️В этом чате нету активных рестов.")
         return
 
-    ans_header = f"❗️Следующие участники находяться в ресте:\n\n"
+    ans_header = f"💤 Пользователи в ресте:\n\n"
     ans = ans_header
     for i, r in enumerate(rests):
         mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
-        line = f"{i+1}. {mention} - {r['rest']}\n"
+        line = f"▫️ {mention} - {r['rest']}\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
@@ -41,7 +42,10 @@ async def stats_handler(msg: Message):
     if ans.strip():
         await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("взять рест")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^взять рест(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def ask_for_rest(msg: Message):
     """Команда: взять рест {период}"""
     bot = msg.bot
@@ -53,7 +57,7 @@ async def ask_for_rest(msg: Message):
     # Проверяем, указан ли период пользователем
     if len(parts) > 2:
         rest_info = " ".join(parts[2:])
-        duration = get_duration(rest_info)
+        duration = DurationParser.parse(rest_info)
     else:
         await msg.reply("❌ Укажите длительность реста (взять рест {период}).")
         return
@@ -74,8 +78,13 @@ async def ask_for_rest(msg: Message):
         await msg.reply("❌ Вы не можете взять рест на период больше года.")
         return
 
+    stats = await user_stats(int(msg.chat.id), int(target_user.id))
+    if not stats:
+        await msg.reply(text="❌ Неизвестная ошибка. Попробуйте снова.", parse_mode="HTML")
+        return
+
     # Определяем временной диапазон
-    beauty_until = format_timedelta(duration, adder=False)
+    beauty_until = TimedeltaFormatter.format(duration, suffix="none")
 
     builder = InlineKeyboardBuilder()
     builder.row(
@@ -83,19 +92,20 @@ async def ask_for_rest(msg: Message):
         InlineKeyboardButton(text="❌ Отказать", callback_data=f"rest,decline")
     )
     builder.row(
-        InlineKeyboardButton(text="🏃 Отозвать просьбу", callback_data=f"rest,retire")
+        InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"rest,retire")
     )
-
-    stats = await user_stats(int(msg.chat.id), int(target_user.id))
     mention = await mention_user(bot=bot, user_entity=target_user)
 
     ans = f"👤 Пользователь {mention}\n"
-    ans += f"С активом (24ч|7дн|30дн|∞): {stats["activity"]}\n\n"
-    ans += f"Запросил рест на {beauty_until}"
+    ans += f"📈 С активом (24ч|7дн|30дн|∞): {stats["activity"]["day_count"]} | {stats["activity"]["week_count"]} | {stats["activity"]["month_count"]} | {stats["activity"]["total"]}\n\n"
+    ans += f"⏰ Запрашивает рест на {beauty_until}"
     
     await msg.reply(text=ans, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("+рест")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^\+рест(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def give_rest(msg: Message):
     """Команда: +рест @user {период}"""
     bot = msg.bot
@@ -104,7 +114,7 @@ async def give_rest(msg: Message):
     trigger_user_id = int(msg.from_user.id)
     duration = None
     
-    duration = get_duration(" ".join(parts[1:]))
+    duration = DurationParser.parse(" ".join(parts[1:]))
 
     if duration is None:
         await msg.reply("❌ Не удалось распознать период.")
@@ -146,7 +156,7 @@ async def give_rest(msg: Message):
     
     # Определяем временной диапазон
     until = datetime.now(timezone.utc) + duration
-    beauty_until = format_timedelta(duration, adder=False)
+    beauty_until = TimedeltaFormatter.format(duration, suffix="none")
 
     await set_rest(chat_id, target_user_id, date = until)
     mention = await mention_user(bot=bot, user_entity=target_user)
@@ -154,7 +164,10 @@ async def give_rest(msg: Message):
     ans = f"⏰ Пользователю {mention} успешно выдан рест на {beauty_until}"
     await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("-рест")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    (F.text.regexp(r"^-рест(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
 async def remove_rest(msg: Message):
     """Команда: -рест @user"""
     bot = msg.bot
@@ -184,7 +197,7 @@ async def remove_rest(msg: Message):
         mention = await mention_user(bot=bot, user_entity=target_user)
         ans = f"⏰ {mention}, ваш рест был снят. Добро пожаловать обратно!"
     else:
-        ans = f"✅ Рест снят успешно."
+        ans = f"🔓 Рест снят успешно."
 
     await set_rest(chat_id, target_user_id, date = None)
     await msg.reply(ans, parse_mode="HTML")

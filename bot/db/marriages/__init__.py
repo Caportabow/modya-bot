@@ -1,8 +1,6 @@
 import db
 from asyncpg import Connection
-from datetime import datetime, timezone
 
-from utils.time import format_timedelta
 
 async def make_marriage(chat_id: int, users: list[int]) -> dict:
     """Создаём новый брак в чате между двумя пользователями."""
@@ -44,7 +42,7 @@ async def make_marriage(chat_id: int, users: list[int]) -> dict:
             chat_id, users
         )
         
-        return {"success": True, "marriage_id": result['marriage_id']} if result else {"success": False}
+        return {"success": True, "marriage_id": int(result['marriage_id'])} if result else {"success": False}
 
 async def get_marriages(chat_id: int) -> list[dict]:
     """
@@ -68,16 +66,15 @@ async def get_marriages(chat_id: int) -> list[dict]:
     )
 
     # Группируем участников по браку
-    now = datetime.now(timezone.utc)
     marriages = {}
     for row in rows:
         mid = row['marriage_id']
         if mid not in marriages:
             marriages[mid] = {
-                "date": f"{row['date']:%d.%m.%Y} ({format_timedelta(now - row['date'])})",
+                "date": row['date'],
                 "participants": []
             }
-        marriages[mid]["participants"].append(row["user_id"])
+        marriages[mid]["participants"].append(int(row["user_id"]))
 
     return list(marriages.values())
 
@@ -129,13 +126,11 @@ async def get_user_marriage(chat_id: int, user_id: int):
         return None
 
     # Формируем ответ
-    now = datetime.now(timezone.utc)
     marriage_info = {
         "marriage_id": marriage_id,
         "date": rows[0]['date'],
-        "duration": f"{format_timedelta(now-rows[0]['date'], adder=False)}",
-        "participants": [r['user_id'] for r in rows],
-        "children": [c['user_id'] for c in children] if children else None,
+        "participants": [int(r['user_id']) for r in rows],
+        "children": [int(c['user_id']) for c in children] if children else None,
     }
 
     return marriage_info
@@ -212,7 +207,7 @@ async def delete_marriage(chat_id: int, user_id: int):
             chat_id, marriage_id
         )
 
-    partners = [pid for pid in participant_ids if pid != user_id]
+    partners = [int(pid) for pid in participant_ids if pid != user_id]
     
     return {
         "partner": partners[0] if partners else None,

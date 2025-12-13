@@ -1,6 +1,6 @@
 import db
 from datetime import datetime, timezone
-from utils.time import format_timedelta
+from utils.time import TimedeltaFormatter
 
 async def get_all_rests(chat_id:int) -> list[dict] | None:
     """Возвращает все активные ресты в чате."""
@@ -16,8 +16,8 @@ async def get_all_rests(chat_id:int) -> list[dict] | None:
 
     return [
         {
-            'user_id': r['user_id'],
-            'rest': f"до {r['rest']:%d.%m.%Y} (еще {format_timedelta(r['rest'] - now, adder=False)})"
+            'user_id': int(r['user_id']),
+            'rest': f"до {r['rest']:%d.%m.%Y} (еще {TimedeltaFormatter.format(r['rest'] - now, suffix="none")})"
         } for r in rests
     ] if rests else None
 
@@ -49,7 +49,7 @@ async def verify_rests() -> list[dict] | None:
     )
 
     # Преобразуем в список словарей
-    return [{'chat_id': r['chat_id'], 'user_id': r['user_id']} for r in rows] if rows else None
+    return [{'chat_id': int(r['chat_id']), 'user_id': int(r['user_id'])} for r in rows] if rows else None
 
 async def get_rest(chat_id: int, user_id: int) -> str | None:
     """Возвращает информацию об рест пользователя в чате по uid."""
@@ -64,4 +64,4 @@ async def get_rest(chat_id: int, user_id: int) -> str | None:
         """, chat_id, user_id, now
     )
 
-    return f"до {rest:%d.%m.%Y} (еще {format_timedelta(rest - now, adder=False)})" if rest else None
+    return f"до {rest:%d.%m.%Y} (еще {TimedeltaFormatter.format(rest - now, suffix="none")})" if rest else None

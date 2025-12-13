@@ -1,5 +1,4 @@
 import db
-from utils.time import format_timedelta
 from datetime import datetime, timezone, timedelta
 
 async def verify_cleaning_possibility(chat_id: int) -> bool:
@@ -36,34 +35,45 @@ async def minmsg_users(chat_id: int, min_messages: int):
             SELECT 
                 chat_id, 
                 sender_user_id,
-                MIN(date) as first_message_date
+                MIN(date) AS first_message_date
             FROM messages
             WHERE chat_id = $2
             GROUP BY chat_id, sender_user_id
         )
-        SELECT m.sender_user_id, COUNT(*) AS message_count
-        FROM messages m
-        INNER JOIN users u 
-            ON u.user_id = m.sender_user_id
-            AND u.chat_id = m.chat_id
-            AND (u.rest IS NULL OR u.rest < $1)
-        INNER JOIN first_message_dates fmd
-            ON fmd.chat_id = m.chat_id
-            AND fmd.sender_user_id = m.sender_user_id
-            AND fmd.first_message_date <= $4
-        WHERE m.chat_id = $2
-          AND m.date >= $3
-        GROUP BY m.sender_user_id
-        HAVING COUNT(*) < $5
+        SELECT 
+            u.user_id AS sender_user_id,
+            COUNT(m.message_id) AS message_count
+        FROM users u
+        LEFT JOIN messages m
+            ON m.sender_user_id = u.user_id
+        AND m.chat_id = u.chat_id
+        AND m.date >= $3
+        LEFT JOIN first_message_dates fmd
+            ON fmd.chat_id = u.chat_id
+        AND fmd.sender_user_id = u.user_id
+        WHERE u.chat_id = $2
+        AND (u.rest IS NULL OR u.rest < $1)
+        AND (
+                fmd.first_message_date IS NULL
+                OR fmd.first_message_date <= $4
+            )
+        GROUP BY u.user_id
+        HAVING COUNT(m.message_id) < $5
         ORDER BY message_count DESC;
     """
-    
-    rows = await db.fetchmany(query, now_dt, chat_id, cutoff_date,
-            min_activity_age, min_messages)
+
+    rows = await db.fetchmany(
+        query,
+        now_dt,
+        chat_id,
+        cutoff_date,
+        min_activity_age,
+        min_messages
+    )
     
     return [{
-        "user_id": row["sender_user_id"],
-        "count": row["message_count"]
+        "user_id": int(row["sender_user_id"]),
+        "count": int(row["message_count"])
     } for row in rows] if rows else None
 
 async def inactive_users(chat_id: int, duration: timedelta):
@@ -97,7 +107,7 @@ async def inactive_users(chat_id: int, duration: timedelta):
     return [
         {
             "user_id": int(row["user_id"]),
-            "last_message_date": format_timedelta(now_dt - row["last_message_date"]) if row["last_message_date"] else "никогда"
+            "last_message_date": row["last_message_date"]
         }
         for row in rows
     ]

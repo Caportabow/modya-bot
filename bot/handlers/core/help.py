@@ -12,8 +12,8 @@ async def help_handler(msg: Message):
     """Команда: /help"""
     bot = msg.bot
 
-    if msg.chat.type in ("group", "supergroup"):
-        await send_welcome_message(bot=bot, chat_id=msg.chat.id)
-    else:
-        await send_welcome_message(bot=bot, chat_id=msg.chat.id, private_msg=True)
+    await send_welcome_message(bot=bot,
+                               chat_id=msg.chat.id,
+                               private_msg=not (msg.chat.type in ("group", "supergroup"))
+    )
 
