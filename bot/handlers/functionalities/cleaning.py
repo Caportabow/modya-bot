@@ -95,7 +95,7 @@ async def inactive_handler(msg: Message):
     for i, u in enumerate(users):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
 
-        date = TimedeltaFormatter.format(now - u["last_message_date"]) if u["last_message_date"] else "никогда"
+        date = TimedeltaFormatter.format(now - u["last_message_date"], suffix="none") if u["last_message_date"] else "никогда"
         line = f"▫️ {mention}: уже {date}\n"
         
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:

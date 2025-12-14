@@ -180,7 +180,7 @@ async def handle_user_info(bot: Bot, msg: Message, chat_id: int, parts: list, ac
     user = member.user
     user_id = int(user.id)
     
-    if action == "family_tree":
+    if action == "family":
         await family_tree(bot, chat_id, user_id, user)
         return
     

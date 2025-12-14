@@ -30,11 +30,7 @@ async def stats_handler(msg: Message):
         
         # Прогресс-бар для варнов (макс 10 для визуализации)
         max_warns = 3
-        bar_length = 6
-        filled = min(int((u["count"] / max_warns) * bar_length), bar_length)
-        bar = "▓" * filled + "░" * (bar_length - filled)
-        
-        line = f"▫️ {mention} - {u['count']}/3 {bar}\n"
+        line = f"▫️ {mention} - {u['count']}/{max_warns}\n"
         
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
             await msg.reply(ans, parse_mode="HTML")
@@ -117,7 +113,7 @@ async def add_warning_handler(msg: Message):
     # Определяем статус опасности
     max_warns = 3
     if warn_id and warn_id >= max_warns:
-        status = "🔴 КРИТИЧНО"
+        status = "🔴 КРИТИЧНЫЙ"
     elif warn_id and warn_id >= (max_warns/2):
         status = "🟠 ПОВЫШЕН"
     else:
@@ -128,12 +124,8 @@ async def add_warning_handler(msg: Message):
     ans += f"⏰ Период: {formatted_period}\n"
 
     if warn_id:
-        bar_length = 6
-        filled = min(int((warn_id / max_warns) * bar_length), bar_length)
-        bar = "▓" * filled + "░" * (bar_length - filled)
-
         ans += f"🆔 Номер: #{warn_id}\n"
-        ans += f"📊 Статус: {status} ({bar})"
+        ans += f"📛 Уровень нарушений: {status}"
         
         if warn_id >= max_warns:
             ans += f"\n\n🚨 У пользователя {max_warns} и более варнов! Рекомендуется бан."
