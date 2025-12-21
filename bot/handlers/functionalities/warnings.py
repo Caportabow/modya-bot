@@ -9,6 +9,7 @@ from utils.time import DurationParser, TimedeltaFormatter
 from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
 
+from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
 
 router = Router(name="warnings")
@@ -28,8 +29,7 @@ async def stats_handler(msg: Message):
     for i, u in enumerate(users_with_warnings):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
         
-        # Прогресс-бар для варнов (макс 10 для визуализации)
-        max_warns = 3
+        max_warns = await get_max_warns(int(msg.chat.id))
         line = f"▫️ {mention} - {u['count']}/{max_warns}\n"
         
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
@@ -111,7 +111,7 @@ async def add_warning_handler(msg: Message):
     formatted_period = f"на {TimedeltaFormatter.format(period, suffix='none')}" if isinstance(period, timedelta) else "навсегда"
 
     # Определяем статус опасности
-    max_warns = 3
+    max_warns = await get_max_warns(int(msg.chat.id))
     if warn_id and warn_id >= max_warns:
         status = "🔴 КРИТИЧНЫЙ"
     elif warn_id and warn_id >= (max_warns/2):

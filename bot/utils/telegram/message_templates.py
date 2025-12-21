@@ -9,6 +9,7 @@ from config import HELLO_PICTURE_ID, MAX_MESSAGE_LENGTH
 from db.marriages import get_user_marriage, delete_marriage
 from db.marriages.families import get_family_tree_data
 
+from db.chats.settings import get_max_warns
 from db.warnings import get_user_warnings
 from db.awards import get_awards
 
@@ -79,7 +80,7 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
     answers = [] # список для сообщений
 
     warnings_count = len(warnings)
-    max_warns = 3
+    max_warns = await get_max_warns(int(chat_id))
 
     ans_header = f"⚠️ Варны пользователя {mention} ({warnings_count}/{max_warns}):\n\n"
     ans = ans_header

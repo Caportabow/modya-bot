@@ -98,6 +98,7 @@ async def create_tables(conn: asyncpg.Connection):
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS chats (
             chat_id BIGINT NOT NULL,
+            max_warns INT NOT NULL DEFAULT 3 CHECK (max_warns BETWEEN 1 AND 100),
             PRIMARY KEY (chat_id)  
         );
     """)

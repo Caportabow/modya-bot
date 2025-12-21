@@ -113,6 +113,7 @@ async def is_child(chat_id: int, user_id: int) -> bool:
     )
     return bool(row)
 
+# TODO: исправить функцию чтобы в ДБ не был кусок фронтенда
 async def check_adoption_possibility(chat_id: int, child_id: int, marriage: dict | None = None, parent_id: int | None = None) -> dict:
     """
     Проверяет, может ли пользователь усыновить другого пользователя.
