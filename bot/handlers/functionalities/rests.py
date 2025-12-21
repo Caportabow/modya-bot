@@ -6,9 +6,10 @@ from aiogram.types import Message, InlineKeyboardButton
 from datetime import timedelta, datetime, timezone
 
 from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
+from utils.telegram.message_templates import describe_rest
 from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
-from db.users.rests import set_rest, get_all_rests
+from db.users.rests import add_rest, remove_rest, get_all_rests, get_user_rest
 from config import MAX_MESSAGE_LENGTH
 
 router = Router(name="rests")
@@ -25,11 +26,13 @@ async def rests_handler(msg: Message):
         await msg.reply(f"❗️В этом чате нету активных рестов.")
         return
 
+    now = datetime.now(timezone.utc)
     ans_header = f"💤 Пользователи в ресте:\n\n"
     ans = ans_header
     for i, r in enumerate(rests):
         mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
-        line = f"▫️ {mention} - {r['rest']}\n"
+        rest_info = f"до {r['valid_until']:%d.%m.%Y} (еще {TimedeltaFormatter.format(r['valid_until'] - now, suffix="none")})"
+        line = f"▫️ {mention} - {rest_info}\n"
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
@@ -94,7 +97,7 @@ async def ask_for_rest(msg: Message):
     builder.row(
         InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"rest,retire")
     )
-    mention = await mention_user(bot=bot, user_entity=target_user)
+    mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_entity=target_user)
 
     ans = f"👤 Пользователь {mention}\n"
     ans += f"📈 С активом (24ч|7дн|30дн|∞): {stats["activity"]["day_count"]} | {stats["activity"]["week_count"]} | {stats["activity"]["month_count"]} | {stats["activity"]["total"]}\n\n"
@@ -158,10 +161,13 @@ async def give_rest(msg: Message):
     until = datetime.now(timezone.utc) + duration
     beauty_until = TimedeltaFormatter.format(duration, suffix="none")
 
-    await set_rest(chat_id, target_user_id, date = until)
-    mention = await mention_user(bot=bot, user_entity=target_user)
+    await add_rest(chat_id, target_user_id, administrator_user_id=trigger_user_id, valid_until=until)
+    user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+    administrator_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
 
-    ans = f"⏰ Пользователю {mention} успешно выдан рест на {beauty_until}"
+    ans = f"⏰ Пользователю {user_mention} успешно выдан рест.\n"
+    ans += f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
+    ans += f"👮 Администратор: {administrator_mention}."
     await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
@@ -191,13 +197,58 @@ async def remove_rest(msg: Message):
     if target_user_id != trigger_user_id:
         admin = await is_admin(bot, chat_id, trigger_user_id)
         if not admin:
-            await msg.reply("❌ Вы должны быть админом, чтобы выдать рест.")
+            await msg.reply("❌ Вы должны быть админом, чтобы снять чужой рест.")
             return
-        
-        mention = await mention_user(bot=bot, user_entity=target_user)
-        ans = f"⏰ {mention}, ваш рест был снят. Добро пожаловать обратно!"
+
+        user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+        administrator_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
+
+        ans = f"⏰ Рест {user_mention} снят.\n"
+        ans += f"👮 Администратор: {administrator_mention}\n"
     else:
         ans = f"🔓 Рест снят успешно."
 
-    await set_rest(chat_id, target_user_id, date = None)
+    await remove_rest(chat_id, target_user_id)
+    await msg.reply(ans, parse_mode="HTML")
+
+@router.message((F.text.lower().startswith("мой рест")) & (F.chat.type.in_(["group", "supergroup"])))
+async def my_rest_handler(msg: Message):
+    """Команда: мой рест"""
+    bot = msg.bot
+    chat_id = int(msg.chat.id)
+    rest = await get_user_rest(chat_id, msg.from_user.id)
+
+    if not rest:
+        await msg.reply(f"❗️У вас нет активного реста.")
+        return
+
+    ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=msg.from_user, rest=rest)
+    
+    await msg.reply(ans, parse_mode="HTML")
+
+@router.message((F.text.regexp(r"^рест(?:\s|$)")) & (F.chat.type.in_(["group", "supergroup"])))
+async def user_rest_handler(msg: Message):
+    """Команда: рест {упоминание}"""
+    bot = msg.bot
+    chat_id = int(msg.chat.id)
+    target_user = await parse_user_mention(bot, msg)
+
+    if msg.reply_to_message and not target_user:
+        target_user = msg.reply_to_message.from_user
+    
+    if not target_user:
+        await msg.reply("❌ Укажите пользователя, рест которого хотите просмотреть.")
+        return
+
+    if target_user.is_bot:
+        await msg.reply("❌ Вы не можете просмотреть рест бота.")
+        return
+    rest = await get_user_rest(chat_id, target_user.id)
+
+    if not rest:
+        await msg.reply(f"❗️У этого пользователя нету активного реста.")
+        return
+
+    ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=target_user, rest=rest)
+    
     await msg.reply(ans, parse_mode="HTML")

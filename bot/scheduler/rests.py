@@ -8,7 +8,7 @@ async def rests(bot: Bot):
     if not users: return
 
     for u in users:
-        mention = await mention_user_with_delay(bot, u["chat_id"], u["user_id"])
+        mention = await mention_user_with_delay(bot=bot, chat_id=u["chat_id"], user_id=u["user_id"])
         if mention:
             text = f"⏰ {mention}, ваш рест подошёл к концу. Добро пожаловать обратно!"
             await bot.send_message(

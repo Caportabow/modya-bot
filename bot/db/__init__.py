@@ -129,7 +129,6 @@ async def create_tables(conn: asyncpg.Connection):
             user_id BIGINT NOT NULL,
             username TEXT DEFAULT NULL,
             nickname TEXT NOT NULL,
-            rest TIMESTAMPTZ DEFAULT NULL,
             marriage_id BIGINT DEFAULT NULL,
             parent_marriage_id BIGINT DEFAULT NULL,
             adoption_date TIMESTAMPTZ DEFAULT NULL,
@@ -262,4 +261,28 @@ async def create_tables(conn: asyncpg.Connection):
         
         CREATE INDEX IF NOT EXISTS idx_user_awards
             ON awards(chat_id, user_id);
+    """)
+
+    # Ресты
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS rests (
+            chat_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            administrator_user_id BIGINT NOT NULL,
+            assignment_date TIMESTAMPTZ NOT NULL,
+            valid_until TIMESTAMPTZ NOT NULL,
+            PRIMARY KEY (chat_id, user_id),
+
+            -- Relations
+            CONSTRAINT rests_chat_fk
+                FOREIGN KEY (chat_id)
+                REFERENCES chats(chat_id)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE,
+
+            CONSTRAINT rests_user_fk
+                FOREIGN KEY (chat_id, user_id)
+                REFERENCES users(chat_id, user_id)
+                ON DELETE CASCADE
+        );
     """)

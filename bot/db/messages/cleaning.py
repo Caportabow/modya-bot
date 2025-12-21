@@ -46,13 +46,17 @@ async def minmsg_users(chat_id: int, min_messages: int):
         FROM users u
         LEFT JOIN messages m
             ON m.sender_user_id = u.user_id
-        AND m.chat_id = u.chat_id
-        AND m.date >= $3
+            AND m.chat_id = u.chat_id
+            AND m.date >= $3
         LEFT JOIN first_message_dates fmd
             ON fmd.chat_id = u.chat_id
-        AND fmd.sender_user_id = u.user_id
+            AND fmd.sender_user_id = u.user_id
+        LEFT JOIN rests r
+            ON r.chat_id = u.chat_id
+            AND r.user_id = u.user_id
+            AND r.valid_until >= $1   -- Только активные ресты
         WHERE u.chat_id = $2
-        AND (u.rest IS NULL OR u.rest < $1)
+        AND r.user_id IS NULL        -- Пользователи без активного рестa
         AND (
                 fmd.first_message_date IS NULL
                 OR fmd.first_message_date <= $4
@@ -93,9 +97,13 @@ async def inactive_users(chat_id: int, duration: timedelta):
         LEFT JOIN messages m
             ON m.chat_id = u.chat_id
             AND m.sender_user_id = u.user_id
+        LEFT JOIN rests r
+            ON r.chat_id = u.chat_id
+            AND r.user_id = u.user_id
+            AND r.valid_until >= $2  -- активные ресты
         WHERE 
             u.chat_id = $1
-            AND (u.rest IS NULL OR u.rest < $2)
+            AND r.user_id IS NULL      -- только пользователи без активного рестa
         GROUP BY u.user_id
         HAVING 
             COALESCE(MAX(m.date), '1970-01-01') < $3

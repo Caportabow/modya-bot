@@ -16,7 +16,7 @@ from db.awards import get_awards
 from utils.telegram.users import mention_user, mention_user_with_delay
 from utils.time import DurationParser, TimedeltaFormatter
 from utils.web.families import make_family_tree
-from db.users.rests import set_rest
+from db.users.rests import add_rest
 
 
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
@@ -105,8 +105,8 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
 
 async def generate_rest_msg(bot: Bot, chat_id: int,
                             data: str, trigger_user: User, target_user: User):
-    trigger_user_mention = await mention_user(bot=bot, user_entity=trigger_user)
-    target_user_mention = await mention_user(bot=bot, user_entity=target_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
     
     if data == 'decline':
         return (
@@ -129,7 +129,7 @@ async def generate_rest_msg(bot: Bot, chat_id: int,
     until = datetime.now(timezone.utc) + duration
     beauty_until = TimedeltaFormatter.format(duration, suffix="none")
 
-    await set_rest(chat_id, int(target_user.id), until)
+    await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
 
     return (
         f"⏰ Рест выдан успешно!\n\n"
@@ -137,6 +137,20 @@ async def generate_rest_msg(bot: Bot, chat_id: int,
         f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
         f"👮 Администратор: {trigger_user_mention}."
     )
+
+async def describe_rest(bot: Bot, chat_id: int, target_user_entity: User, rest: dict) -> str:
+    now = datetime.now(timezone.utc)
+    beauty_until = TimedeltaFormatter.format(rest['valid_until'] - now, suffix="none")
+    beauty_assignment_date = TimedeltaFormatter.format(now - rest['assignment_date'])
+    user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user_entity)
+    administrator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=rest['administrator_user_id'])
+
+    ans = f"⏰ Рест пользователя {user_mention}.\n"
+    ans += f"🗓 Взят: {rest['assignment_date']:%d.%m.%Y} ({beauty_assignment_date})\n"
+    ans += f"📅 Действителен до: {rest['valid_until']:%d.%m.%Y} (еще {beauty_until})\n"
+    ans += f"👮 Администратор: {administrator_mention}."
+    
+    return ans
 
 async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, target_user_id: int) -> bool:
     """Проверяем чтобы человек был не в браке."""

@@ -18,8 +18,8 @@ async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
 
 async def mention_user(
     bot: Bot,
+    chat_id: int,
     *,
-    chat_id: int | None = None,
     user_entity: User | None = None,
     user_id: int | None = None,
     user_username: str | None = None,
@@ -33,14 +33,14 @@ async def mention_user(
         user_id = user_entity.id
 
     # 2. Если нет user_id, но есть username — пробуем получить id из базы
-    elif not user_id and user_username and chat_id:
+    elif not user_id and user_username:
         user_id = await get_uid(chat_id=chat_id, username=user_username)
         if not user_id:
             # fallback: не нашли id — просто вернем @username
             return f"@{user_username}"
 
     # 3. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
-    elif user_id and chat_id:
+    elif user_id:
         # 
         member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
         if member:
@@ -48,10 +48,9 @@ async def mention_user(
 
     # 4. Получаем никнейм (если доступен)
     nickname = None
-    if chat_id:
-        if not user_id and user_entity: user_id = user_entity.id
+    if not user_id and user_entity: user_id = user_entity.id
         
-        if user_id: nickname = await get_nickname(chat_id=chat_id, user_id=user_id)
+    if user_id: nickname = await get_nickname(chat_id=chat_id, user_id=user_id)
 
     # 5. Если после всего user_entity всё ещё нет — возвращаем безопасный текст
     if not user_entity:

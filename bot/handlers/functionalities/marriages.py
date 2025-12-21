@@ -116,8 +116,8 @@ async def propose(msg: Message):
         InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"marriage,{trigger_user_id},{target_user_id},retire")
     )
 
-    target_user_mention = await mention_user(bot=bot, user_entity=target_user)
-    trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
 
     ans = f"🎊 {target_user_mention}, вас приглашают к алтарю!\n"
     ans += f"💞 {trigger_user_mention} просит вашей руки и сердца.\n"
@@ -187,8 +187,8 @@ async def adopt(msg: Message):
         InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"adoption,{trigger_user_id},{target_user_id},retire")
     )
 
-    target_user_mention = await mention_user(bot=bot, user_entity=target_user)
-    trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
 
     ans = f"👨‍👩‍👧 {target_user_mention}, {trigger_user_mention} хочет стать вашим родителем!\n"
     ans += f"🏡 Готовы ли вы вступить в эту семью?"
@@ -229,8 +229,8 @@ async def abandon_child(msg: Message):
         await msg.reply(f"❌ Вы не являетесь родителем этого пользователя.")
         return
 
-    target_user_mention = await mention_user(bot=bot, user_entity=target_user)
-    trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id,user_entity=target_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
 
     ans = f"💔 {target_user_mention}, тяжёлые новости...\n"
     ans += f"😔 {trigger_user_mention} отказался от родительских прав.\n"
@@ -252,7 +252,7 @@ async def abandon_parent(msg: Message):
         await msg.reply(f"❌ У вас нету семьи из которой вы могли бы уйти.")
         return
 
-    trigger_user_mention = await mention_user(bot=bot, user_entity=msg.from_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=msg.from_user)
 
     ans = f"🧑‍🧑‍🧒 {trigger_user_mention}, вы успешно покинули семью.\n"
     ans += f"💔 Надеюсь это было взвешенное решение.."

@@ -69,11 +69,12 @@ async def user_stats(chat_id: int, user_id: int):
                 SUM(CASE WHEN m.date >= $1 THEN 1 ELSE 0 END) AS day_count,
                 SUM(CASE WHEN m.date >= $2 THEN 1 ELSE 0 END) AS week_count,
                 SUM(CASE WHEN m.date >= $3 THEN 1 ELSE 0 END) AS month_count,
-                MAX(u.rest) AS rest
+                MAX(r.valid_until) AS rest   -- активный рест или NULL
             FROM messages m
-            LEFT JOIN users u 
-                ON m.sender_user_id = u.user_id 
-            AND m.chat_id = u.chat_id
+            LEFT JOIN rests r
+                ON r.chat_id = m.chat_id
+                AND r.user_id = m.sender_user_id
+                AND r.valid_until >= NOW()  -- только текущие активные ресты
             WHERE m.chat_id = $4 
             AND m.sender_user_id = $5;
         """, one_day, one_week, one_month, chat_id, user_id
