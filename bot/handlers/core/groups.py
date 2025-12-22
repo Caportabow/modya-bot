@@ -4,6 +4,7 @@ from aiogram.types import Message
 from random import random
 
 from db.quotes import get_random_quote
+from db.users.rp_commands import get_user_rp_commands
 from utils.roleplay import parse_rp_command
 
 router = Router(name="groups")
@@ -17,7 +18,7 @@ async def on_message(msg: Message):
 
     # рп команды
     text = msg.text or msg.caption
-    if text:
+    if text and user and bot:
         # Удаляем префиксы
         prefixes = ["!", "/", "-", "—", "."]
         text = text.lstrip("".join(prefixes))
@@ -32,9 +33,10 @@ async def on_message(msg: Message):
                 if entity.type == "text_mention" and entity.user:
                     target_user_entity = entity.user
 
+        user_rp_commands = await get_user_rp_commands(int(chat.id), int(user.id))
         command = await parse_rp_command(
             bot, int(chat.id), text,
-            user, target_user_entity
+            user, target_user_entity, user_rp_commands
         )
 
         if command:

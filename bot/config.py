@@ -9,7 +9,7 @@ PRODUCTION = True # (ON/OFF)
 DEVELOPERS_ID = [2142151597, 6038133594] # (Telegram user IDs)
 
 # Misc
-MAX_MESSAGE_LENGTH = 4000  # Максимальная длинна сообщения
+MAX_MESSAGE_LENGTH = 4000  # Максимальная длинна сообщения в Telegram
 
 # Pictures
 HELLO_PICTURE_ID = "AgACAgIAAyEGAAS7wxNHAANAaPrGTWcs7T0JzbfL8UzY_aqOyg0AAgbxMRuZh9lL7mXuJTHRdj8BAAMCAAN3AAM2BA"
@@ -35,3 +35,6 @@ with open(os.path.join(BASE_DIR, "resources", "quote_template.html"), "r", encod
 
 with open(os.path.join(BASE_DIR, "resources", "family_template.html"), "r", encoding="utf-8") as f:
     FAMILY_TEMPLATE = f.read()
+
+# Limits
+MAX_RP_COMMANDS_IN_CHAT_PER_USER = 3

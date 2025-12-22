@@ -1,16 +1,19 @@
-from aiogram import Bot
+from aiogram import Bot, types
 from utils.telegram.users import mention_user
 from config import RP_COMMANDS
 
-def _find_command(text, rp_commands):
+def _find_command(text: str, rp_commands: dict):
     words = text.split(" ")
 
-    for i in range(1, len(words) + 1):
-        candidate = " ".join(words[:i]).lower()
-        if candidate in rp_commands:
-            words = words[i:]
-            return rp_commands[candidate], " ".join(words) if words else None
-    
+    # Сортируем команды по количеству слов (от большего к меньшему)
+    sorted_commands = sorted(rp_commands.keys(), key=lambda c: -len(c.split(" ")))
+
+    for cmd in sorted_commands:
+        cmd_words = cmd.split(" ")
+        if words[:len(cmd_words)] == cmd_words:
+            rest = words[len(cmd_words):]
+            return rp_commands[cmd], " ".join(rest) if rest else None
+
     return None, None
 
 def _find_comment(text: str):
@@ -26,15 +29,18 @@ def _find_target(text):
             return word[1:] if len(word) > 1 else None, " ".join(rest) if rest else None
     return None, text
 
-async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity, target_user_entity = None):
+async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity: types.User, target_user_entity: types.User | None = None, user_rp_commands: dict | None = None) -> str | None:
     comment, rest = _find_comment(text) # сначала ищем комментарий (!иначе может быть вырезан случайно)
     if not rest: return None
 
     target_user_username, rest = _find_target(rest) # потом цель (если есть), чтобы не делать лишних проверок
     if not rest: return None
 
+    # Собираем список из доступных РП команд
+    all_rp_commands = {**RP_COMMANDS, **(user_rp_commands or {})}
+
     # Наконец ищем команду
-    command, rest = _find_command(rest, RP_COMMANDS)
+    command, rest = _find_command(rest, all_rp_commands)
     if not command:
         return None
     
@@ -46,8 +52,8 @@ async def parse_rp_command(bot: Bot, chat_id:int, text:str, trigger_user_entity,
         target_user = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user_entity)
     
     # Теперь собираем команду.
-    if rest: trigger_user += f" {rest}"
-    command = command.format(trigger=trigger_user, target=target_user)
+    argument = "" if not rest else f"{rest} "
+    command = command.format(trigger=trigger_user, target=argument + target_user)
     if comment: command += f"\n💬 С комментарием: {comment}"
 
     return command

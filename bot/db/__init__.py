@@ -286,3 +286,28 @@ async def create_tables(conn: asyncpg.Connection):
                 ON DELETE CASCADE
         );
     """)
+
+    # Кастомные РП команды
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS rp_commands (
+            chat_id BIGINT NOT NULL,
+            user_id BIGINT NOT NULL,
+            command TEXT NOT NULL,
+            emoji TEXT NOT NULL,
+            action TEXT NOT NULL,
+            PRIMARY KEY (chat_id, user_id, command),
+
+
+            -- Relations
+            CONSTRAINT rp_commands_chat_fk
+                FOREIGN KEY (chat_id)
+                REFERENCES chats(chat_id)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE,
+
+            CONSTRAINT rp_commands_user_fk
+                FOREIGN KEY (chat_id, user_id)
+                REFERENCES users(chat_id, user_id)
+                ON DELETE CASCADE
+        );
+    """)
