@@ -15,27 +15,25 @@ router = Router(name="user_info")
 
 
 @router.message(
-    (F.text.regexp(r"^кто(?:\s|$)", flags=re.IGNORECASE)) & 
+    (F.text.regexp(r"^(кто я|кто ты)$", flags=re.IGNORECASE)) & 
     (F.chat.type.in_(["group", "supergroup"]))
 )
 async def user_info_handler(msg: Message):
     """Команда: кто [я|ты]"""
     bot = msg.bot
-    parts = msg.text.split()
-    if len(parts) <= 1: return
-    target = parts[1].lower()
+    _, target = msg.text.lower().split()
     
-    if target == "я": user = msg.from_user
+    if target == "я":
+        user = msg.from_user
 
-    elif target == "ты" and msg.reply_to_message: user = msg.reply_to_message.from_user
-
-    elif target == "ты" and not msg.reply_to_message and msg.entities:
-        user = await parse_user_mention(bot, msg)
-        if not user:
-            await msg.reply("❌ Не удалось найти пользователя.")
-            return
-    
-    else: return
+    elif target == "ты":
+        if msg.reply_to_message:
+            user = msg.reply_to_message.from_user
+        else:
+            user = await parse_user_mention(bot, msg)
+            if not user:
+                await msg.reply("❌ Укажи пользователя реплаем или упоминанием.")
+                return
 
     if user.is_bot:
         await msg.reply("❌ Эта команда не поддерживает ботов.")
