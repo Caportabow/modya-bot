@@ -33,6 +33,20 @@ async def get_all_users_in_chat(chat_id: int) -> list[int] | None:
     )
     return [row['user_id'] for row in rows] if rows else None
 
+async def get_random_chat_member(chat_id: int) -> int | None:
+    """Возвращает рандомного пользователя, из чата."""
+    user_id = await db.fetchval(
+        """
+        SELECT user_id
+        FROM users
+        WHERE chat_id = $1
+        ORDER BY RANDOM()
+        LIMIT 1;
+        """, chat_id
+    )
+
+    return user_id or None
+
 async def get_uid(chat_id: int, username: str) -> int | None:
     """Возвращает user_id пользователя в чате по username."""
     user_id = await db.fetchval(
