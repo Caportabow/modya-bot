@@ -193,7 +193,8 @@ async def create_tables(conn: asyncpg.Connection):
         CREATE TABLE IF NOT EXISTS quotes (
             id BIGSERIAL PRIMARY KEY,
             chat_id BIGINT NOT NULL,
-            sticker_file_id TEXT NOT NULL UNIQUE,
+            sticker_file_id TEXT NOT NULL,
+            UNIQUE(chat_id, sticker_file_id),
             
             -- Relations
             CONSTRAINT quotes_chat_fk

@@ -1,12 +1,12 @@
 import db
 
 async def add_quote(chat_id: int, sticker_id: str):
-    """Добавляем цитату (стикер) пользователя в чате."""
+    """Добавляем цитату (стикер) в чат."""
     await db.execute(
         """
         INSERT INTO quotes (chat_id, sticker_file_id)
         VALUES ($1, $2)
-        ON CONFLICT(sticker_file_id) DO NOTHING
+        ON CONFLICT(chat_id, sticker_file_id) DO NOTHING
         """, chat_id, sticker_id
     )
 
