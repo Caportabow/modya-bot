@@ -3,7 +3,7 @@ from utils.telegram.users import mention_user
 from config import RP_COMMANDS
 
 def _find_command(text: str, rp_commands: dict):
-    words = text.split(" ")
+    words = text.lower().split(" ")
 
     # Сортируем команды по количеству слов (от большего к меньшему)
     sorted_commands = sorted(rp_commands.keys(), key=lambda c: -len(c.split(" ")))
