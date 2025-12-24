@@ -1,5 +1,6 @@
 from aiogram import Router, F
-from aiogram.types import Message, BufferedInputFile
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import Message, BufferedInputFile, InlineKeyboardButton
 
 from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type
 from utils.web.quotes import make_quote
@@ -84,10 +85,17 @@ async def quotes_handler(msg: Message):
 
     quote = await make_quote(quote_materials)
     quote_file = BufferedInputFile(quote, filename="quote.webp")
-    
+
+
+    # Создаем клавиатуру для цитаты
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
+    )
     sent_msg = await bot.send_sticker(
         chat_id=msg.chat.id, sticker=quote_file,
-        reply_to_message_id=msg.message_id
+        reply_to_message_id=msg.message_id,
+        reply_markup=builder.as_markup()
         )
     
     if sent_msg.sticker:

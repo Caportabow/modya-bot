@@ -22,3 +22,12 @@ async def get_random_quote(chat_id: int) -> str | None:
     )
 
     return quote
+
+async def remove_quote(chat_id: int, sticker_id: str):
+    """Удаляем цитату (стикер) пользователя из чата."""
+    await db.execute(
+        """
+        DELETE FROM quotes
+        WHERE chat_id = $1 AND sticker_file_id = $2
+        """, chat_id, sticker_id
+    )

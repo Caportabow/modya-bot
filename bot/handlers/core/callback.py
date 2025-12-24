@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery, Message
 from config import WARNINGS_PICTURE_ID, AWARDS_PICTURE_ID
 from db.marriages import make_marriage
 from db.marriages.families import adopt_child, check_adoption_possibility, incest_cycle
+from db.quotes import remove_quote
 from utils.telegram.users import is_admin, is_creator, get_chat_member_or_fall, mention_user
 from utils.telegram.message_templates import generate_awards_msg, generate_warnings_msg, generate_rest_msg, check_marriage_loyality, family_tree
 
@@ -34,6 +35,10 @@ async def callback_handler(callback: CallbackQuery):
     # Обработка реста
     elif action == "rest":
         await handle_rest(callback, bot, msg, chat_id, parts)
+    
+    # Обработка цитат
+    elif action == "quotes":
+        await handle_quotes(callback, bot, msg, parts)
     
     # Обработка наград/предупреждений/семьи
     elif action in ["awards", "warnings", "family"]:
@@ -166,6 +171,29 @@ async def handle_rest(callback: CallbackQuery, bot: Bot, msg: Message, chat_id: 
     
     await msg.edit_reply_markup()
     await msg.edit_text(text=ans, parse_mode="HTML")
+
+
+async def handle_quotes(callback: CallbackQuery, bot: Bot, msg: Message, parts: list):
+    """Обрабатывает колбеки связанные с цитатами."""
+    action = parts[1]
+    trigger_user = callback.from_user
+    chat_id = int(parts[2])
+
+    if not msg.sticker:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+        return
+
+    if action == "delete":
+        admin = await is_admin(bot, chat_id, int(trigger_user.id))
+        if not admin:
+            await callback.answer(text="❌ Вы должны быть админом, чтобы удалить цитату.", show_alert=True)
+            return
+
+        sticker_file_id = msg.sticker.file_id
+        await remove_quote(chat_id, sticker_file_id)
+        await msg.delete()
+        return
+
 
 async def handle_user_info(bot: Bot, msg: Message, chat_id: int, parts: list, action: str):
     """Обрабатывает запросы наград и предупреждений."""

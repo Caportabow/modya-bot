@@ -1,6 +1,7 @@
 import random
 from aiogram import Bot
-from aiogram.types import User, BufferedInputFile, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import User, Message, BufferedInputFile, InlineKeyboardButton
 
 from datetime import datetime, timezone, timedelta
 
@@ -259,4 +260,10 @@ async def send_random_sticker_quote(msg: Message):
     quote_sticker_id = await get_random_quote(int(msg.chat.id))
 
     if quote_sticker_id:
-        await msg.reply_sticker(sticker=quote_sticker_id)
+        # Создаем клавиатуру для цитаты
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id},{quote_sticker_id}"),
+        )
+
+        await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=builder.as_markup())
