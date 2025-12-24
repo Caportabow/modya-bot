@@ -1,10 +1,15 @@
 import random
 from aiogram import Bot
-from aiogram.types import User, BufferedInputFile
+from aiogram.types import User, BufferedInputFile, Message
 
 from datetime import datetime, timezone, timedelta
 
 from config import HELLO_PICTURE_ID, MAX_MESSAGE_LENGTH
+
+from db.users.rests import add_rest
+from db.users.rp_commands import get_user_rp_commands
+
+from db.quotes import get_random_quote
 
 from db.marriages import get_user_marriage, delete_marriage
 from db.marriages.families import get_family_tree_data
@@ -14,9 +19,9 @@ from db.warnings import get_user_warnings
 from db.awards import get_awards
 
 from utils.telegram.users import mention_user, mention_user_with_delay
+from utils.roleplay import parse_rp_command
 from utils.time import DurationParser, TimedeltaFormatter
 from utils.web.families import make_family_tree
-from db.users.rests import add_rest
 
 
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
@@ -209,3 +214,49 @@ async def family_tree(bot: Bot, chat_id: int, user_id: int, user_entity: User):
 
     photo = BufferedInputFile(family_tree_bytes, filename="family_tree.jpeg")
     await bot.send_photo(chat_id=chat_id, photo=photo, caption=f"🌳 Семейное древо {mention}", parse_mode="HTML")
+
+async def process_roleplay_message(msg: Message) -> bool:
+    """
+    Обрабатывает ролевые сообщения.
+    Возвращает True, если сообщение содержало RP команду. Иначе False.
+    """
+    bot = msg.bot
+    user = msg.from_user
+    chat = msg.chat
+
+    # рп команды
+    text = msg.text or msg.caption
+
+    if text and user and bot:
+        # Удаляем префиксы
+        prefixes = ["!", "/", "-", "—", "."]
+        text = text.lstrip("".join(prefixes))
+
+        target_user_entity = None
+        reply_message = msg.reply_to_message or msg
+        target_user_entity = reply_message.from_user
+        
+        if not target_user_entity and msg.entities:
+            # Пытаемся найти упоминание пользователя в тексте
+            for entity in msg.entities:
+                if entity.type == "text_mention" and entity.user:
+                    target_user_entity = entity.user
+
+        user_rp_commands = await get_user_rp_commands(int(chat.id), int(user.id))
+        command = await parse_rp_command(
+            bot, int(chat.id), text,
+            user, target_user_entity, user_rp_commands
+        )
+
+        if command:
+            await reply_message.reply(command, parse_mode="HTML")
+            return True
+
+    return False
+
+async def send_random_sticker_quote(msg: Message):
+    """Отправляет рандомную цитату в чат."""
+    quote_sticker_id = await get_random_quote(int(msg.chat.id))
+
+    if quote_sticker_id:
+        await msg.reply_sticker(sticker=quote_sticker_id)
