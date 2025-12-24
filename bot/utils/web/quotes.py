@@ -67,7 +67,7 @@ def truncate_text(text: str, max_length: int = MAX_MESSAGE_LENGTH) -> str:
 def encode_media_as_data_url(media: dict) -> str:
     """Encode media as base64 data URL."""
     encoded = base64.b64encode(media['source']).decode('utf-8')
-    return f"{media['type']};base64,{encoded}"
+    return f"data:{media['type']};base64,{encoded}"
 
 
 def create_avatar_html(avatar: Optional[bytes], name: str) -> tuple[str, str]:
