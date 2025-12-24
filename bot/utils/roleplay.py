@@ -18,6 +18,8 @@ def _find_command(text: str, rp_commands: dict):
 
 def _find_comment(text: str):
     lines = text.splitlines()
+    if not lines: return None, text
+    
     head, *command = lines
     return ("\n".join(command) if command else None), head
 
