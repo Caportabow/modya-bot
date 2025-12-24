@@ -263,7 +263,7 @@ async def send_random_sticker_quote(msg: Message):
         # Создаем клавиатуру для цитаты
         builder = InlineKeyboardBuilder()
         builder.row(
-            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id},{quote_sticker_id}"),
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
         )
 
         await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=builder.as_markup())
