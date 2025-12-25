@@ -1,7 +1,7 @@
-asyncpg
 aiogram
+asyncpg
+emoji
+filetype
 matplotlib
 pandas
 playwright
-filetype
-emoji
