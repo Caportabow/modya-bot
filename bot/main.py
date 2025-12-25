@@ -7,8 +7,6 @@ from middlewares import middlewares
 import db
 import scheduler
 
-# TODO: инфа, кто, выбери 
-# TODO: utils.texts для заготовок для форматирования хренотеней
 # TODO: обновленные цитаты: новая команда -- /qs чтобы добавить любой стик в список группы. Новая команда -- /qd, чтобы удалить цитату из списка группы
 
 dp = Dispatcher()
