@@ -29,6 +29,9 @@ async def rests_handler(msg: Message):
     now = datetime.now(timezone.utc)
     ans_header = f"💤 Пользователи в ресте:\n\n"
     ans = ans_header
+    ans += "<blockquote expandable>"
+
+
     for i, r in enumerate(rests):
         mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
         rest_info = f"до {r['valid_until']:%d.%m.%Y} (еще {TimedeltaFormatter.format(r['valid_until'] - now, suffix="none")})"
@@ -36,13 +39,16 @@ async def rests_handler(msg: Message):
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             await msg.reply(ans, parse_mode="HTML")
-            ans = ""  # сбрасываем накопленное сообщение
+            ans = ans_header  # сбрасываем накопленное сообщение
+            ans += "<blockquote expandable>"
 
         ans += line
 
     # отправляем остаток, если есть
     if ans.strip():
+        ans += "</blockquote>"
         await msg.reply(ans, parse_mode="HTML")
 
 @router.message(

@@ -53,6 +53,8 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
 
     ans_header = f"🏆 Награды пользователя {mention}:\n\n"
     ans = ans_header
+    ans += "<blockquote expandable>"
+
     for i, a in enumerate(awards):
         award = a["award"]
         date = TimedeltaFormatter.format(datetime.now(timezone.utc) - a["assignment_date"])
@@ -65,13 +67,17 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             answers.append(ans)
             ans = ans_header  # сбрасываем накопленное сообщение
+            ans += "<blockquote expandable>"
 
         ans += line
     
     # добавляем остаток, если есть
-    if ans.strip(): answers.append(ans)
+    if ans.strip():
+        ans += "</blockquote>"
+        answers.append(ans)
 
     return answers
 
@@ -90,6 +96,8 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
 
     ans_header = f"⚠️ Варны пользователя {mention} ({warnings_count}/{max_warns}):\n\n"
     ans = ans_header
+    ans += "<blockquote expandable>"
+
     for i, w in enumerate(warnings):
         reason = w["reason"] or "Причина не указана."
         date = TimedeltaFormatter.format(datetime.now(timezone.utc) - w["assignment_date"])
@@ -99,13 +107,17 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             answers.append(ans)
             ans = ans_header  # сбрасываем накопленное сообщение
+            ans += "<blockquote expandable>"
 
         ans += line
     
     # добавляем остаток, если есть
-    if ans.strip(): answers.append(ans)
+    if ans.strip():
+        ans += "</blockquote>"
+        answers.append(ans)
 
     return answers
 

@@ -24,7 +24,9 @@ async def stats_handler(msg: Message):
         await msg.reply("❌ У пользователей этого чата нет варнов.")
         return
     
-    ans = f"📛 Список предупреждений:\n\n"
+    ans_header = f"📛 Список предупреждений:\n\n"
+    ans = ans_header
+    ans += "<blockquote expandable>"
 
     for i, u in enumerate(users_with_warnings):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
@@ -33,8 +35,10 @@ async def stats_handler(msg: Message):
         line = f"▫️ {mention} - {u['count']}/{max_warns}\n"
         
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             await msg.reply(ans, parse_mode="HTML")
-            ans = ""
+            ans = ans_header  # сбрасываем накопленное сообщение
+            ans += "<blockquote expandable>"
         
         ans += line
     

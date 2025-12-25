@@ -44,6 +44,7 @@ async def minmsg_handler(msg: Message):
 
     ans_header = f"⚠️ Не набрали норму ({msg_count} соо.):\n\n"
     ans = ans_header
+    ans += "<blockquote expandable>"
 
     for i, u in enumerate(users):
         mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
@@ -52,12 +53,14 @@ async def minmsg_handler(msg: Message):
         line = f"▫️ {mention}: {u['count']} ({percentage:.0f}%)\n"
         
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             await msg.reply(ans, parse_mode="HTML")
-            ans = ""
+            ans = "<blockquote expandable>"
         ans += line
 
     # отправляем остаток, если есть
     if ans.strip():
+        ans += "</blockquote>"
         await msg.reply(ans, parse_mode="HTML")
 
 @router.message(

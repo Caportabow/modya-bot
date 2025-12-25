@@ -29,6 +29,7 @@ async def all_marriages_handler(msg: Message):
     now = datetime.now(timezone.utc)
     ans_header = f"💕 Пары нашего чата:\n\n"
     ans = ans_header
+    ans += "<blockquote expandable>"
 
     for i, m in enumerate(marriages):
         mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][0]))
@@ -39,13 +40,16 @@ async def all_marriages_handler(msg: Message):
 
         # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
         if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
+            ans += "</blockquote>"
             await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
             ans = ans_header  # сбрасываем накопленное сообщение
+            ans += "<blockquote expandable>"
         
         ans += line
     
     # добавляем остаток, если есть
     if ans.strip():
+        ans += "</blockquote>"
         await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message((F.text.lower().startswith("мой брак")) & (F.chat.type.in_(["group", "supergroup"])))
