@@ -1,5 +1,8 @@
 import aiohttp
 import filetype
+import io
+from PIL import Image
+
 from aiogram import Bot
 from aiogram.types import Message, UserProfilePhotos
 
@@ -14,6 +17,21 @@ async def get_file_bytes(bot: Bot, file_id: str) -> bytes:
             resp.raise_for_status()
             bytes = await resp.read()
     return bytes
+
+async def image_bytes_to_webp(image_bytes: bytes, quality: int = 80) -> bytes:
+    input_buffer = io.BytesIO(image_bytes)
+    output_buffer = io.BytesIO()
+
+    with Image.open(input_buffer) as img:
+        # если есть альфа — сохраняем
+        img.save(
+            output_buffer,
+            format="WEBP",
+            quality=quality,
+            method=6  # максимальное сжатие без потери качества
+        )
+
+    return output_buffer.getvalue()
 
 async def get_mime_type(file_bytes: bytes) -> str | None:
     kind = filetype.guess(file_bytes)

@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, BufferedInputFile, InlineKeyboardButton
 
-from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type
+from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type, get_quotable_media_id, image_bytes_to_webp
 from utils.web.quotes import make_quote
 
 from db.quotes import add_quote
@@ -12,7 +12,7 @@ router = Router(name="quotes")
 
 
 @router.message((F.text.lower().startswith("/q")) & (F.chat.type.in_(["group", "supergroup"])))
-async def quotes_handler(msg: Message):
+async def make_quote_handler(msg: Message):
     """Команда: /q [кол-во сообщений]"""
     bot = msg.bot
 
@@ -86,6 +86,44 @@ async def quotes_handler(msg: Message):
     quote = await make_quote(quote_materials)
     quote_file = BufferedInputFile(quote, filename="quote.webp")
 
+
+    # Создаем клавиатуру для цитаты
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
+    )
+    sent_msg = await bot.send_sticker(
+        chat_id=msg.chat.id, sticker=quote_file,
+        reply_to_message_id=msg.message_id,
+        reply_markup=builder.as_markup()
+        )
+    
+    if sent_msg.sticker:
+        sticker_id = sent_msg.sticker.file_id
+        await add_quote(int(msg.chat.id), str(sticker_id))
+
+@router.message((F.text.lower().startswith("/qs")) & (F.chat.type.in_(["group", "supergroup"])))
+async def add_quote_handler(msg: Message):
+    """
+    Команда: /qs
+    Форматы: стикер, фото, видео, гифка
+    """
+    bot = msg.bot
+
+    reply = msg.reply_to_message
+    if not reply or not reply.from_user:
+        await msg.reply("❌ Ответьте на сообщение, чтобы сохранить стикер.")
+        return
+    
+    media = await get_quotable_media_id(reply)
+    if not media:
+        await msg.reply("❌ В ответе должно быть медиа (стикер, фото, видео, гифка) не превышающее 10мб.")
+        return
+    
+    media_bytes = await get_file_bytes(bot, media["file_id"])
+    webp_bytes = await image_bytes_to_webp(media_bytes) 
+
+    quote_file = BufferedInputFile(webp_bytes, filename="quote.webp")
 
     # Создаем клавиатуру для цитаты
     builder = InlineKeyboardBuilder()

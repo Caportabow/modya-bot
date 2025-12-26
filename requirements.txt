@@ -5,3 +5,4 @@ filetype
 matplotlib
 pandas
 playwright
+pillow
