@@ -9,7 +9,7 @@ from utils.time import DurationParser, TimedeltaFormatter
 from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
 
-from db.chats.settings import get_max_warns
+from db.chats.other import get_max_warns
 from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
 
 router = Router(name="warnings")

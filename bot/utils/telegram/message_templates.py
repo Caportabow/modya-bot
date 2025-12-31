@@ -15,7 +15,7 @@ from db.quotes import get_random_quote
 from db.marriages import get_user_marriage, delete_marriage
 from db.marriages.families import get_family_tree_data
 
-from db.chats.settings import get_max_warns
+from db.chats.other import get_max_warns
 from db.warnings import get_user_warnings
 from db.awards import get_awards
 

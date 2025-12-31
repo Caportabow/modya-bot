@@ -2,7 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message
 
-from db.chats.settings import set_max_warns
+from db.chats.other import set_max_warns
 from utils.telegram.users import is_admin
 
 router = Router(name="chat_settings")
