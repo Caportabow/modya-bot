@@ -180,7 +180,7 @@ async def give_rest(msg: Message):
     (F.text.regexp(r"^-рест(?:\s|$)", flags=re.IGNORECASE)) & 
     (F.chat.type.in_(["group", "supergroup"]))
 )
-async def remove_rest(msg: Message):
+async def remove_rest_handler(msg: Message):
     """Команда: -рест @user"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
