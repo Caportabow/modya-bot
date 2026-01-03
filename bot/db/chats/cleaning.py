@@ -1,7 +1,7 @@
 import db
 from datetime import datetime, timezone, timedelta
 
-async def verify_cleaning_possibility(chat_id: int) -> bool:
+async def verify_cleaning_availibility(chat_id: int) -> bool:
     """
     Проверяет возможность проведения чистки в чате.
     Возвращает True если чистку уже можно провести, иначе False.

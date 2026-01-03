@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from utils.telegram.users import mention_user_with_delay
 from utils.time import DurationParser, TimedeltaFormatter
-from db.chats.cleaning import minmsg_users, verify_cleaning_possibility, inactive_users
+from db.chats.cleaning import minmsg_users, verify_cleaning_availibility, inactive_users
 
 from config import MAX_MESSAGE_LENGTH
 
@@ -31,10 +31,9 @@ async def minmsg_handler(msg: Message):
         await msg.reply("❌ Укажите минимальное количество сообщений (норму).")
         return
     
-    possibility = await verify_cleaning_possibility(chat_id)
-    if not possibility:
-        await msg.reply("❌ Бот должен находиться в чате минимум неделю, прежде чем сможет проводить чистку.")
-        return
+    cleaning_availibility = await verify_cleaning_availibility(chat_id)
+    if cleaning_availibility: warning = ""
+    else: warning = f"\n<i>ℹ️ Бот в чате меньше недели, статистика может быть неполной.</i>"
 
     users = await minmsg_users(chat_id, msg_count)
 
@@ -42,7 +41,7 @@ async def minmsg_handler(msg: Message):
         await msg.reply(f"✅ Все участники успешно набрали норму!")
         return
 
-    ans_header = f"⚠️ Не набрали норму ({msg_count} соо.):\n\n"
+    ans_header = f"⚠️ Не набрали норму ({msg_count} соо.):{warning}\n\n"
     ans = ans_header
     ans += "<blockquote expandable>"
 
@@ -80,10 +79,9 @@ async def inactive_handler(msg: Message):
     else:
         duration = timedelta(days=4)
     
-    possibility = await verify_cleaning_possibility(chat_id)
-    if not possibility:
-        await msg.reply("❌ Бот должен находиться в чате минимум неделю, прежде чем сможет проводить чистку.")
-        return
+    cleaning_availibility = await verify_cleaning_availibility(chat_id)
+    if cleaning_availibility: warning = ""
+    else: warning = f"\n<i>ℹ️ Бот в чате меньше недели, статистика может быть неполной.</i>"
 
     users = await inactive_users(chat_id, duration)
 
@@ -92,7 +90,7 @@ async def inactive_handler(msg: Message):
         return
 
     now = datetime.now(timezone.utc)
-    ans_header = f"💤 Неактивны последние {TimedeltaFormatter.format(duration, suffix='none')}:\n\n"
+    ans_header = f"💤 Неактивны последние {TimedeltaFormatter.format(duration, suffix='none')}:{warning}\n\n"
     ans = ans_header
 
     for i, u in enumerate(users):
