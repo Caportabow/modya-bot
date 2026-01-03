@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from utils.telegram.users import mention_user_with_delay
 from utils.time import DurationParser, TimedeltaFormatter
-from db.messages.cleaning import minmsg_users, verify_cleaning_possibility, inactive_users
+from db.chats.cleaning import minmsg_users, verify_cleaning_possibility, inactive_users
 
 from config import MAX_MESSAGE_LENGTH
 
