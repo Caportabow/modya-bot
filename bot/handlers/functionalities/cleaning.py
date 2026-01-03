@@ -32,8 +32,7 @@ async def minmsg_handler(msg: Message):
         return
     
     cleaning_availibility = await verify_cleaning_availibility(chat_id)
-    if cleaning_availibility: warning = ""
-    else: warning = f"\n<i>ℹ️ Бот в чате меньше недели, статистика может быть неполной.</i>"
+    warning = "" if cleaning_availibility else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
 
     users = await minmsg_users(chat_id, msg_count)
 
@@ -41,7 +40,7 @@ async def minmsg_handler(msg: Message):
         await msg.reply(f"✅ Все участники успешно набрали норму!")
         return
 
-    ans_header = f"⚠️ Не набрали норму ({msg_count} соо.):{warning}\n\n"
+    ans_header = f"⚠️ Не набрали норму ({msg_count} сообщ.):{warning}\n\n"
     ans = ans_header
     ans += "<blockquote expandable>"
 
@@ -80,8 +79,7 @@ async def inactive_handler(msg: Message):
         duration = timedelta(days=4)
     
     cleaning_availibility = await verify_cleaning_availibility(chat_id)
-    if cleaning_availibility: warning = ""
-    else: warning = f"\n<i>ℹ️ Бот в чате меньше недели, статистика может быть неполной.</i>"
+    warning = "" if cleaning_availibility else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
 
     users = await inactive_users(chat_id, duration)
 
