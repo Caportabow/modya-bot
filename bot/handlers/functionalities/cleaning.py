@@ -86,7 +86,7 @@ async def inactive_handler(msg: Message):
     users = await inactive_users(chat_id, duration)
 
     if not users or len(users) == 0:
-        await msg.reply(f"✅ Все участники акивны!")
+        await msg.reply(f"✅ Все участники активны!")
         return
 
     now = datetime.now(timezone.utc)
