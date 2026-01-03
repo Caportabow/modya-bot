@@ -1,5 +1,7 @@
 import db
+from datetime import timedelta
 
+# --- WARNINGS SETTINGS ---
 async def set_max_warns(chat_id: int, max_warns: int):
     """Устанавливаем максимальное количество варнов для чата."""
     await db.execute(
