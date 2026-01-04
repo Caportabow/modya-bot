@@ -135,10 +135,11 @@ class DurationParser:
             return forever_result
         
         # 2 + 3. Проверяем дни недели и парсим числовые выражения
-        if re.search(r'\d', normalized_text):
-            data = cls._parse_numeric_duration(normalized_text) or {}
-            data["days"] += cls._parse_weekday(normalized_text, reference_time)
-            return timedelta(**data)
+        numeric_data = cls._parse_numeric_duration(normalized_text) or {}
+        weekday_data_days = cls._parse_weekday(normalized_text, reference_time)
+        if numeric_data or weekday_data_days:
+            numeric_data["days"] = weekday_data_days + numeric_data.get("days", 0)
+            return timedelta(**numeric_data)
         
         # 4. Парсим фиксированные слова
         return cls._parse_fixed_duration(normalized_text)
@@ -315,3 +316,5 @@ class TimedeltaFormatter:
             result = "через " + result
         
         return result
+
+print(DurationParser.parse("cуббота", datetime.now(timezone.utc)))
