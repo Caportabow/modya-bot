@@ -1,42 +1,29 @@
 import io
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates  # Импортируем модуль для работы с датами
 import pandas as pd
 
 from db.messages import plot_user_activity
 
+
 async def make_activity_chart(chat_id: int, user_id: int):
     user_activity = await plot_user_activity(chat_id=chat_id, user_id=user_id)
 
+    # Конвертируем в DataFrame
     df = pd.DataFrame(user_activity, columns=["date", "count"])
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"])  # оставляем datetime для корректного порядка
 
     # Заполняем пропущенные дни нулями
     df = df.set_index("date").asfreq("D", fill_value=0).reset_index()
 
+    # Создаём подписи для оси X
+    df["date_str"] = df["date"].dt.strftime("%d.%m")
+
     # Рисуем график
     plt.figure(figsize=(10, 5))
-    
-    # ВАЖНО: Передаем df["date"] (datetime), а не строки.
-    # width=0.8 означает ширину столбца в 0.8 дня (чтобы были небольшие отступы)
-    plt.bar(df["date"], df["count"], color="#1d74e6", width=0.8)
-    
+    plt.bar(df["date_str"], df["count"], color="#1d74e6")
     plt.title("Статистика активности", fontsize=12)
     plt.ylabel("Кол-во сообщений")
-
-    # --- Настройка оси X ---
-    ax = plt.gca() # Получаем текущие оси (Get Current Axes)
-
-    # 1. Настраиваем частоту меток (Locator)
-    # AutoDateLocator сам подберет оптимальный интервал, чтобы текст не слипался.
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-
-    # 2. Настраиваем формат отображения (Formatter)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
-
-    # Вращаем подписи, чтобы они выглядели аккуратно
-    plt.xticks(rotation=45)
-    # -----------------------
+    plt.xticks(rotation=45, ha="right")
 
     plt.tight_layout()
     
