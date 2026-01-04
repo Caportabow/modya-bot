@@ -2,7 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 
 from config import TELEGRAM_TOKEN
-from handlers import routers
+from routers import routers
 from middlewares import middlewares
 import db
 import scheduler
