@@ -13,9 +13,12 @@ from db.users.rests import add_rest, remove_rest, get_all_rests, get_user_rest
 from config import MAX_MESSAGE_LENGTH
 
 router = Router(name="rests")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
-@router.message((F.text.lower().startswith("ресты")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+        F.text.lower().startswith("ресты")
+)
 async def rests_handler(msg: Message):
     """Команда: ресты"""
     bot = msg.bot
@@ -52,8 +55,7 @@ async def rests_handler(msg: Message):
         await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^взять рест(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^взять рест(?:\s|$)", flags=re.IGNORECASE)
 )
 async def ask_for_rest(msg: Message):
     """Команда: взять рест {период}"""
@@ -112,8 +114,7 @@ async def ask_for_rest(msg: Message):
     await msg.reply(text=ans, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^\+рест(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\+рест(?:\s|$)", flags=re.IGNORECASE)
 )
 async def give_rest(msg: Message):
     """Команда: +рест @user {период}"""
@@ -177,8 +178,7 @@ async def give_rest(msg: Message):
     await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^-рест(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^-рест(?:\s|$)", flags=re.IGNORECASE)
 )
 async def remove_rest_handler(msg: Message):
     """Команда: -рест @user"""
@@ -217,7 +217,9 @@ async def remove_rest_handler(msg: Message):
     await remove_rest(chat_id, target_user_id)
     await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("мой рест")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("мой рест")
+)
 async def my_rest_handler(msg: Message):
     """Команда: мой рест"""
     bot = msg.bot
@@ -232,7 +234,9 @@ async def my_rest_handler(msg: Message):
     
     await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.regexp(r"^рест(?:\s|$)")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.regexp(r"^рест(?:\s|$)")
+)
 async def user_rest_handler(msg: Message):
     """Команда: рест {упоминание}"""
     bot = msg.bot

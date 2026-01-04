@@ -13,8 +13,11 @@ from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
 
 router = Router(name="warnings")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
-@router.message((F.text.lower().startswith("все варны")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("все варны")
+)
 async def stats_handler(msg: Message):
     """Команда: все варны"""
     bot = msg.bot
@@ -46,7 +49,9 @@ async def stats_handler(msg: Message):
     if ans.strip():
         await msg.reply(ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("варны")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("варны")
+)
 async def get_user_warnings_handler(msg: Message):
     """Команда: варны @user"""
     bot = msg.bot
@@ -69,8 +74,7 @@ async def get_user_warnings_handler(msg: Message):
         await msg.reply_photo(photo=WARNINGS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^\+варн(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\+варн(?:\s|$)", flags=re.IGNORECASE)
 )
 async def add_warning_handler(msg: Message):
     """Команда: +варн {период} @user {отступ} {причина}"""
@@ -137,8 +141,7 @@ async def add_warning_handler(msg: Message):
     await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^-варн(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^-варн(?:\s|$)", flags=re.IGNORECASE)
 )
 async def remove_warning_handler(msg: Message):
     """Команда: -варн @user INDEX"""
@@ -185,7 +188,9 @@ async def remove_warning_handler(msg: Message):
         else:
             await msg.reply(f"ℹ️ Предупреждений не найдено.", parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("амнистия")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("амнистия")
+)
 async def do_amnesty(msg: Message):
     """Команда: амнистия"""
     bot = msg.bot

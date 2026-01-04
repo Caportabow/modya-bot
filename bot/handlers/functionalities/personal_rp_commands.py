@@ -7,10 +7,10 @@ from config import MAX_RP_COMMANDS_IN_CHAT_PER_USER
 from db.users.rp_commands import count_user_commands, upsert_command, delete_rp_command
 
 router = Router(name="personal_rp_commands")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^\+мрп(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    (F.text.regexp(r"^\+мрп(?:\s|$)", flags=re.IGNORECASE))
 )
 async def set_rp_command(msg: Message):
     """Команда: +мрп {команда} / {эмодзи} / {действие}"""
@@ -55,8 +55,7 @@ async def set_rp_command(msg: Message):
     await msg.reply(f"🎭 Команда добавлена успешно")
 
 @router.message(
-    (F.text.regexp(r"^-мрп(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    (F.text.regexp(r"^-мрп(?:\s|$)", flags=re.IGNORECASE))
 )
 async def unset_rp_command(msg: Message):
     """Команда: -мрп {команда}"""

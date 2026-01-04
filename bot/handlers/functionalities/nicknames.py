@@ -5,10 +5,10 @@ from aiogram.types import Message
 from db.users.nicknames import set_nickname
 
 router = Router(name="nicknames")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^\+ник(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    (F.text.regexp(r"^\+ник(?:\s|$)", flags=re.IGNORECASE))
 )
 async def set_nick(msg: Message):
     """Команда: +ник NICKNAME"""
@@ -25,7 +25,9 @@ async def set_nick(msg: Message):
     await set_nickname(int(msg.chat.id), int(msg.from_user.id), nickname)
     await msg.reply(f"🎭 Теперь вы известны как: {nickname}")
 
-@router.message((F.text.lower().startswith("-ник")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("-ник")
+)
 async def unset_nick(msg: Message):
     """Команда: -ник (сброс ника)"""
     await set_nickname(int(msg.chat.id), int(msg.from_user.id), msg.from_user.first_name)

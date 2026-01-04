@@ -12,11 +12,11 @@ from db.messages.statistics import user_stats, get_favorite_word
 from db.users import get_uid
 
 router = Router(name="user_info")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    (F.text.regexp(r"^(кто я|кто ты)$", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^(кто я|кто ты)$", flags=re.IGNORECASE)
 )
 async def user_info_handler(msg: Message):
     """Команда: кто [я|ты]"""

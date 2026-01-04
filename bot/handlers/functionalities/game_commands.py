@@ -7,10 +7,10 @@ from db.users import get_random_chat_member
 from utils.telegram.users import mention_user
 
 router = Router(name="game_commands")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^инфа(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^инфа(?:\s|$)", flags=re.IGNORECASE)
 )
 async def info(msg: Message):
     """Команда: инфа {текст}"""
@@ -30,8 +30,7 @@ async def info(msg: Message):
     await msg.reply(f"{emoji} • {response_template}", parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^кто(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^кто(?:\s|$)", flags=re.IGNORECASE)
 )
 async def whois(msg: Message):
     """Команда: кто {текст}"""

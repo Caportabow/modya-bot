@@ -9,9 +9,12 @@ from db.quotes import add_quote
 from db.messages import get_next_messages
 
 router = Router(name="quotes")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
-@router.message((F.text.lower().startswith("/qs")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("/qs")
+)
 async def add_quote_handler(msg: Message):
     """
     Команда: /qs
@@ -50,7 +53,9 @@ async def add_quote_handler(msg: Message):
         await add_quote(int(msg.chat.id), str(sticker_id))
 
 
-@router.message((F.text.lower().startswith("/q")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("/q")
+)
 async def make_quote_handler(msg: Message):
     """Команда: /q [кол-во сообщений]"""
     bot = msg.bot

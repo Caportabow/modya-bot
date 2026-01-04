@@ -8,9 +8,12 @@ from utils.telegram.users import is_admin, mention_user_with_delay
 from db.users import get_all_users_in_chat
 
 router = Router(name="call")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
-@router.message(((F.text.lower().startswith("/call")) | (F.text.lower().startswith("созвать"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("/call") | F.text.lower().startswith("созвать")
+)
 async def сall_members(msg: Message):
     """Команда: созвать | /call"""
     bot = msg.bot

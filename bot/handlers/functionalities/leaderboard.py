@@ -9,11 +9,11 @@ from utils.time import TimedeltaFormatter, DurationParser
 from db.leaderboard import user_leaderboard
 
 router = Router(name="leaderboard")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    (F.text.regexp(r"^топ(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^топ(?:\s|$)", flags=re.IGNORECASE)
 )
 async def stats_handler(msg: Message):
     """Команда: топ {период}"""

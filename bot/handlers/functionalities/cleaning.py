@@ -13,10 +13,10 @@ from db.chats.cleaning import minmsg_users, check_cleaning_accuracy, inactive_us
 from config import MAX_MESSAGE_LENGTH
 
 router = Router(name="cleaning")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^норма(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^норма(?:\s|$)", flags=re.IGNORECASE)
 )
 async def minmsg_handler(msg: Message):
     """Команда: норма {кол-во сообщений}"""
@@ -64,8 +64,7 @@ async def minmsg_handler(msg: Message):
         await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^неактив(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^неактив(?:\s|$)", flags=re.IGNORECASE)
 )
 async def inactive_handler(msg: Message):
     """Команда: неактив {период}"""
@@ -112,8 +111,7 @@ async def inactive_handler(msg: Message):
         await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.lower().startswith("чистка")) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.lower().startswith("чистка")
 )
 async def cleaning_handler(msg: Message):
     """Команда: чистка"""

@@ -13,9 +13,12 @@ from db.marriages import get_marriages, get_user_marriage
 from db.marriages.families import check_adoption_possibility, is_parent, is_child, abandon, incest_cycle
 
 router = Router(name="marriages")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
-@router.message((F.text.lower().startswith("браки")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("браки")
+)
 async def all_marriages_handler(msg: Message):
     """Команда: браки"""
     bot = msg.bot
@@ -52,7 +55,9 @@ async def all_marriages_handler(msg: Message):
         ans += "</blockquote>"
         await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
 
-@router.message((F.text.lower().startswith("мой брак")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("мой брак")
+)
 async def my_marriage_handler(msg: Message):
     """Команда: мой брак"""
     bot = msg.bot
@@ -76,8 +81,7 @@ async def my_marriage_handler(msg: Message):
     await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^брак(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^брак(?:\s|$)", flags=re.IGNORECASE)
 )
 async def propose(msg: Message):
     """Команда: брак {упоминание}"""
@@ -132,7 +136,9 @@ async def propose(msg: Message):
         reply_markup=builder.as_markup(), parse_mode="HTML"
     )
 
-@router.message((F.text.lower().startswith("развод")) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("развод")
+)
 async def divorce(msg: Message):
     """Команда: развод"""
     bot = msg.bot
@@ -202,8 +208,7 @@ async def adopt(msg: Message):
     )
 
 @router.message(
-    (F.text.regexp(r"^бросить(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^бросить(?:\s|$)", flags=re.IGNORECASE)
 )
 async def abandon_child(msg: Message):
     """Команда: сдать в детдом"""
@@ -244,7 +249,10 @@ async def abandon_child(msg: Message):
 
     await msg.reply(text=ans, parse_mode="HTML")
 
-@router.message(((F.text.lower().startswith("уйти из семьи")) | (F.text.lower().startswith("покинуть семью"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("уйти из семьи") |
+    F.text.lower().startswith("покинуть семью")
+)
 async def abandon_parent(msg: Message):
     """Команда: уйти из семьи"""
     bot = msg.bot
@@ -265,7 +273,10 @@ async def abandon_parent(msg: Message):
 
     await msg.reply(text=ans, parse_mode="HTML")
 
-@router.message(((F.text.lower().startswith("семейное древо")) | (F.text.lower().startswith("моя семья"))) & (F.chat.type.in_(["group", "supergroup"])))
+@router.message(
+    F.text.lower().startswith("семейное древо") |
+    F.text.lower().startswith("моя семья")
+)
 async def family_tree_handler(msg: Message):
     """Команда: семейное древо/моя семья"""
     await family_tree(msg.bot, int(msg.chat.id), int(msg.from_user.id), msg.from_user)

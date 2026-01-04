@@ -10,10 +10,10 @@ from utils.telegram.users import is_admin
 from utils.time import DurationParser, TimedeltaFormatter
 
 router = Router(name="chat_settings")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^\.\s*лимит варнов(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*лимит варнов(?:\s|$)", flags=re.IGNORECASE)
 )
 async def set_max_warns_handler(msg: Message):
     """Команда: .лимит варнов {кол-во}"""
@@ -44,8 +44,7 @@ async def set_max_warns_handler(msg: Message):
     await msg.reply(f"📛 Новое максимальное кол-во варнов: {max_warns}")
 
 @router.message(
-    (F.text.regexp(r"^\.\s*норма(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*норма(?:\s|$)", flags=re.IGNORECASE)
 )
 async def set_cleaning_min_messages_handler(msg: Message):
     """Команда: .норма {кол-во}"""
@@ -73,8 +72,7 @@ async def set_cleaning_min_messages_handler(msg: Message):
     await msg.reply(f"📛 Новая норма: {min_messages}")
 
 @router.message(
-    (F.text.regexp(r"^\.\s*неактив(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*неактив(?:\s|$)", flags=re.IGNORECASE)
 )
 async def set_cleaning_max_inactive_handler(msg: Message):
     """Команда: .неактив {период}"""
@@ -97,8 +95,7 @@ async def set_cleaning_max_inactive_handler(msg: Message):
     await msg.reply(f"📛 Новый макс. период неактивности: {TimedeltaFormatter().format(max_inactive, suffix="none")}")
 
 @router.message(
-    (F.text.regexp(r"^\.\s*возраст нью(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*возраст нью(?:\s|$)", flags=re.IGNORECASE)
 )
 async def set_cleaning_eligibility_duration_handler(msg: Message):
     """Команда: .возраст нью {период}"""
@@ -121,8 +118,7 @@ async def set_cleaning_eligibility_duration_handler(msg: Message):
     await msg.reply(f"📛 Новый макс. возраст нью: {TimedeltaFormatter().format(eligibility_duration, suffix="none")}")
 
 @router.message(
-    (F.text.regexp(r"^\.\s*период чистки(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*период чистки(?:\s|$)", flags=re.IGNORECASE)
 )
 async def set_cleaning_lookback_handler(msg: Message):
     """Команда: .период чистки {период}"""
@@ -145,8 +141,7 @@ async def set_cleaning_lookback_handler(msg: Message):
     await msg.reply(f"📛 Новый период чистки: {TimedeltaFormatter().format(cleaning_lookback, suffix="none")}")
 
 @router.message(
-    (F.text.regexp(r"^\.\s*авточистка(?:\s|$)", flags=re.IGNORECASE)) &
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^\.\s*авточистка(?:\s|$)", flags=re.IGNORECASE)
 )
 async def auto_cleaning_handler(msg: Message):
     """
@@ -220,10 +215,8 @@ async def auto_cleaning_handler(msg: Message):
 
 
 @router.message(
-    (
-        F.text.startswith("/settings") |
-        F.text.regexp(r"^\.\s*настройки(?:\s|$)", flags=re.IGNORECASE) 
-    ) & (F.chat.type.in_(["group", "supergroup"]))
+    F.text.startswith("/settings") |
+    F.text.regexp(r"^\.\s*настройки(?:\s|$)", flags=re.IGNORECASE)
 )
 async def show_settings_handler(msg: Message):
     chat_id = int(msg.chat.id)

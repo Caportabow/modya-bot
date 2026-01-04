@@ -8,10 +8,10 @@ from utils.telegram.message_templates import generate_awards_msg
 from db.awards import add_award, remove_award
 
 router = Router(name="awards")
+router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    (F.text.regexp(r"^наградить(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^наградить(?:\s|$)", flags=re.IGNORECASE)
 )
 async def add_award_handler(msg: Message):
     """Команда: наградить @user [причина]"""
@@ -48,8 +48,7 @@ async def add_award_handler(msg: Message):
     await msg.reply(f"🎖️ Награда \"{award}\" вручена пользователю {mention}", parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^награды(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^награды(?:\s|$)", flags=re.IGNORECASE)
 )
 async def get_awards_handler(msg: Message):
     """Команда: награды @user"""
@@ -69,8 +68,7 @@ async def get_awards_handler(msg: Message):
         await msg.reply_photo(photo=AWARDS_PICTURE_ID, caption=ans, parse_mode="HTML")
 
 @router.message(
-    (F.text.regexp(r"^снять награду(?:\s|$)", flags=re.IGNORECASE)) & 
-    (F.chat.type.in_(["group", "supergroup"]))
+    F.text.regexp(r"^снять награду(?:\s|$)", flags=re.IGNORECASE)
 )
 async def remove_award_handler(msg: Message):
     """Команда: -награда INDEX"""
