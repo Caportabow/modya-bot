@@ -61,7 +61,7 @@ class DurationParser:
         return "forever" if text in cls.FOREVER_KEYWORDS else None
 
     @classmethod
-    def _parse_weekday(cls, text: str, reference_time: datetime) -> Optional[int]:
+    def _parse_weekday(cls, text: str, reference_time: datetime) -> Optional[timedelta]:
         """Парсит дни недели относительно reference_time."""
         for weekday_name, target_weekday in cls.WEEKDAYS.items():
             if weekday_name in text:
@@ -72,11 +72,11 @@ class DurationParser:
                 if days_ahead == 0:
                     days_ahead = 7
                 
-                return days_ahead
+                return timedelta(days=days_ahead)
         return None
 
     @classmethod
-    def _parse_numeric_duration(cls, text: str) -> Optional[dict]:
+    def _parse_numeric_duration(cls, text: str) -> Optional[timedelta]:
         """Парсит числовые выражения типа '2ч 30мин' или '3 дня'."""
         matches = re.findall(r"(\d+)\s*([а-яА-Я]+)", text)
         if not matches:
@@ -100,7 +100,7 @@ class DurationParser:
         # Конвертируем годы в дни (приблизительно)
         duration_kwargs["days"] += years * 365
 
-        return duration_kwargs
+        return timedelta(**duration_kwargs)
 
     @classmethod
     def _parse_fixed_duration(cls, text: str) -> Optional[timedelta]:
@@ -134,12 +134,15 @@ class DurationParser:
         if forever_result:
             return forever_result
         
-        # 2 + 3. Проверяем дни недели и парсим числовые выражения
-        numeric_data = cls._parse_numeric_duration(normalized_text) or {}
-        weekday_data_days = cls._parse_weekday(normalized_text, reference_time)
-        if numeric_data or weekday_data_days:
-            numeric_data["days"] = weekday_data_days + numeric_data.get("days", 0)
-            return timedelta(**numeric_data)
+        # 2. Проверяем дни недели (если есть reference_time)
+        if reference_time:
+            weekday_result = cls._parse_weekday(normalized_text, reference_time)
+            if weekday_result:
+                return weekday_result
+        
+        # 3. Парсим числовые выражения
+        if re.search(r'\d', normalized_text):
+            return cls._parse_numeric_duration(normalized_text)
         
         # 4. Парсим фиксированные слова
         return cls._parse_fixed_duration(normalized_text)
