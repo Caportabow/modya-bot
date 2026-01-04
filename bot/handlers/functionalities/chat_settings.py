@@ -248,7 +248,7 @@ async def show_settings_handler(msg: Message):
     ans += f"Авточистка - {autoclean}\n"
     ans += f"Норма - {norm}\n"
     ans += f"Макс. неактив - {inactive}\n"
-    ans += f"Макс. возраст нью - {new_member_age}\n"
+    ans += f"Мин. возраст нью для участия в чистке - {new_member_age}\n"
     ans += f"Период чистки - {lookback}"
     ans += "</blockquote>\n\n"
     ans += "2. 🌀 Остальное\n"
