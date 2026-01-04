@@ -13,17 +13,16 @@ router = Router(name="chat_settings")
 )
 async def set_max_warns_handler(msg: Message):
     """Команда: .лимит варнов {кол-во}"""
-    parts = msg.text.split()
-    if len(parts) < 3:
-        await msg.reply("❌ Укажите желаемый лимит варнов")
-        return
-    
-    max_warns = parts[2].strip()
-    if not max_warns.isdigit():
+    match = re.search(
+        r"^\.\s*лимит варнов\s+(\d+)\s*$",
+        str(msg.text),
+        flags=re.IGNORECASE
+    )
+    if not match:
         await msg.reply("❌ Укажите корректное число")
         return
 
-    max_warns = int(max_warns)
+    max_warns = int(match.group(1))
 
     if max_warns < 1:
         await msg.reply("❌ Минимальный лимит варнов — 1")
