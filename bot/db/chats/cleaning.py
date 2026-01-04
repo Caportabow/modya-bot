@@ -1,6 +1,52 @@
 import db
 from datetime import datetime, timezone, timedelta
 
+async def fetch_chats_for_scheduled_cleaning() -> list[int]:
+    """
+    Получаем список чатов, в которых пришло время провести чистку,
+    с учётом дня недели и времени.
+    """
+    rows = await db.fetchmany(
+        """
+        SELECT chat_id
+        FROM chats
+        WHERE autoclean_enabled = true
+            AND cleaning_day_of_week = EXTRACT(ISODOW FROM CURRENT_DATE)
+            AND cleaning_time <= CURRENT_TIME
+            AND (
+                last_auto_cleaning_at IS NULL
+                OR last_auto_cleaning_at::date < CURRENT_DATE
+            );
+        """
+    )
+    return [row["chat_id"] for row in rows]
+
+async def update_last_cleaning_time(chat_id: int):
+    await db.execute(
+        """
+        UPDATE chats
+        SET last_auto_cleaning_at = NOW()
+        WHERE chat_id = $1;
+        """, chat_id
+    )
+
+async def check_cleanability(chat_id: int) -> bool:
+    ability = await db.fetchval(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM chats
+            WHERE chat_id = $1
+            AND cleaning_lookback IS NOT NULL
+            AND cleaning_eligibility_duration IS NOT NULL
+            AND cleaning_min_messages IS NOT NULL
+            AND cleaning_max_inactive IS NOT NULL
+        );
+        """, chat_id
+    )
+
+    return bool(ability)
+
 async def check_cleaning_accuracy(chat_id: int) -> bool:
     """
     Проверяет корректность возможного проведения чистки в чате.
@@ -22,13 +68,23 @@ async def check_cleaning_accuracy(chat_id: int) -> bool:
     return cleaning_possibility
 
 async def minmsg_users(chat_id: int, min_messages: int):
-    """
-    Возвращает список пользователей, у которых сообщений меньше, чем требуется
-    (анализ за последние 7 дней, при условии, что с первого сообщения прошло ≥ 4 дней).
-    """
+    """Возвращает список пользователей, у которых сообщений меньше, чем требуется."""
+    cleaning_data = await db.fetchone(
+        """
+        SELECT
+            cleaning_lookback,
+            cleaning_eligibility_duration
+        FROM chats
+            WHERE chat_id = $1;
+        """,
+        chat_id
+    )
+    if not cleaning_data:
+        raise ValueError("Чат не найден")
+
     now_dt = datetime.now(timezone.utc)
-    cutoff_date = now_dt - timedelta(days=7)
-    min_activity_age = now_dt - timedelta(days=4)
+    cutoff_date = now_dt - cleaning_data["cleaning_lookback"]
+    min_activity_age = now_dt - cleaning_data["cleaning_eligibility_duration"]
 
     query = """
         WITH first_message_dates AS (
@@ -119,3 +175,122 @@ async def inactive_users(chat_id: int, duration: timedelta):
         }
         for row in rows
     ]
+
+async def do_cleaning(chat_id: int):
+    """
+    Проводит чистку чата.
+    Возвращает список пользователей, которые подлежат исключению, объединяя критерии:
+    1. Мало сообщений за период cleaning_lookback (minmsg_users).
+    2. Полное отсутствие активности дольше cleaning_max_inactive (inactive_users).
+    При этом учитывается "иммунитет" для новичков (eligibility_duration) и активные ресты.
+    """
+    
+    # 1. Получаем настройки чата
+    cleaning_data = await db.fetchone(
+        """
+        SELECT
+            cleaning_lookback,
+            cleaning_eligibility_duration,
+            cleaning_min_messages,
+            cleaning_max_inactive
+        FROM chats
+        WHERE chat_id = $1
+            AND cleaning_min_messages IS NOT NULL
+            AND cleaning_max_inactive IS NOT NULL;
+        """,
+        chat_id
+    )
+    if not cleaning_data:
+        raise ValueError("Чат не найден")
+
+    # 2. Рассчитываем временные метки
+    now_dt = datetime.now(timezone.utc)
+    lookback_cutoff = now_dt - cleaning_data["cleaning_lookback"]    
+    eligibility_cutoff = now_dt - cleaning_data["cleaning_eligibility_duration"]    
+    inactive_cutoff = now_dt - cleaning_data["cleaning_max_inactive"]
+    min_messages = cleaning_data["cleaning_min_messages"]
+
+    # 3. Единый запрос
+    query = """
+        SELECT 
+            u.user_id,
+            -- Считаем сообщения только внутри окна lookback
+            COUNT(CASE WHEN m.date >= $3 THEN 1 END) AS recent_message_count,
+            -- Находим дату самого последнего сообщения вообще
+            MAX(m.date) AS last_message_date,
+            -- Находим дату самого первого сообщения (для проверки "новичек или нет")
+            MIN(m.date) AS first_message_date
+        FROM users u
+        LEFT JOIN messages m
+            ON m.sender_user_id = u.user_id
+            AND m.chat_id = u.chat_id
+        LEFT JOIN rests r
+            ON r.chat_id = u.chat_id
+            AND r.user_id = u.user_id
+            AND r.valid_until >= $2  -- Проверяем активные ресты
+        WHERE 
+            u.chat_id = $1
+            AND r.user_id IS NULL    -- Исключаем тех, у кого активный рест
+        GROUP BY u.user_id
+        HAVING 
+            -- Условие 1: Пользователь уже "созрел" для чистки (прошел испытательный срок)
+            (MIN(m.date) IS NULL OR MIN(m.date) <= $4)
+            AND (
+                -- Условие 2 (OR): Либо мало сообщений за последнее время
+                COUNT(CASE WHEN m.date >= $3 THEN 1 END) < $5
+                OR
+                -- Либо последнее сообщение было слишком давно (или никогда)
+                COALESCE(MAX(m.date), '1970-01-01'::timestamptz) < $6
+            )
+        ORDER BY recent_message_count ASC;
+    """
+
+    rows = await db.fetchmany(
+        query,
+        chat_id,            # $1
+        now_dt,             # $2
+        lookback_cutoff,    # $3
+        eligibility_cutoff, # $4
+        min_messages,       # $5
+        inactive_cutoff     # $6
+    )
+
+    # 4. Формируем результат
+    result = {
+        "users": [],
+        "data": {
+            "total_users": len(rows) if rows else 0,
+            "inactive_cutoff": inactive_cutoff,
+            "min_messages": min_messages
+        }
+    }
+
+    if rows:
+        for row in rows:
+            user = {
+                "user_id": None,
+                "message_count": None,
+                "last_message_date": None,
+                "inactivity": False,
+                "low_activity": False,
+                "no_activity": False
+            }
+
+            last_msg = row["last_message_date"]
+            recent_cnt = int(row["recent_message_count"])
+
+            user["user_id"] = int(row["user_id"])
+            user["message_count"] = recent_cnt
+            user["last_message_date"] = last_msg
+
+            # Определяем причины активности
+            if last_msg is None:
+                user["no_activity"] = True
+            if last_msg and last_msg < inactive_cutoff:
+                user["inactivity"] = True
+            if recent_cnt < min_messages:
+                user["low_activity"] = True
+
+            result["users"].append(user)
+
+    return result

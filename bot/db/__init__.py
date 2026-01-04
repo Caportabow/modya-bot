@@ -97,9 +97,20 @@ async def create_tables(conn: asyncpg.Connection):
     # Чаты
     await conn.execute("""
         CREATE TABLE IF NOT EXISTS chats (
-            chat_id BIGINT NOT NULL,
+            chat_id BIGINT PRIMARY KEY,
+
             max_warns INT NOT NULL DEFAULT 3 CHECK (max_warns BETWEEN 1 AND 100),
-            PRIMARY KEY (chat_id)  
+
+            cleaning_min_messages INT DEFAULT NULL,
+            cleaning_max_inactive INTERVAL DEFAULT NULL,
+
+            cleaning_eligibility_duration INTERVAL NOT NULL DEFAULT '4 days',
+            cleaning_lookback INTERVAL NOT NULL DEFAULT '7 days',
+
+            autoclean_enabled BOOLEAN NOT NULL DEFAULT false,
+            cleaning_time TIME DEFAULT '00:00',
+            cleaning_day_of_week SMALLINT DEFAULT 7,
+            last_auto_cleaning_at TIMESTAMPTZ DEFAULT NULL
         );
     """)
 

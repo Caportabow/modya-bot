@@ -1,12 +1,14 @@
 import re
+import asyncio
 from aiogram import Router, F
 from aiogram.types import Message
 
 from datetime import datetime, timezone, timedelta
 
 from utils.telegram.users import mention_user_with_delay
+from utils.telegram.message_templates import generate_cleaning_messages
 from utils.time import DurationParser, TimedeltaFormatter
-from db.chats.cleaning import minmsg_users, check_cleaning_accuracy, inactive_users
+from db.chats.cleaning import minmsg_users, check_cleaning_accuracy, inactive_users, check_cleanability, do_cleaning
 
 from config import MAX_MESSAGE_LENGTH
 
@@ -108,3 +110,27 @@ async def inactive_handler(msg: Message):
     if ans.strip():
         ans += "</blockquote>"
         await msg.reply(ans, parse_mode="HTML")
+
+@router.message(
+    (F.text.lower().startswith("чистка")) & 
+    (F.chat.type.in_(["group", "supergroup"]))
+)
+async def cleaning_handler(msg: Message):
+    """Команда: чистка"""
+    chat_id = int(msg.chat.id)
+    ability = await check_cleanability(chat_id)
+    if not ability:
+        await msg.reply("❗️ Чистка недоступна. Настройки чистки отсутствуют или заполнены не полностью.", parse_mode="HTML")
+        return
+
+    cleaning_result = await do_cleaning(chat_id)
+
+    messages = await generate_cleaning_messages(
+        bot=msg.bot,
+        chat_id=chat_id,
+        cleaning_result=cleaning_result
+    )
+
+    for text in messages:
+        await msg.reply(text=text, parse_mode="HTML")
+        await asyncio.sleep(0.1)
