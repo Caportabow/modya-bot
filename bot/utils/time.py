@@ -316,5 +316,3 @@ class TimedeltaFormatter:
             result = "через " + result
         
         return result
-
-print(DurationParser.parse("cуббота", datetime.now(timezone.utc)))
