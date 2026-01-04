@@ -11,9 +11,9 @@ router = Router(name="chat_settings")
     (F.text.regexp(r"^\.\s*лимит варнов(?:\s|$)", flags=re.IGNORECASE)) & 
     (F.chat.type.in_(["group", "supergroup"]))
 )
-async def set_nick(msg: Message):
-    """Команда: .лимит варнов кол-во"""
-    parts = msg.text.split(maxsplit=2)
+async def set_max_warns_handler(msg: Message):
+    """Команда: .лимит варнов {кол-во}"""
+    parts = msg.text.split()
     if len(parts) < 3:
         await msg.reply("❌ Укажите желаемый лимит варнов")
         return
