@@ -13,20 +13,16 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
     (F.text.regexp(r"^\+мрп(?:\s|$)", flags=re.IGNORECASE))
 )
 async def set_rp_command(msg: Message):
-    """Команда: +мрп {команда} / {эмодзи} / {действие}"""
-    pattern = re.compile(
-        r"^\+мрп\s+(?P<command>[^/]+?)\s*/\s*(?P<emoji>.+?)\s*/\s*(?P<action>.+)$",
-        re.IGNORECASE
-    )
+    """Команда: +мрп {команда} {enter} {эмодзи} {enter} {действие}"""
+    lines = msg.text.splitlines()
 
-    match = pattern.match(msg.text)
-    if not match:
+    if len(lines) < 3 or not lines[0].lower().startswith("+мрп "):
         await msg.reply("❌ Параметры команды указаны неверно.")
         return
 
-    command = match.group("command").strip().lower()
-    emoji_text = match.group("emoji").strip()
-    action = match.group("action").strip()
+    command = lines[0][5:].strip().lower()
+    emoji_text = lines[1].strip()
+    action = "\n".join(lines[2:]).strip()
 
     if not command or not emoji_text or not action:
         await msg.reply("❌ Команда, эмодзи и действие не могут быть пустыми.")
