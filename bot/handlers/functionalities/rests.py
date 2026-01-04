@@ -23,7 +23,7 @@ async def rests_handler(msg: Message):
     rests = await get_all_rests(chat_id)
 
     if not rests or len(rests) == 0:
-        await msg.reply(f"❗️В этом чате нету активных рестов.")
+        await msg.reply(f"❗️ В этом чате нету активных рестов.")
         return
 
     now = datetime.now(timezone.utc)
@@ -225,7 +225,7 @@ async def my_rest_handler(msg: Message):
     rest = await get_user_rest(chat_id, msg.from_user.id)
 
     if not rest:
-        await msg.reply(f"❗️У вас нет активного реста.")
+        await msg.reply(f"❗️ У вас нет активного реста.")
         return
 
     ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=msg.from_user, rest=rest)
@@ -252,7 +252,7 @@ async def user_rest_handler(msg: Message):
     rest = await get_user_rest(chat_id, target_user.id)
 
     if not rest:
-        await msg.reply(f"❗️У этого пользователя нету активного реста.")
+        await msg.reply(f"❗️ У этого пользователя нету активного реста.")
         return
 
     ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=target_user, rest=rest)
