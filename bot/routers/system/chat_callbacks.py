@@ -1,4 +1,4 @@
-from aiogram import Router, Bot
+from aiogram import Router, Bot, F
 from aiogram.types import CallbackQuery, Message
 
 from config import WARNINGS_PICTURE_ID, AWARDS_PICTURE_ID
@@ -9,6 +9,7 @@ from utils.telegram.users import is_admin, is_creator, get_chat_member_or_fall, 
 from utils.telegram.message_templates import generate_awards_msg, generate_warnings_msg, generate_rest_msg, check_marriage_loyality, family_tree
 
 router = Router(name="callback")
+router.callback_query.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.callback_query()
 async def callback_handler(callback: CallbackQuery):

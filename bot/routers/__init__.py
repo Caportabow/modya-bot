@@ -1,12 +1,28 @@
-from .core import callback, chat_member, groups, help
-from .functionalities import awards, call, cleaning
-from .functionalities import leaderboard, nicknames, quotes
-from .functionalities import user_info, warnings, rests, marriages
-from .functionalities import chat_settings, personal_rp_commands, game_commands
+from .system import help, chat_members, chat_callbacks, chat_events
+from .moderation import call, chat_settings, cleaning, warnings, rests
+from .social import awards, game_commands, leaderboard, marriages, nicknames, personal_rp_commands, quotes, user_info
 
-routers = [callback.router, chat_member.router, help.router, leaderboard.router,
-           awards.router, call.router, cleaning.router, marriages.router,
-           nicknames.router, quotes.router, user_info.router,
-           warnings.router, rests.router, chat_settings.router,
-           personal_rp_commands.router, game_commands.router, groups.router
+routers = [
+    # social
+    awards.router,
+    game_commands.router,
+    leaderboard.router,
+    marriages.router,
+    nicknames.router,
+    personal_rp_commands.router,
+    quotes.router,
+    user_info.router,
+
+    # moderation
+    call.router,
+    chat_settings.router,
+    cleaning.router,
+    warnings.router,
+    rests.router,
+
+    # system
+    help.router,
+    chat_members.router,
+    chat_callbacks.router,
+    chat_events.router,
 ]
