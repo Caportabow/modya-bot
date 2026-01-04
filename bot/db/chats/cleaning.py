@@ -1,9 +1,9 @@
 import db
 from datetime import datetime, timezone, timedelta
 
-async def verify_cleaning_availibility(chat_id: int) -> bool:
+async def check_cleaning_accuracy(chat_id: int) -> bool:
     """
-    Проверяет возможность проведения чистки в чате.
+    Проверяет корректность возможного проведения чистки в чате.
     Возвращает True если чистку уже можно провести, иначе False.
     """
     week_ago = datetime.now(timezone.utc) - timedelta(days=7)

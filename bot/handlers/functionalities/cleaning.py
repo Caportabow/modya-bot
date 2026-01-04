@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from utils.telegram.users import mention_user_with_delay
 from utils.time import DurationParser, TimedeltaFormatter
-from db.chats.cleaning import minmsg_users, verify_cleaning_availibility, inactive_users
+from db.chats.cleaning import minmsg_users, check_cleaning_accuracy, inactive_users
 
 from config import MAX_MESSAGE_LENGTH
 
@@ -31,8 +31,8 @@ async def minmsg_handler(msg: Message):
         await msg.reply("❌ Укажите минимальное количество сообщений (норму).")
         return
     
-    cleaning_availibility = await verify_cleaning_availibility(chat_id)
-    warning = "" if cleaning_availibility else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
+    cleaning_accuracy = await check_cleaning_accuracy(chat_id)
+    warning = "" if cleaning_accuracy else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
 
     users = await minmsg_users(chat_id, msg_count)
 
@@ -78,8 +78,8 @@ async def inactive_handler(msg: Message):
     else:
         duration = timedelta(days=4)
     
-    cleaning_availibility = await verify_cleaning_availibility(chat_id)
-    warning = "" if cleaning_availibility else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
+    cleaning_accuracy = await check_cleaning_accuracy(chat_id)
+    warning = "" if cleaning_accuracy else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
 
     users = await inactive_users(chat_id, duration)
 
