@@ -47,9 +47,14 @@ async def show_rp_commands_handler(msg: Message):
 async def export_rp_commands_handler(msg: Message):
     # Упрощаем получение ID из текста
     parts = msg.text.split()
-    export_id = parts[2] if len(parts) > 2 and parts[2].isdigit() else None
 
-    if export_id:
+    # Мы не используем .isdigit, т.к chat_id часто начинаются с "-"
+    try:
+        export_id = int(parts[2])
+    except (IndexError, ValueError):
+        export_id =  None
+
+    if export_id is not None:
         user_id = msg.from_user.id
         current_chat_id = msg.chat.id
         source_chat_id = int(export_id)
