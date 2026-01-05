@@ -4,6 +4,7 @@ from .social import awards, game_commands, leaderboard, marriages, nicknames, pe
 
 routers = [
     # social
+    user_info.router,
     awards.router,
     game_commands.router,
     leaderboard.router,
@@ -11,7 +12,6 @@ routers = [
     nicknames.router,
     personal_rp_commands.router,
     quotes.router,
-    user_info.router,
 
     # moderation
     call.router,
