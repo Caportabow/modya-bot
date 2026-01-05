@@ -36,5 +36,8 @@ with open(os.path.join(BASE_DIR, "resources", "quote_template.html"), "r", encod
 with open(os.path.join(BASE_DIR, "resources", "family_template.html"), "r", encoding="utf-8") as f:
     FAMILY_TEMPLATE = f.read()
 
+with open(os.path.join(BASE_DIR, "resources", "activity_chart.html"), "r", encoding="utf-8") as f:
+    ACTIVITY_CHART_TEMPLATE = f.read()
+
 # Limits
-MAX_RP_COMMANDS_IN_CHAT_PER_USER = 3
+MAX_RP_COMMANDS_IN_CHAT_PER_USER = 15

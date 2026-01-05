@@ -35,6 +35,3 @@ docker-compose.dev.yml
 
 # Database
 /pgdata/
-
-# Bug report
-bug_report.jpg
