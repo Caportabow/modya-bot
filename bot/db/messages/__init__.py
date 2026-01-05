@@ -46,7 +46,7 @@ async def plot_user_activity(chat_id: int, user_id: int):
             WHERE chat_id = $1 AND sender_user_id = $2
             GROUP BY day
             ORDER BY day
-            LIMIT 365;
+            LIMIT 96;
         """, chat_id, user_id
     )
     return [

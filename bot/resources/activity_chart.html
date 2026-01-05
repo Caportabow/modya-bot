@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --bg: #0e1621; --card: #17212b; --text: #ffffff;
+            --sub: #708499; --accent: #3390ec;
+            --l0: #1c2732; --l1: #20405a; --l2: #285a88; --l3: #2e74b3; --l4: #3390ec;
+        }
+        body {
+            background: var(--bg); font-family: sans-serif;
+            display: flex; justify-content: center; padding-top: 50px; margin: 0;
+        }
+        .card {
+            background: var(--card); padding: 30px; border-radius: 20px;
+            width: 850px; box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 25px; border-bottom: 1px solid #232e3c; padding-bottom: 15px;
+        }
+        .title { color: var(--text); font-size: 22px; font-weight: bold; }
+        .total { color: var(--accent); font-size: 16px; font-weight: 500; }
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+            gap: 8px;
+        }
+        .day-cell {
+            aspect-ratio: 1/1; border-radius: 8px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; background: var(--l0);
+        }
+        .count { color: #fff; font-size: 14px; font-weight: bold; }
+        .date { color: rgba(255,255,255,0.4); font-size: 9px; margin-top: 2px; }
+        .lvl-1 { background: var(--l1); }
+        .lvl-2 { background: var(--l2); }
+        .lvl-3 { background: var(--l3); }
+        .lvl-4 { background: var(--l4); }
+        .footer {
+            margin-top: 25px; display: flex; justify-content: flex-end;
+            gap: 8px; align-items: center; color: var(--sub); font-size: 12px;
+        }
+        .leg { width: 12px; height: 12px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+{{ data }}
+</body>
+</html>

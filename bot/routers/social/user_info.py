@@ -4,9 +4,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import Message, InlineKeyboardButton, BufferedInputFile
 from datetime import datetime, timezone
 
+from db.messages import plot_user_activity
+
 from utils.time import TimedeltaFormatter
 from utils.telegram.users import parse_user_mention, mention_user
-from utils.activity_chart import make_activity_chart
+from utils.web.activity_chart import make_activity_chart
 
 from db.messages.statistics import user_stats, get_favorite_word
 from db.users import get_uid
@@ -43,7 +45,10 @@ async def user_info_handler(msg: Message):
     user_id = int(user.id)
     
     stats = await user_stats(chat_id, user_id)
-    img = await make_activity_chart(chat_id, user_id)
+
+    user_activity = await plot_user_activity(chat_id=chat_id, user_id=user_id)
+    img = await make_activity_chart(user_activity)
+
     fav_word = await get_favorite_word(chat_id, user_id)
     if not stats or not img:
         await msg.reply("❌ Нет данных по этому пользователю.")

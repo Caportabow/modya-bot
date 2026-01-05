@@ -2,7 +2,5 @@ aiogram
 asyncpg
 emoji
 filetype
-matplotlib
-pandas
 playwright
 pillow
