@@ -2,10 +2,10 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message
 
+from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID
 from utils.telegram.users import mention_user, parse_user_mention
 from utils.telegram.message_templates import generate_awards_msg
-from db.awards import add_award, remove_award
 
 router = Router(name="awards")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))

@@ -1,11 +1,12 @@
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, BufferedInputFile, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, BufferedInputFile, InlineKeyboardButton
 
+from utils.telegram.users import is_admin
 from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type, get_quotable_media_id, image_bytes_to_webp
 from utils.web.quotes import make_quote
 
-from db.quotes import add_quote
+from db.quotes import add_quote, remove_quote
 from db.messages import get_next_messages
 
 router = Router(name="quotes")
@@ -145,3 +146,34 @@ async def make_quote_handler(msg: Message):
     if sent_msg.sticker:
         sticker_id = sent_msg.sticker.file_id
         await add_quote(int(msg.chat.id), str(sticker_id))
+
+
+@router.callback_query(F.data.startswith("quotes"))
+async def quotes_callback_handler(callback: CallbackQuery):
+    """Обрабатывает колбеки связанные с цитатами."""
+    bot = callback.bot
+    msg = callback.message
+    parts = callback.data.split(",")
+
+    # Unknown error
+    if not msg or not msg.chat or len(parts) < 4: return
+
+    action = parts[1]
+    trigger_user = callback.from_user
+    chat_id = int(parts[2]) # TODO: Why am i passing this though
+
+    if not msg.sticker:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+        return
+
+    if action == "delete":
+        admin = await is_admin(bot, chat_id, int(trigger_user.id))
+        if not admin:
+            await callback.answer(text="❌ Вы должны быть админом, чтобы удалить цитату.", show_alert=True)
+            return
+
+        sticker_file_id = msg.sticker.file_id
+        await remove_quote(chat_id, sticker_file_id)
+        await msg.delete()
+        return
+

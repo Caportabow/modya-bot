@@ -1,13 +1,15 @@
 import re
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, InlineKeyboardButton, BufferedInputFile
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, BufferedInputFile
 from datetime import datetime, timezone
 
+from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 from db.messages import plot_user_activity
 
 from utils.time import TimedeltaFormatter
-from utils.telegram.users import parse_user_mention, mention_user
+from utils.telegram.message_templates import generate_warnings_msg, generate_awards_msg, family_tree
+from utils.telegram.users import parse_user_mention, mention_user, get_chat_member_or_fall
 from utils.web.activity_chart import make_activity_chart
 
 from db.messages.statistics import user_stats, get_favorite_word
@@ -97,3 +99,50 @@ async def user_info_handler(msg: Message):
                 reply_markup=builder.as_markup(),
                 parse_mode="HTML"
     )
+
+@router.callback_query(
+        F.data.startswith("awards") |
+        F.data.startswith("warnings") |
+        F.data.startswith("family")
+)
+async def user_info_callback_handler(callback: CallbackQuery):
+    """Обрабатывает запросы об наградах, предупрежденях и семья пользователя."""
+    bot = callback.bot
+    msg = callback.message
+    parts = callback.data.split(",")
+
+    # Unknown error
+    if not msg or not msg.chat or len(parts) < 4: return
+
+    action = parts[1]
+    chat_id = int(parts[2]) # TODO: Why am i passing this though
+
+    if len(parts) < 2 or not parts[1].isdigit():
+        return
+
+    user_id = int(parts[1])
+    member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
+    if not member:
+        return
+
+    user = member.user
+    user_id = int(user.id)
+    
+    if action == "family":
+        await family_tree(bot, chat_id, user_id, user)
+        return
+    
+    elif action == "awards":
+        answers = await generate_awards_msg(bot, chat_id, user)
+        photo = AWARDS_PICTURE_ID
+    else: # action == "warnings"
+        answers = await generate_warnings_msg(bot, chat_id, user)
+        photo = WARNINGS_PICTURE_ID
+
+    for ans in answers:
+        await msg.reply_photo(
+            photo=photo, 
+            caption=ans, 
+            reply_to_message_id=msg.message_id, 
+            parse_mode="HTML"
+        )

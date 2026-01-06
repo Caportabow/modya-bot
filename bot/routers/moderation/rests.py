@@ -1,12 +1,12 @@
 import re
 from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 
 from datetime import timedelta, datetime, timezone
 
 from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
-from utils.telegram.message_templates import describe_rest
+from utils.telegram.message_templates import describe_rest, generate_rest_msg
 from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest, get_all_rests, get_user_rest
@@ -262,3 +262,46 @@ async def user_rest_handler(msg: Message):
     ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=target_user, rest=rest)
     
     await msg.reply(ans, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("rest"))
+async def rest_callback_handler(callback: CallbackQuery):
+    """Обрабатывает выдачу реста."""
+    bot = callback.bot
+    msg = callback.message
+    parts = callback.data.split(",")
+
+    # Unknown error
+    if not msg or not msg.chat or len(parts) < 4: return
+
+    chat_id = int(msg.chat.id)
+    data = parts[1]
+    trigger_user = callback.from_user
+    target_user = msg.reply_to_message.from_user
+    trigger_user_id = int(trigger_user.id)
+
+    if data == "retire":
+        if trigger_user_id != int(target_user.id):
+            await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
+            return
+        
+        await msg.delete()
+        return
+
+    # Проверка на самого себя
+    if trigger_user_id == int(target_user.id):
+        creator = await is_creator(bot, chat_id, trigger_user_id)
+        if not creator:
+            await msg.reply("❌ Вы не можете выдать рест самому себе.", parse_mode="HTML")
+            return
+
+    # Проверка прав администратора
+    admin = await is_admin(bot, chat_id, trigger_user_id)
+    if not admin:
+        await msg.reply(text="❌ Вы должны быть админом, чтобы выдать рест.", parse_mode="HTML")
+        return
+
+    ans = await generate_rest_msg(bot, chat_id, data, trigger_user, target_user)
+    
+    await msg.edit_reply_markup()
+    await msg.edit_text(text=ans, parse_mode="HTML")
