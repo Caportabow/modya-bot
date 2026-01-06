@@ -1,7 +1,6 @@
 import db
 from datetime import timedelta, time
 
-# TODO: ---
 async def get_all_settings(chat_id: int):
     """Получаем все настройки в чате."""
     result = await db.fetchone(
