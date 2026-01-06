@@ -3,6 +3,7 @@ import os
 
 # Values
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 # Production / Development
 PRODUCTION = True # (ON/OFF)
@@ -19,9 +20,7 @@ MARRIAGES_PICTURE_ID = "AgACAgIAAxkDAAMzaQ4gs5JQlo9jVRqyMDRvW6yw61gAAnQLaxsq9nlI
 AWARDS_PICTURE_ID = "AgACAgIAAxkDAAM3aQ4h2VyWuWuHZvawnr6fuVNPSgEAAn4Laxsq9nlILkQ1xmvWIzUBAAMCAAN3AAM2BA"
 WARNINGS_PICTURE_ID = "AgACAgIAAxkDAAM4aQ4h2qsd4nqp5LrvZ9CSMpyf2D0AAn8Laxsq9nlIWLKcJyh1sqcBAAMCAAN3AAM2BA"
 
-# Modules
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-
+# Resources
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 with open(os.path.join(BASE_DIR, "resources", "russian_stopwords.json"), "r", encoding="utf-8") as f:
