@@ -20,12 +20,15 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    F.text.regexp(r"^(кто я|кто ты)$", flags=re.IGNORECASE)
+    F.text.regexp(r"^(кто я|кто ты)(\s+@?\S+)?$", flags=re.IGNORECASE)
 )
 async def user_info_handler(msg: Message):
     """Команда: кто [я|ты]"""
     bot = msg.bot
-    _, target = msg.text.lower().split()
+    m = re.match(r"^(кто)\s+(я|ты)(?:\s+(.*))?$", msg.text.lower())
+    if not m: return
+
+    target = m.group(2)
     
     if target == "я":
         user = msg.from_user
@@ -71,7 +74,7 @@ async def user_info_handler(msg: Message):
         else:
             fav_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(fav_user_id))
             ans += f"Любимый юзер: {fav_user_mention} ({fav_word_count} р.)\n"
-    else: ans += f"(данных недостаточно)\n"
+    else: ans += f"Любимое слово: (данных недостаточно)\n"
     ans += f"Дебют: {stats["first_seen"]:%d.%m.%Y} ({TimedeltaFormatter.format(now - stats["first_seen"])})\n"
     ans += f"Последний актив: { TimedeltaFormatter.format(now - stats["last_active"])}\n"
 
