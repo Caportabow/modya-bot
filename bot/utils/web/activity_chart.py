@@ -10,7 +10,7 @@ async def make_activity_chart(stats):
     cells_html = ""
     for item in stats:
         count = item['count']
-        date_str = item['date'].strftime("%m.%d.%y")
+        date_str = item['date'].strftime("%d.%m.%y")
         
         # Расчет уровня яркости (от 1 до 4)
         ratio = count / max_count
