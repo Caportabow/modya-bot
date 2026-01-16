@@ -66,19 +66,15 @@ async def ask_for_rest(msg: Message):
     target_user = msg.from_user
 
     # Проверяем, указан ли период пользователем
-    if len(parts) > 2:
-        rest_info = " ".join(parts[2:])
-        duration = DurationParser.parse(rest_info)
-    else:
+    if len(parts) <= 2:
         await msg.reply("❌ Укажите длительность реста (взять рест {период}).")
         return
+    
+    rest_info = " ".join(parts[2:])
+    duration = DurationParser.parse(rest_info)
 
     if duration is None:
-        await msg.reply("❌ Не удалось распознать период.")
-        return
-    
-    if isinstance(duration, str):
-        await msg.reply("❌ Вы не можете взять рест навсегда.")
+        # команда вероятно сработала случайно, останавливаем обработку
         return
     
     if duration < timedelta(days=1):
@@ -128,10 +124,6 @@ async def give_rest(msg: Message):
 
     if duration is None:
         await msg.reply("❌ Не удалось распознать период.")
-        return
-    
-    if isinstance(duration, str):
-        await msg.reply("❌ Вы не можете выдать рест навсегда.")
         return
     
     if duration < timedelta(days=1):

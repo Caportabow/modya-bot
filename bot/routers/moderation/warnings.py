@@ -88,8 +88,7 @@ async def add_warning_handler(msg: Message):
     no_entities_text = remove_message_entities(msg, text_sep[0])
     period_str = " ".join(no_entities_text.split(" ")[1:]) if no_entities_text else None
     period = DurationParser.parse(period_str) if period_str else None
-    expire_date = (datetime.now(timezone.utc) + period) if isinstance(period, timedelta) else None
-
+    expire_date = (datetime.now(timezone.utc) + period) if period else None
     reason = "\n".join(text_sep[1:]) if len(text_sep) > 1 else None
 
     if len(reason or "") > 70:
@@ -116,7 +115,7 @@ async def add_warning_handler(msg: Message):
 
     warn_id = await add_warning(chat_id, int(target_user.id), admin_id, reason, expire_date)
     mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-    formatted_period = f"на {TimedeltaFormatter.format(period, suffix='none')}" if isinstance(period, timedelta) else "навсегда"
+    formatted_period = f"на {TimedeltaFormatter.format(period, suffix='none')}" if period else "навсегда"
 
     # Определяем статус опасности
     max_warns = await get_max_warns(int(msg.chat.id))

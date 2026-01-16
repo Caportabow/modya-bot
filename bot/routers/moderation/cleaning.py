@@ -73,11 +73,11 @@ async def inactive_handler(msg: Message):
     chat_id = int(msg.chat.id)
     if len(parts) > 1:
         duration = DurationParser.parse(" ".join(parts[1:]))
-        if not duration or not isinstance(duration, timedelta):
-            await msg.reply("❌ Укажите период корректно.")
+        if not duration:
+            # команда вероятно сработала случайно, останавливаем обработку
             return
     else:
-        duration = timedelta(days=4)
+        duration = timedelta(days=1)
     
     cleaning_accuracy = await check_cleaning_accuracy(chat_id)
     warning = "" if cleaning_accuracy else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"

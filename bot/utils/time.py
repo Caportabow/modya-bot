@@ -48,17 +48,21 @@ class DurationParser:
         "год": timedelta(days=365)
     }
 
-    @staticmethod
-    def _normalize_text(text: str) -> str:
+    @classmethod
+    def _normalize_text(cls, text: str) -> str:
         """Заменяет латиницу на кириллицу для корректного распознавания."""
-        for latin, cyrillic in DurationParser.LATIN_TO_CYRILLIC.items():
+        for latin, cyrillic in cls.LATIN_TO_CYRILLIC.items():
             text = text.replace(latin, cyrillic)
         return text.lower().strip()
 
     @classmethod
-    def _parse_forever(cls, text: str) -> Optional[str]:
-        """Проверяет, является ли текст выражением 'навсегда'."""
-        return "forever" if text in cls.FOREVER_KEYWORDS else None
+    def parse_forever(cls, text: str) -> bool:
+        """
+        Проверяет, является ли текст выражением 'навсегда'.
+
+        Если это так, возвращает True, иначе False
+        """
+        return True if text in cls.FOREVER_KEYWORDS else False
 
     @classmethod
     def _parse_weekday(cls, text: str, reference_time: datetime) -> Optional[timedelta]:
@@ -100,6 +104,9 @@ class DurationParser:
         # Конвертируем годы в дни (приблизительно)
         duration_kwargs["days"] += years * 365
 
+        if not any(duration_kwargs.values()):
+            return None
+        
         return timedelta(**duration_kwargs)
 
     @classmethod
@@ -114,7 +121,7 @@ class DurationParser:
         return cls.FIXED_DURATIONS.get(text)
 
     @classmethod
-    def parse(cls, text: str, reference_time: datetime = datetime.now(timezone.utc)) -> Optional[timedelta | str]:
+    def parse(cls, text: str, reference_time: datetime = datetime.now(timezone.utc)) -> Optional[timedelta]:
         """
         Парсит человеческое время в машинное.
         
@@ -129,22 +136,16 @@ class DurationParser:
         """
         normalized_text = cls._normalize_text(text)
         
-        # 1. Проверяем "навсегда"
-        forever_result = cls._parse_forever(normalized_text)
-        if forever_result:
-            return forever_result
+        # 1. Проверяем дни недели
+        weekday_result = cls._parse_weekday(normalized_text, reference_time)
+        if weekday_result:
+            return weekday_result
         
-        # 2. Проверяем дни недели (если есть reference_time)
-        if reference_time:
-            weekday_result = cls._parse_weekday(normalized_text, reference_time)
-            if weekday_result:
-                return weekday_result
-        
-        # 3. Парсим числовые выражения
+        # 2. Парсим числовые выражения
         if re.search(r'\d', normalized_text):
             return cls._parse_numeric_duration(normalized_text)
         
-        # 4. Парсим фиксированные слова
+        # 3. Парсим фиксированные слова
         return cls._parse_fixed_duration(normalized_text)
 
 

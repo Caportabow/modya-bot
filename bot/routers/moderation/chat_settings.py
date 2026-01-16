@@ -1,6 +1,5 @@
 import re
 from aiogram import Router, F
-from aiogram.filters import Command
 from aiogram.types import Message
 from datetime import timedelta, datetime, time
 
@@ -82,7 +81,7 @@ async def set_cleaning_max_inactive_handler(msg: Message):
         return
     
     max_inactive = DurationParser().parse(text=parts[1].strip())
-    if not isinstance(max_inactive, timedelta):
+    if not max_inactive:
         await msg.reply("❌ Укажите корректный период")
         return
 
@@ -105,7 +104,7 @@ async def set_cleaning_eligibility_duration_handler(msg: Message):
         return
     
     eligibility_duration = DurationParser().parse(text=parts[2].strip())
-    if not isinstance(eligibility_duration, timedelta):
+    if not eligibility_duration:
         await msg.reply("❌ Укажите корректный период")
         return
 
@@ -128,7 +127,7 @@ async def set_cleaning_lookback_handler(msg: Message):
         return
     
     cleaning_lookback = DurationParser().parse(text=parts[2].strip())
-    if not isinstance(cleaning_lookback, timedelta):
+    if not cleaning_lookback:
         await msg.reply("❌ Укажите корректный период")
         return
 

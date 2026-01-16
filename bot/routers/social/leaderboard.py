@@ -21,7 +21,12 @@ async def stats_handler(msg: Message):
     duration = DurationParser.parse(msg.text)
 
     # аргумент не задан или пользователь указал "навсегда"
-    if not isinstance(duration, timedelta):
+    if not duration:
+        if not DurationParser.parse_forever(msg.text):
+            # команда вероятно сработала случайно, останавливаем обработку
+            return
+        
+        # пользователь указал "навсегда"
         since = None
         beauty_since = "всё время"
     
