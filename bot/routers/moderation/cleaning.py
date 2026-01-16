@@ -73,10 +73,11 @@ async def minmsg_handler(msg: Message):
 async def inactive_handler(msg: Message):
     """Команда: неактив {период}"""
     bot = msg.bot
-    parts = msg.text.split()
+    parts = msg.text.split(maxsplit=1)
     chat_id = int(msg.chat.id)
+
     if len(parts) > 1:
-        duration = DurationParser.parse(" ".join(parts[1:]))
+        duration = DurationParser.parse(parts[1].strip())
         if not duration:
             # команда вероятно сработала случайно, останавливаем обработку
             return

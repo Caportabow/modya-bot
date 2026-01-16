@@ -98,12 +98,12 @@ async def set_cleaning_max_inactive_handler(msg: Message):
 )
 async def set_cleaning_eligibility_duration_handler(msg: Message):
     """Команда: .возраст нью {период}"""
-    parts = msg.text.split()
-    if len(parts) < 3:
+    max_age = re.sub(r"^\.\s*возраст нью\s*", "", msg.text, flags=re.IGNORECASE).strip()
+    if not max_age:
         await msg.reply("❌ Укажите максимальный возраст нью")
         return
     
-    eligibility_duration = DurationParser().parse(text=parts[2].strip())
+    eligibility_duration = DurationParser().parse(text=max_age)
     if not eligibility_duration:
         await msg.reply("❌ Укажите корректный период")
         return
@@ -121,12 +121,12 @@ async def set_cleaning_eligibility_duration_handler(msg: Message):
 )
 async def set_cleaning_lookback_handler(msg: Message):
     """Команда: .период чистки {период}"""
-    parts = msg.text.split(maxsplit=1)
-    if len(parts) < 3:
+    lookback = re.sub(r"^\.\s*период чистки\s*", "", msg.text, flags=re.IGNORECASE).strip()
+    if not lookback:
         await msg.reply("❌ Укажите период чистки")
         return
     
-    cleaning_lookback = DurationParser().parse(text=parts[2].strip())
+    cleaning_lookback = DurationParser().parse(text=lookback)
     if not cleaning_lookback:
         await msg.reply("❌ Укажите корректный период")
         return

@@ -60,20 +60,23 @@ async def rests_handler(msg: Message):
 async def ask_for_rest(msg: Message):
     """Команда: взять рест {период}"""
     bot = msg.bot
-    parts = msg.text.split()
+    duration_text = re.sub(r"^\.\s*взять рест\s*", "", msg.text, flags=re.IGNORECASE).strip()
     duration = None
 
     target_user = msg.from_user
 
     # Проверяем, указан ли период пользователем
-    if len(parts) <= 2:
+    if not duration_text:
         await msg.reply("❌ Укажите длительность реста (взять рест {период}).")
         return
     
-    rest_info = " ".join(parts[2:])
-    duration = DurationParser.parse(rest_info)
+    duration = DurationParser.parse(duration_text)
 
     if duration is None:
+        if DurationParser.parse_forever(duration_text):
+            await msg.reply("❌ Вы не можете взять рест без срока окончания.")
+            return
+        
         # команда вероятно сработала случайно, останавливаем обработку
         return
     
@@ -107,15 +110,28 @@ async def ask_for_rest(msg: Message):
 async def give_rest(msg: Message):
     """Команда: +рест @user {период}"""
     bot = msg.bot
-    parts = msg.text.split()
     chat_id = int(msg.chat.id)
     trigger_user_id = int(msg.from_user.id)
     duration = None
-    
-    duration = DurationParser.parse(" ".join(parts[1:]))
+
+    m = re.match(
+        r"^\+рест(?:\s+@\w+)?\s+(\S+)",
+        msg.text,
+        flags=re.IGNORECASE
+    )
+    if not m:
+        await msg.reply("❌ Укажите период реста.")
+        return
+
+    period = m.group(1)
+    duration = DurationParser.parse(period)
 
     if duration is None:
-        await msg.reply("❌ Не удалось распознать период.")
+        if DurationParser.parse_forever(period):
+            await msg.reply("❌ Вы не можете выдать рест навсегда.")
+        else:
+            await msg.reply("❌ Не удалось распознать период.")
+            
         return
     
     if duration < timedelta(days=1):

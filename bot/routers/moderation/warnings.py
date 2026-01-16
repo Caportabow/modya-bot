@@ -1,10 +1,9 @@
 import re
 from aiogram import Router, F
 from aiogram.types import Message
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from config import WARNINGS_PICTURE_ID, MAX_MESSAGE_LENGTH
-from utils.telegram import remove_message_entities
 from utils.time import DurationParser, TimedeltaFormatter
 from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
 from utils.telegram.message_templates import generate_warnings_msg
@@ -81,15 +80,29 @@ async def add_warning_handler(msg: Message):
     bot = msg.bot
     admin_id = int(msg.from_user.id)
     chat_id = int(msg.chat.id)
-
     target_user = None
-    text_sep = msg.text.split("\n")
 
-    no_entities_text = remove_message_entities(msg, text_sep[0])
-    period_str = " ".join(no_entities_text.split(" ")[1:]) if no_entities_text else None
+    # Отделяем тело команды
+    m = re.match(r"^\+варн\b(.*)", msg.text, flags=re.IGNORECASE | re.DOTALL)
+    if not m:
+        return
+
+    body = m.group(1).strip()
+
+    # Делим аргументы и причину
+    parts = body.split("\n", 1)
+    args = parts[0]          # "3д @user" или "@user" или ""
+    reason = parts[1].strip() if len(parts) == 2 else None
+
+    # Извлекаем период
+    period_str = None
+    for token in args.split():
+        if not token.startswith("@"):
+            period_str = token
+            break
+
     period = DurationParser.parse(period_str) if period_str else None
     expire_date = (datetime.now(timezone.utc) + period) if period else None
-    reason = "\n".join(text_sep[1:]) if len(text_sep) > 1 else None
 
     if len(reason or "") > 70:
         await msg.reply("❌ Слишком длинная причина варна (макс 70 символов).")

@@ -18,23 +18,31 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 async def stats_handler(msg: Message):
     """Команда: топ {период}"""
     bot = msg.bot
-    duration = DurationParser.parse(msg.text)
+    parts = msg.text.split(maxsplit=1)
 
-    # аргумент не задан или пользователь указал "навсегда"
-    if not duration:
-        if not DurationParser.parse_forever(msg.text):
-            # команда вероятно сработала случайно, останавливаем обработку
-            return
+    if len(parts) > 1:
+        duration = DurationParser.parse(parts[1].strip())
+
+        if not duration:
+            # аргумент не задан или пользователь указал "навсегда"
+            if not DurationParser.parse_forever(parts[1].strip()):
+                # команда вероятно сработала случайно, останавливаем обработку
+                return
+            
+            # пользователь указал "навсегда"
+            since = None
+            beauty_since = "всё время"
         
-        # пользователь указал "навсегда"
+        else:
+            # время распарсилось корректно
+            since = datetime.now(timezone.utc) - duration
+            beauty_since = TimedeltaFormatter.format(duration, suffix="none")
+    
+    else:
+        # Если аргумента нет - смотрим за всё время
         since = None
         beauty_since = "всё время"
-    
-    # время распарсилось корректно
-    else: 
-        since = datetime.now(timezone.utc) - duration
-        beauty_since = TimedeltaFormatter.format(duration, suffix="none")
-    
+
     limit = 30
     top = await user_leaderboard(int(msg.chat.id), limit=limit, since=since)
     if not top or len(top) == 0:
