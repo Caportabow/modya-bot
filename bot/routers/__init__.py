@@ -1,6 +1,6 @@
-from .system import help, chat_members, chat_callbacks, chat_events
+from .system import help, chat_members, chat_events
 from .moderation import call, chat_settings, cleaning, warnings, rests
-from .social import awards, game_commands, leaderboard, marriages, nicknames, personal_rp_commands, quotes, user_info
+from .social import awards, leaderboard, marriages, nicknames, personal_rp_commands, quotes, user_info
 
 routers = [
     # social
@@ -22,6 +22,5 @@ routers = [
     # system
     help.router,
     chat_members.router,
-    chat_callbacks.router,
     chat_events.router,
 ]

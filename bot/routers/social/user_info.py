@@ -1,7 +1,6 @@
 import re
 from aiogram import Router, F
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, BufferedInputFile
+from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from datetime import datetime, timezone
 
 from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
@@ -12,6 +11,7 @@ from utils.telegram.message_templates import generate_warnings_msg, generate_awa
 from utils.telegram.users import parse_user_mention, mention_user, get_chat_member_or_fall
 from utils.web.activity_chart import make_activity_chart
 
+from utils.telegram.keyboards import get_user_info_keyboard, UserInfo
 from db.messages.statistics import user_stats, get_favorite_word
 from db.users import get_uid
 
@@ -87,55 +87,38 @@ async def user_info_handler(msg: Message):
 
     uploaded_img = BufferedInputFile(img, filename="stats.png")
 
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="👩‍👩‍👦 Семья", callback_data=f"family,{int(user.id)}"),
-    )
-    builder.row(
-        InlineKeyboardButton(text="🏆 Награды", callback_data=f"awards,{int(user.id)}"),
-        InlineKeyboardButton(text="⚠️ Варны", callback_data=f"warnings,{int(user.id)}")
-    )
+    keyboard = await get_user_info_keyboard(user_id)
 
     await bot.send_photo(chat_id=msg.chat.id,
                 photo=uploaded_img,
                 caption=ans, reply_to_message_id=msg.message_id,
-                reply_markup=builder.as_markup(),
+                reply_markup=keyboard,
                 parse_mode="HTML"
     )
 
 @router.callback_query(
-        F.data.startswith("awards") |
-        F.data.startswith("warnings") |
-        F.data.startswith("family")
+    UserInfo.filter()
 )
-async def user_info_callback_handler(callback: CallbackQuery):
+async def user_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
     """Обрабатывает запросы об наградах, предупрежденях и семья пользователя."""
     bot = callback.bot
     msg = callback.message
-    parts = callback.data.split(",")
+    if not msg or not msg.chat: return
+    user_info = callback_data
+    chat_id = int(msg.chat.id)
+    user_id = user_info.user_id
 
-    # Unknown error
-    if not msg or not msg.chat or len(parts) < 4: return
-
-    action = parts[1]
-    chat_id = int(parts[2]) # TODO: Why am i passing this though
-
-    if len(parts) < 2 or not parts[1].isdigit():
-        return
-
-    user_id = int(parts[1])
-    member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
+    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
     if not member:
         return
 
     user = member.user
-    user_id = int(user.id)
     
-    if action == "family":
+    if user_info.secondary_action == "family":
         await family_tree(bot, chat_id, user_id, user)
         return
     
-    elif action == "awards":
+    elif user_info.secondary_action == "awards":
         answers = await generate_awards_msg(bot, chat_id, user)
         photo = AWARDS_PICTURE_ID
     else: # action == "warnings"

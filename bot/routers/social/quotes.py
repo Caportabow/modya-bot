@@ -1,7 +1,7 @@
 from aiogram import Router, F
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, CallbackQuery, BufferedInputFile, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
+from utils.telegram.keyboards import get_quote_delition_keyboard, QuoteDelition
 from utils.telegram.users import is_admin
 from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type, get_quotable_media_id, image_bytes_to_webp
 from utils.web.quotes import make_quote
@@ -39,14 +39,11 @@ async def add_quote_handler(msg: Message):
     quote_file = BufferedInputFile(webp_bytes, filename="quote.webp")
 
     # Создаем клавиатуру для цитаты
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
-    )
+    keyboard = await get_quote_delition_keyboard()
     sent_msg = await bot.send_sticker(
         chat_id=msg.chat.id, sticker=quote_file,
         reply_to_message_id=msg.message_id,
-        reply_markup=builder.as_markup()
+        reply_markup=keyboard
         )
     
     if sent_msg.sticker:
@@ -132,15 +129,11 @@ async def make_quote_handler(msg: Message):
     quote_file = BufferedInputFile(quote, filename="quote.webp")
 
 
-    # Создаем клавиатуру для цитаты
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
-    )
+    keyboard = await get_quote_delition_keyboard()
     sent_msg = await bot.send_sticker(
         chat_id=msg.chat.id, sticker=quote_file,
         reply_to_message_id=msg.message_id,
-        reply_markup=builder.as_markup()
+        reply_markup=keyboard
         )
     
     if sent_msg.sticker:
@@ -148,32 +141,24 @@ async def make_quote_handler(msg: Message):
         await add_quote(int(msg.chat.id), str(sticker_id))
 
 
-@router.callback_query(F.data.startswith("quotes"))
+@router.callback_query(QuoteDelition.filter())
 async def quotes_callback_handler(callback: CallbackQuery):
     """Обрабатывает колбеки связанные с цитатами."""
     bot = callback.bot
     msg = callback.message
-    parts = callback.data.split(",")
 
-    # Unknown error
-    if not msg or not msg.chat or len(parts) < 4: return
-
-    action = parts[1]
-    trigger_user = callback.from_user
-    chat_id = int(parts[2]) # TODO: Why am i passing this though
-
-    if not msg.sticker:
+    if not msg or not msg.chat or not msg.sticker:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
         return
+    
+    chat_id = int(msg.chat.id)
+    trigger_user = callback.from_user
 
-    if action == "delete":
-        admin = await is_admin(bot, chat_id, int(trigger_user.id))
-        if not admin:
-            await callback.answer(text="❌ Вы должны быть админом, чтобы удалить цитату.", show_alert=True)
-            return
-
-        sticker_file_id = msg.sticker.file_id
-        await remove_quote(chat_id, sticker_file_id)
-        await msg.delete()
+    admin = await is_admin(bot, chat_id, int(trigger_user.id))
+    if not admin:
+        await callback.answer(text="❌ Вы должны быть админом, чтобы удалить цитату.", show_alert=True)
         return
 
+    sticker_file_id = msg.sticker.file_id
+    await remove_quote(chat_id, sticker_file_id)
+    await msg.delete()

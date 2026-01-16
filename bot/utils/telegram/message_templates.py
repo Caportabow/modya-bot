@@ -1,13 +1,11 @@
 import random
 from aiogram import Bot
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import User, Message, BufferedInputFile, InlineKeyboardButton
+from aiogram.types import User, Message, BufferedInputFile
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from config import HELLO_PICTURE_ID, MAX_MESSAGE_LENGTH
 
-from db.users.rests import add_rest
 from db.users.rp_commands import get_user_rp_commands
 
 from db.quotes import get_random_quote
@@ -21,12 +19,13 @@ from db.chats.cleaning import check_cleaning_accuracy
 from db.warnings import get_user_warnings
 from db.awards import get_awards
 
+from utils.telegram.keyboards import get_quote_delition_keyboard
 from utils.telegram.users import mention_user, mention_user_with_delay
 from utils.roleplay import parse_rp_command
-from utils.time import DurationParser, TimedeltaFormatter
+from utils.time import TimedeltaFormatter
 from utils.web.families import make_family_tree
 
-
+# TODO: Full util rework
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
     pre_text = "👀 О, новый чат. Интересно.\n\n"
 
@@ -122,41 +121,6 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
         answers.append(ans)
 
     return answers
-
-async def generate_rest_msg(bot: Bot, chat_id: int,
-                            data: str, trigger_user: User, target_user: User):
-    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
-    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-    
-    if data == 'decline':
-        return (
-            f"❗️ {target_user_mention}, вам отказано в ресте.\n"
-            f"👮 Администратор: {trigger_user_mention}."
-        )
-    
-    # Определяем временной диапазон
-    duration = DurationParser.parse(data)
-
-    if duration is None:
-        return "❌ Не удалось распознать период."
-    
-    if isinstance(duration, str):
-        return "❌ Вы не можете выдать рест навсегда."
-    
-    if duration < timedelta(days=1):
-        return "❌ Вы не можете выдать рест на период меньше одной добы."
-
-    until = datetime.now(timezone.utc) + duration
-    beauty_until = TimedeltaFormatter.format(duration, suffix="none")
-
-    await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
-
-    return (
-        f"⏰ Рест выдан успешно!\n\n"
-        f"👤 Пользователь: {target_user_mention}.\n"
-        f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
-        f"👮 Администратор: {trigger_user_mention}."
-    )
 
 async def describe_rest(bot: Bot, chat_id: int, target_user_entity: User, rest: dict) -> str:
     now = datetime.now(timezone.utc)
@@ -274,13 +238,9 @@ async def send_random_sticker_quote(msg: Message):
     quote_sticker_id = await get_random_quote(int(msg.chat.id))
 
     if quote_sticker_id:
-        # Создаем клавиатуру для цитаты
-        builder = InlineKeyboardBuilder()
-        builder.row(
-            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"quotes,delete,{msg.chat.id}"),
-        )
+        keyboard = await get_quote_delition_keyboard()
 
-        await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=builder.as_markup())
+        await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=keyboard)
 
 async def generate_cleaning_messages(bot: Bot, chat_id: int, cleaning_result: dict | None) -> list[str]:
     # 1. Проверки на валидность данных

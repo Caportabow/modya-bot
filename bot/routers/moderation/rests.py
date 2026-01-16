@@ -1,12 +1,12 @@
 import re
 from aiogram import Router, F
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 
 from datetime import timedelta, datetime, timezone
 
+from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta
 from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
-from utils.telegram.message_templates import describe_rest, generate_rest_msg
+from utils.telegram.message_templates import describe_rest
 from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest, get_all_rests, get_user_rest
@@ -92,22 +92,14 @@ async def ask_for_rest(msg: Message):
 
     # Определяем временной диапазон
     beauty_until = TimedeltaFormatter.format(duration, suffix="none")
-
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="✅ Одобрить", callback_data=f"rest,{rest_info}"),
-        InlineKeyboardButton(text="❌ Отказать", callback_data=f"rest,decline")
-    )
-    builder.row(
-        InlineKeyboardButton(text="↩️ Отозвать", callback_data=f"rest,retire")
-    )
+    keyboard = await get_rest_request_keyboard(duration)
     mention = await mention_user(bot=bot, chat_id=int(msg.chat.id), user_entity=target_user)
 
     ans = f"👤 Пользователь {mention}\n"
     ans += f"📈 С активом (24ч|7дн|30дн|∞): {stats["activity"]["day_count"]} | {stats["activity"]["week_count"]} | {stats["activity"]["month_count"]} | {stats["activity"]["total"]}\n\n"
     ans += f"⏰ Запрашивает рест на {beauty_until}"
     
-    await msg.reply(text=ans, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await msg.reply(text=ans, reply_markup=keyboard, parse_mode="HTML")
 
 @router.message(
     F.text.regexp(r"^\+рест(?:\s|$)", flags=re.IGNORECASE)
@@ -256,23 +248,20 @@ async def user_rest_handler(msg: Message):
     await msg.reply(ans, parse_mode="HTML")
 
 
-@router.callback_query(F.data.startswith("rest"))
-async def rest_callback_handler(callback: CallbackQuery):
+@router.callback_query(RestRequest.filter())
+async def rest_request_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
     """Обрабатывает выдачу реста."""
     bot = callback.bot
     msg = callback.message
-    parts = callback.data.split(",")
-
-    # Unknown error
-    if not msg or not msg.chat or len(parts) < 4: return
+    if not msg or not msg.chat: return
+    request = callback_data
 
     chat_id = int(msg.chat.id)
-    data = parts[1]
     trigger_user = callback.from_user
     target_user = msg.reply_to_message.from_user
-    trigger_user_id = int(trigger_user.id)
+    trigger_user_id = int(callback.from_user.id)
 
-    if data == "retire":
+    if request.response == "retire":
         if trigger_user_id != int(target_user.id):
             await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
             return
@@ -293,7 +282,32 @@ async def rest_callback_handler(callback: CallbackQuery):
         await msg.reply(text="❌ Вы должны быть админом, чтобы выдать рест.", parse_mode="HTML")
         return
 
-    ans = await generate_rest_msg(bot, chat_id, data, trigger_user, target_user)
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
     
+    if request.response == "decline":
+        ans = (
+            f"❗️ {target_user_mention}, вам отказано в ресте.\n"
+            f"👮 Администратор: {trigger_user_mention}."
+        )
+
+    else:
+        delta = deserialize_timedelta(request.delta)
+        if delta < timedelta(days=1):
+            ans = "❌ Вы не можете выдать рест на период меньше одной добы."
+        
+        else:
+            until = datetime.now(timezone.utc) + delta
+            beauty_until = TimedeltaFormatter.format(delta, suffix="none")
+
+            await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
+
+            ans = (
+                f"⏰ Рест выдан успешно!\n\n"
+                f"👤 Пользователь: {target_user_mention}.\n"
+                f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
+                f"👮 Администратор: {trigger_user_mention}."
+            )
+        
     await msg.edit_reply_markup()
     await msg.edit_text(text=ans, parse_mode="HTML")
