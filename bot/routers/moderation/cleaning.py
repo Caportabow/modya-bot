@@ -25,7 +25,11 @@ async def minmsg_handler(msg: Message):
     chat_id = int(msg.chat.id)
     if len(parts) > 1:
         msg_count = parts[1]
-        if not msg_count.isdigit() or int(msg_count) <= 0:
+        if not msg_count.isdigit():
+            # команда вероятно сработала случайно, останавливаем обработку
+            return
+        
+        elif int(msg_count) <= 0:
             await msg.reply("❌ Укажите корректное число сообщений.")
             return
         msg_count = int(msg_count)

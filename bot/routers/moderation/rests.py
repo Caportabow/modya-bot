@@ -17,7 +17,7 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-        F.text.lower().startswith("ресты")
+        F.text.lower() == "ресты"
 )
 async def rests_handler(msg: Message):
     """Команда: ресты"""
