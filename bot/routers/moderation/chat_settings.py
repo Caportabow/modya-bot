@@ -98,7 +98,7 @@ async def set_cleaning_max_inactive_handler(msg: Message):
 )
 async def set_cleaning_eligibility_duration_handler(msg: Message):
     """Команда: .возраст нью {период}"""
-    parts = msg.text.split(maxsplit=1)
+    parts = msg.text.split()
     if len(parts) < 3:
         await msg.reply("❌ Укажите максимальный возраст нью")
         return
