@@ -48,6 +48,20 @@ class DurationParser:
         "год": timedelta(days=365)
     }
 
+    WORD_NUMBERS = {
+        "ноль": 0,
+        "один": 1, "одна": 1, "одно": 1,
+        "два": 2, "две": 2,
+        "три": 3,
+        "четыре": 4,
+        "пять": 5,
+        "шесть": 6,
+        "семь": 7,
+        "восемь": 8,
+        "девять": 9,
+        "десять": 10,
+    }
+
     @classmethod
     def _normalize_text(cls, text: str) -> str:
         """Заменяет латиницу на кириллицу для корректного распознавания."""
@@ -72,11 +86,11 @@ class DurationParser:
             if re.search(pattern, text):
                 current_weekday = reference_time.weekday()
                 days_ahead = (target_weekday - current_weekday) % 7
-                
+
                 # Если день сегодня или прошёл, берём следующую неделю
                 if days_ahead == 0:
                     days_ahead = 7
-                
+
                 return timedelta(days=days_ahead)
         return None
 
@@ -120,6 +134,39 @@ class DurationParser:
         
         # Проверяем весь текст целиком
         return cls.FIXED_DURATIONS.get(text)
+    
+    @classmethod
+    def _parse_word_duration(cls, text: str) -> Optional[timedelta]:
+        words = text.split()
+        if len(words) < 2:
+            return None
+
+        duration_kwargs = {"weeks": 0, "days": 0, "hours": 0, "minutes": 0, "seconds": 0}
+        years = 0
+
+        for i in range(len(words) - 1):
+            number_word = words[i]
+            unit_word = words[i + 1]
+
+            if number_word not in cls.WORD_NUMBERS:
+                continue
+
+            value = cls.WORD_NUMBERS[number_word]
+
+            for unit_prefix, timedelta_key in cls.TIME_UNITS.items():
+                if unit_word.startswith(unit_prefix):
+                    if timedelta_key == "years":
+                        years += value
+                    else:
+                        duration_kwargs[timedelta_key] += value
+                    break
+
+        duration_kwargs["days"] += years * 365
+
+        if not any(duration_kwargs.values()):
+            return None
+
+        return timedelta(**duration_kwargs)
 
     @classmethod
     def parse(cls, text: str, reference_time: datetime = datetime.now(timezone.utc)) -> Optional[timedelta]:
@@ -145,7 +192,12 @@ class DurationParser:
         if re.search(r'\d', normalized_text):
             return cls._parse_numeric_duration(normalized_text)
         
-        # 3. Парсим фиксированные слова
+        # 3. Парсим словесные числа
+        word_numeric = cls._parse_word_duration(normalized_text)
+        if word_numeric:
+            return word_numeric
+        
+        # 4. Парсим фиксированные слова
         return cls._parse_fixed_duration(normalized_text)
 
 
