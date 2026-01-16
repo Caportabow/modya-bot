@@ -6,7 +6,6 @@ routers = [
     # social
     user_info.router,
     awards.router,
-    game_commands.router,
     leaderboard.router,
     marriages.router,
     nicknames.router,
