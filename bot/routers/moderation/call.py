@@ -12,14 +12,21 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    F.text.lower().startswith("/call") | F.text.lower().startswith("созвать")
+    F.text.lower().startswith("/call") | F.text.lower().startswith("созвать") | 
+    F.text.lower().startswith("созыв") | F.text.lower().startswith("собрать") |
+    F.text.lower().startswith("общий созыв")
 )
 async def сall_members(msg: Message):
-    """Команда: созвать | /call"""
+    """Команда: созвать | /call | созвать всех | собрать всех | созыв | общий созыв"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
     
-    arg = re.sub(r'^(\/call(?:@\w+)?|созвать)\s*', '', msg.text, flags=re.IGNORECASE)
+    arg = re.sub(
+        r'^(?:/call|созвать всех|собрать всех|созвать|собрать|общий созыв)\b\s*',
+        '',
+        msg.text,
+        flags=re.IGNORECASE
+    )
     if len(arg) > 300:
         await msg.reply("❌ Слишком длинный текст для созыва (макс 300 символов).")
         return
