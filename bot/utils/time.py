@@ -68,7 +68,8 @@ class DurationParser:
     def _parse_weekday(cls, text: str, reference_time: datetime) -> Optional[timedelta]:
         """Парсит дни недели относительно reference_time."""
         for weekday_name, target_weekday in cls.WEEKDAYS.items():
-            if weekday_name in text:
+            pattern = rf"\b{re.escape(weekday_name)}\b"
+            if re.search(pattern, text):
                 current_weekday = reference_time.weekday()
                 days_ahead = (target_weekday - current_weekday) % 7
                 
@@ -127,7 +128,6 @@ class DurationParser:
         
         Возвращает:
         - timedelta — если удалось распарсить,
-        - "forever" — если пользователь указал бесконечное время,
         - None — если не удалось определить.
         
         Args:
