@@ -15,7 +15,7 @@ async def make_family_tree(nodes: list) -> bytes:
         nodes: List of family nodes with structure:
             {
                 'marriage_id': Optional[int],
-                'members': List[{'name': str, 'is_me': bool, 'adoption_date': Optional[datetime]}],
+                'members': List[{'name': str, 'is_me': bool, is_partner: bool, 'adoption_date': Optional[datetime]}],
                 'children': List[node]
             }
     """
@@ -36,17 +36,16 @@ async def make_family_tree(nodes: list) -> bytes:
         else:
             card_class = "reference-card" if is_reference else ""
         
-        adoption_display = (
-            f"сын/дочь уже {TimedeltaFormatter.format(datetime.now(timezone.utc) - member["adoption_date"], suffix="none")}"
-            if member.get('adoption_date')
-            else "пока без родителей"
-        )
-        adoption_html = f'<div class="id">{adoption_display}</div>'
+        if not member.get('is_partner') and member.get('adoption_date'):
+            time_diff = datetime.now(timezone.utc) - member["adoption_date"]
+            adoption_display = f"сын/дочь уже {TimedeltaFormatter.format(time_diff, suffix='none')}"
+        else:
+            adoption_display = "супруг/cупруга"
         
         return f'''
         <div class="member-card {card_class}">
             <div class="name">{name}</div>
-            {adoption_html}
+            <div class="id">{adoption_display}</div>
         </div>
         '''
     
@@ -60,16 +59,21 @@ async def make_family_tree(nodes: list) -> bytes:
             
             if marriage_id and marriage_id in rendered_marriages:
                 # Reference to already-rendered marriage
-                members_preview = " & ".join([
-                    truncate_name(m['name'], MAX_NAME_LENGTH_REFERENCE)
-                    for m in node.get('members', [])
-                ])
+                blood_m = next((m for m in node.get('members', []) if not m.get('is_partner')), node.get('members', [{}])[0])
+                name = truncate_name(blood_m.get('name', ''), MAX_NAME_LENGTH_REFERENCE*2)
+                
+                if blood_m.get('adoption_date'):
+                    time_diff = datetime.now(timezone.utc) - blood_m["adoption_date"]
+                    time_str = TimedeltaFormatter.format(time_diff, suffix="none")
+                    status_text = f"← сын/дочь уже {time_str}" 
+                else:
+                    status_text = "← показано выше"
                 
                 parts.append(f'''
                 <div class="family-node reference-node">
                     <div class="member-card reference-card">
-                        <div class="name">{members_preview}</div>
-                        <div class="id">← показано выше</div>
+                        <div class="name">{name}</div>
+                        <div class="id">{status_text}</div>
                     </div>
                 </div>
                 ''')

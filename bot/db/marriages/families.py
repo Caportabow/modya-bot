@@ -285,23 +285,42 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
             AND spouse.chat_id = $1
         ORDER BY et.generation, et.user_id;
     """
-    
     rows = await db.fetchmany(query, chat_id, user_id)
     if not rows:
         return None
 
     nodes = {}
     person_to_node = {}
-    
-    def resolve_node_key(marriage_id: int | None, user_id: int):
+    processed_users = set() # Множество для отслеживания уже добавленных людей
+
+    # Вспомогательная функция для ключа узла
+    def resolve_node_key(marriage_id: int | None, uid: int):
         if marriage_id:
             return marriage_id
-        return -user_id
+        return -uid
 
-    # === 1. Создаём узлы и заполняем участников ===
+    # СОРТИРОВКА:
+    # 1. Приоритет тому, кто запрашивает дерево (is_me).
+    # 2. Приоритет тем, кто является "хребтом" дерева (результат выборки et.user_id - это blood, 
+    #    но сортировка гарантирует, что мы обработаем "свою" версию строки раньше зеркальной, если она есть).
+    def sort_priority(r):
+        is_me = 1 if r["user_id"] == user_id else 0
+        return is_me
+    
+    # Сортируем rows, чтобы 'is_me' был обработан первым
+    rows = sorted(rows, key=sort_priority, reverse=True)
+
+    # === 1 & 2. Создаём узлы, заполняем участников и их партнёров ===
     for row in rows:
-        node_key = resolve_node_key(row["marriage_id"], row["user_id"])
+        current_user_id = row["user_id"]
+        
+        # Если этот человек уже был добавлен в дерево (например, как супруг на предыдущей итерации), пропускаем строку
+        if current_user_id in processed_users:
+            continue
 
+        node_key = resolve_node_key(row["marriage_id"], current_user_id)
+
+        # Создаем узел, если его еще нет
         if node_key not in nodes:
             nodes[node_key] = {
                 "marriage_id": row["marriage_id"],
@@ -313,30 +332,30 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
 
         node = nodes[node_key]
 
-        if not any(m["id"] == row["user_id"] for m in node["members"]):
+        # Добавляем КРОВНОГО родственника (из колонки user_id)
+        # Так как он пришел из таблицы extended (et), он по определению часть структуры дерева -> is_partner=False
+        node["members"].append({
+            "id": current_user_id,
+            "name": row["name"] or str(current_user_id),
+            "is_me": (current_user_id == user_id),
+            "is_partner": False, 
+            **({"adoption_date": row["adoption_date"]} if row["adoption_date"] else {}),
+        })
+        processed_users.add(current_user_id)
+        person_to_node[current_user_id] = node_key
+
+        # Добавляем ПАРТНЁРА (из колонки spouse_id), если он есть
+        spouse_id = row["spouse_id"]
+        if spouse_id and spouse_id not in processed_users:
             node["members"].append({
-                "id": row["user_id"],
-                "name": row["name"] or str(row["user_id"]),
-                "is_me": (row["user_id"] == user_id),
+                "id": spouse_id,
+                "name": row["spouse_name"] or str(spouse_id),
+                "is_me": (spouse_id == user_id),
+                "is_partner": True, # Это супруг, подтянутый join-ом -> is_partner=True
                 **({"adoption_date": row["adoption_date"]} if row["adoption_date"] else {}),
             })
-
-        person_to_node[row["user_id"]] = node_key
-
-    # === 2. Добавляем супругов ===
-    for row in rows:
-        node_key = resolve_node_key(row["marriage_id"], row["user_id"])
-        node = nodes[node_key]
-
-        if row["spouse_id"] and row["spouse_id"] not in person_to_node:
-            node["members"].append({
-                "id": row["spouse_id"],
-                "name": row["spouse_name"] or str(row["spouse_id"]),
-                "is_me": (row["spouse_id"] == user_id),
-                **({"adoption_date": row["adoption_date"]} if row["adoption_date"] else {}),
-            })
-
-            person_to_node[row["spouse_id"]] = node_key
+            processed_users.add(spouse_id)
+            person_to_node[spouse_id] = node_key
 
     # === 3. Связываем узлы в дерево ===
     roots = []
@@ -345,17 +364,27 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
         parent_ids = node.get("parent_ids", [])
         parent_marriage_id = node.get("parent_marriage_id")
         
-        # Для браков с множественными родителями
+        is_linked = False
+        
+        # Вариант А: У брака несколько родительских браков (сложная структура)
         if parent_ids:
             for parent_id in parent_ids:
                 if parent_id in nodes:
                     nodes[parent_id]["children"].append(node)
-        # Для одиночек с одним родителем
+                    is_linked = True
+        
+        # Вариант Б: У брака/человека один родительский брак
+        # (Используем elif, только если parent_ids пуст, или если нужно дублировать логику - зависит от вашей модели данных.
+        # Обычно parent_ids включает в себя parent_marriage_id, если вы так настроили SQL).
         elif parent_marriage_id and parent_marriage_id in nodes:
             nodes[parent_marriage_id]["children"].append(node)
-        else:
+            is_linked = True
+            
+        # Если не удалось найти родителей внутри текущей выборки, значит это корневой узел
+        if not is_linked:
             roots.append(node)
 
+    # Проверка на пустой результат (если вернулся 1 узел с 1 человеком без детей — иногда это считают "пустым" деревом)
     if len(roots) == 1 and len(roots[0]["members"]) == 1 and not roots[0]["children"]:
         return None
 
