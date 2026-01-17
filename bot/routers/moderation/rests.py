@@ -60,7 +60,9 @@ async def rests_handler(msg: Message):
 async def ask_for_rest(msg: Message):
     """Команда: взять рест {период}"""
     bot = msg.bot
-    duration_text = re.sub(r"^\.\s*взять рест\s*", "", msg.text, flags=re.IGNORECASE).strip()
+    duration_text = re.sub(
+        r"^взять рест\s*", "", msg.text, flags=re.IGNORECASE
+    ).strip()
     duration = None
 
     target_user = msg.from_user
@@ -114,18 +116,23 @@ async def give_rest(msg: Message):
     trigger_user_id = int(msg.from_user.id)
     duration = None
 
-    m = re.match(
-        r"^\+рест(?:\s+@\w+)?\s+(\S+)",
-        msg.text,
-        flags=re.IGNORECASE
-    )
-    if not m:
+    parts = msg.text.split(maxsplit=2)
+    # parts:
+    # ["+рест", "два", "дня"] → если без @user
+    # ["+рест", "@user", "два дня"] → если с @user
+    if len(parts) < 2:
         await msg.reply("❌ Укажите период реста.")
         return
 
-    period = m.group(1)
+    if parts[1].startswith("@"):
+        if len(parts) < 3:
+            await msg.reply("❌ Укажите период реста.")
+            return
+        period = " ".join(parts[2:]).strip()
+    else:
+        period = " ".join(parts[1:]).strip()
+    
     duration = DurationParser.parse(period)
-
     if duration is None:
         if DurationParser.parse_forever(period):
             await msg.reply("❌ Вы не можете выдать рест навсегда.")

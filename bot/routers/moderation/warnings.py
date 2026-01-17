@@ -87,11 +87,11 @@ async def add_warning_handler(msg: Message):
     if not m:
         return
 
-    body = m.group(1).strip()
+    body = m.group(1)
 
     # Делим аргументы и причину
-    parts = body.split("\n", 1)
-    args = parts[0]          # "3д @user" или "@user" или ""
+    parts = body.lstrip("\n").split("\n", 1)
+    args = parts[0].strip()
     reason = parts[1].strip() if len(parts) == 2 else None
 
     # Извлекаем период
