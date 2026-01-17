@@ -140,3 +140,34 @@ async def get_user_info_keyboard(user_id: int):
     )
 
     return builder.as_markup()
+
+# -- Pagination --
+class Pagination(CallbackData, prefix="pn"):
+        subject: str
+        page: int
+        query: Optional[int]
+
+async def get_pagination_keyboard(subject: str, query: Optional[int], next_page: Optional[int] = None, prev_page: Optional[int] = None):
+    builder = InlineKeyboardBuilder()
+    row_buttons = []
+
+    if prev_page is not None:
+        row_buttons.append(
+            InlineKeyboardButton(
+                text="⬅️ Пред.",
+                callback_data=Pagination(subject=subject, query=query, page=prev_page).pack()
+            )
+        )
+
+    if next_page is not None:
+        row_buttons.append(
+            InlineKeyboardButton(
+                text="След. ➡️",
+                callback_data=Pagination(subject=subject, query=query, page=next_page).pack()
+            )
+        )
+
+    if row_buttons:
+        builder.row(*row_buttons)
+    
+    return builder.as_markup()

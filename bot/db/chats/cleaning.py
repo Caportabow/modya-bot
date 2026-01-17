@@ -67,7 +67,7 @@ async def check_cleaning_accuracy(chat_id: int) -> bool:
 
     return cleaning_possibility
 
-async def minmsg_users(chat_id: int, min_messages: int):
+async def minmsg_users(chat_id: int, min_messages: int, page: int, per_page: int = 20):
     """Возвращает список пользователей, у которых сообщений меньше, чем требуется."""
     cleaning_data = await db.fetchone(
         """
@@ -85,6 +85,10 @@ async def minmsg_users(chat_id: int, min_messages: int):
     now_dt = datetime.now(timezone.utc)
     cutoff_date = now_dt - cleaning_data["cleaning_lookback"]
     min_activity_age = now_dt - cleaning_data["cleaning_eligibility_duration"]
+
+    # Pagination
+    limit = per_page + 1 # Берём на 1 больше, чтобы смотреть есть след. страница или нет
+    offset = per_page * (page - 1)
 
     query = """
         WITH first_message_dates AS (
@@ -119,7 +123,8 @@ async def minmsg_users(chat_id: int, min_messages: int):
             )
         GROUP BY u.user_id
         HAVING COUNT(m.message_id) < $5
-        ORDER BY message_count DESC;
+        ORDER BY message_count DESC
+        LIMIT $6 OFFSET $7;
     """
 
     rows = await db.fetchmany(
@@ -128,15 +133,31 @@ async def minmsg_users(chat_id: int, min_messages: int):
         chat_id,
         cutoff_date,
         min_activity_age,
-        min_messages
+        min_messages,
+        limit,
+        offset
     )
-    
-    return [{
-        "user_id": int(row["sender_user_id"]),
-        "count": int(row["message_count"])
-    } for row in rows] if rows else None
+    if rows:  # проверяем, что список не пуст
+        if len(rows) == limit:
+            rows = rows[:-1]  # убираем последний элемент, т.к он часть след. страницы
+            next_page = page + 1
+        else:
+            next_page = None
 
-async def inactive_users(chat_id: int, duration: timedelta):
+    data = {
+        "data": [{
+            "user_id": int(row["sender_user_id"]),
+            "count": int(row["message_count"])
+        } for row in rows],
+        "pagination": {
+            "next_page": next_page,
+            "prev_page": page-1 if page > 1 else None,
+        }
+    } if rows else None
+    
+    return data
+
+async def inactive_users(chat_id: int, duration: timedelta, page: int, per_page: int = 20):
     """
     Возвращает пользователей, которые есть в таблице users,
     раньше писали сообщения, но не писали за указанный период.
@@ -144,6 +165,10 @@ async def inactive_users(chat_id: int, duration: timedelta):
     """
     now_dt = datetime.now(timezone.utc)
     since = now_dt - duration
+
+    # Pagination
+    limit = per_page + 1 # Берём на 1 больше, чтобы смотреть есть след. страница или нет
+    offset = per_page * (page - 1)
 
     query = """
         SELECT 
@@ -163,20 +188,32 @@ async def inactive_users(chat_id: int, duration: timedelta):
         GROUP BY u.user_id
         HAVING 
             COALESCE(MAX(m.date), '1970-01-01') < $3
-        ORDER BY last_message_date ASC;
+        ORDER BY last_message_date ASC
+        LIMIT $4 OFFSET $5;
     """
 
-    rows = await db.fetchmany(query, chat_id, now_dt, since)
+    rows = await db.fetchmany(query, chat_id, now_dt, since, limit, offset)
+    if rows:  # проверяем, что список не пуст
+        if len(rows) == limit:
+            rows = rows[:-1]  # убираем последний элемент, т.к он часть след. страницы
+            next_page = page + 1
+        else:
+            next_page = None
 
-    return [
-        {
+    data = {
+        "data": [{
             "user_id": int(row["user_id"]),
             "last_message_date": row["last_message_date"]
+        } for row in rows],
+        "pagination": {
+            "next_page": next_page,
+            "prev_page": page-1 if page > 1 else None,
         }
-        for row in rows
-    ]
+    } if rows else None
 
-async def do_cleaning(chat_id: int):
+    return data
+
+async def do_cleaning(chat_id: int, page: int, per_page: int = 20):
     """
     Проводит чистку чата.
     Возвращает список пользователей, которые подлежат исключению, объединяя критерии:
@@ -184,6 +221,10 @@ async def do_cleaning(chat_id: int):
     2. Полное отсутствие активности дольше cleaning_max_inactive (inactive_users).
     При этом учитывается "иммунитет" для новичков (eligibility_duration) и активные ресты.
     """
+
+    # Pagination
+    limit = per_page + 1 # Берём на 1 больше, чтобы смотреть есть след. страница или нет
+    offset = per_page * (page - 1)
     
     # 1. Получаем настройки чата
     cleaning_data = await db.fetchone(
@@ -242,7 +283,8 @@ async def do_cleaning(chat_id: int):
                 -- Либо последнее сообщение было слишком давно (или никогда)
                 COALESCE(MAX(m.date), '1970-01-01'::timestamptz) < $6
             )
-        ORDER BY recent_message_count ASC;
+        ORDER BY recent_message_count ASC
+        LIMIT $7 OFFSET $8;
     """
 
     rows = await db.fetchmany(
@@ -252,45 +294,37 @@ async def do_cleaning(chat_id: int):
         lookback_cutoff,    # $3
         eligibility_cutoff, # $4
         min_messages,       # $5
-        inactive_cutoff     # $6
+        inactive_cutoff,    # $6
+        limit,              # $7
+        offset,             # $8
     )
+    if rows:  # проверяем, что список не пуст
+        if len(rows) == limit:
+            rows = rows[:-1]  # убираем последний элемент, т.к он часть след. страницы
+            next_page = page + 1
+        else:
+            next_page = None
 
     # 4. Формируем результат
     result = {
         "users": [],
         "data": {
-            "total_users": len(rows) if rows else 0,
-            "inactive_cutoff": inactive_cutoff,
-            "min_messages": min_messages
+            "inactive_cutoff": cleaning_data["cleaning_max_inactive"],
+            "min_messages": min_messages,
+            "сleaning_lookback": cleaning_data["cleaning_lookback"],
+            "pagination": {
+                "next_page": next_page,
+                "prev_page": page-1 if page > 1 else None,
+            }
         }
     }
 
     if rows:
         for row in rows:
-            user = {
-                "user_id": None,
-                "message_count": None,
-                "last_message_date": None,
-                "inactivity": False,
-                "low_activity": False,
-                "no_activity": False
-            }
-
-            last_msg = row["last_message_date"]
-            recent_cnt = int(row["recent_message_count"])
-
-            user["user_id"] = int(row["user_id"])
-            user["message_count"] = recent_cnt
-            user["last_message_date"] = last_msg
-
-            # Определяем причины активности
-            if last_msg is None:
-                user["no_activity"] = True
-            if last_msg and last_msg < inactive_cutoff:
-                user["inactivity"] = True
-            if recent_cnt < min_messages:
-                user["low_activity"] = True
-
-            result["users"].append(user)
+            result["users"].append({
+                "user_id": int(row["user_id"]),
+                "message_count": int(row["recent_message_count"]),
+                "last_message": now_dt - row["last_message_date"] if row["last_message_date"] else None
+            })
 
     return result

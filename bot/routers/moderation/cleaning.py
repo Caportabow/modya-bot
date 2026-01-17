@@ -1,16 +1,14 @@
 import re
-import asyncio
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
-from datetime import datetime, timezone, timedelta
+from datetime import timedelta
 
-from utils.telegram.users import mention_user_with_delay
-from utils.telegram.message_templates import generate_cleaning_messages
-from utils.time import DurationParser, TimedeltaFormatter
-from db.chats.cleaning import minmsg_users, check_cleaning_accuracy, inactive_users, check_cleanability, do_cleaning
+from services.messages.cleaning import generate_minmsg_msg, generate_inactive_msg, generate_cleaning_msg
 
-from config import MAX_MESSAGE_LENGTH
+from utils.telegram.keyboards import Pagination, deserialize_timedelta
+from utils.time import DurationParser
+from db.chats.cleaning import check_cleanability
 
 router = Router(name="cleaning")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -20,9 +18,7 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 )
 async def minmsg_handler(msg: Message):
     """Команда: норма {кол-во сообщений}"""
-    bot = msg.bot
     parts = msg.text.split()
-    chat_id = int(msg.chat.id)
     if len(parts) > 1:
         msg_count = parts[1]
         if not msg_count.isdigit():
@@ -37,44 +33,21 @@ async def minmsg_handler(msg: Message):
         await msg.reply("❌ Укажите минимальное количество сообщений (норму).")
         return
     
-    cleaning_accuracy = await check_cleaning_accuracy(chat_id)
-    warning = "" if cleaning_accuracy else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
+    text, keyboard = text, keyboard = await generate_minmsg_msg(msg.bot, int(msg.chat.id), 1, msg_count)
 
-    users = await minmsg_users(chat_id, msg_count)
-
-    if not users or len(users) == 0:
+    if not text:
         await msg.reply(f"✅ Все участники успешно набрали норму!")
         return
-
-    ans_header = f"⚠️ Не набрали норму ({msg_count} сообщ.):{warning}\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-    for i, u in enumerate(users):
-        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-        
-        percentage = (u['count'] / msg_count) * 100
-        line = f"▫️ {mention}: {u['count']} ({percentage:.0f}%)\n"
-        
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            await msg.reply(ans, parse_mode="HTML")
-            ans = "<blockquote expandable>"
-        ans += line
-
-    # отправляем остаток, если есть
-    if ans.strip():
-        ans += "</blockquote>"
-        await msg.reply(ans, parse_mode="HTML")
+    
+    else:
+        await msg.reply(text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.regexp(r"^неактив(?:\s|$)", flags=re.IGNORECASE)
 )
 async def inactive_handler(msg: Message):
     """Команда: неактив {период}"""
-    bot = msg.bot
     parts = msg.text.split(maxsplit=1)
-    chat_id = int(msg.chat.id)
 
     if len(parts) > 1:
         duration = DurationParser.parse(parts[1].strip())
@@ -84,36 +57,12 @@ async def inactive_handler(msg: Message):
     else:
         duration = timedelta(days=1)
     
-    cleaning_accuracy = await check_cleaning_accuracy(chat_id)
-    warning = "" if cleaning_accuracy else "\n<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>"
-
-    users = await inactive_users(chat_id, duration)
-
-    if not users or len(users) == 0:
+    text, keyboard = await generate_inactive_msg(msg.bot, chat_id=int(msg.chat.id), page=1, duration=duration)
+    if not text:
         await msg.reply(f"✅ Все участники активны!")
         return
-
-    now = datetime.now(timezone.utc)
-    ans_header = f"💤 Неактивны последние {TimedeltaFormatter.format(duration, suffix='none')}:{warning}\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-    for i, u in enumerate(users):
-        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-
-        date = TimedeltaFormatter.format(now - u["last_message_date"], suffix="none") if u["last_message_date"] else "никогда"
-        line = f"▫️ {mention}: уже {date}\n"
-        
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            await msg.reply(ans, parse_mode="HTML")
-            ans = "<blockquote expandable>"
-        ans += line
-
-    # отправляем остаток, если есть
-    if ans.strip():
-        ans += "</blockquote>"
-        await msg.reply(ans, parse_mode="HTML")
+    
+    await msg.reply(text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.lower().startswith("чистка")
@@ -125,15 +74,42 @@ async def cleaning_handler(msg: Message):
     if not ability:
         await msg.reply("❗️ Чистка недоступна. Настройки чистки отсутствуют или заполнены не полностью.", parse_mode="HTML")
         return
+    
+    text, keyboard = await generate_cleaning_msg(msg.bot, chat_id, 1)
 
-    cleaning_result = await do_cleaning(chat_id)
+    if not text:
+        await msg.reply(f"✅ Все участники прошли чистку!", parse_mode="HTML")
+        return
 
-    messages = await generate_cleaning_messages(
-        bot=msg.bot,
-        chat_id=chat_id,
-        cleaning_result=cleaning_result
-    )
+    await msg.reply(text=text, parse_mode="HTML", reply_markup=keyboard)
 
-    for text in messages:
-        await msg.reply(text=text, parse_mode="HTML")
-        await asyncio.sleep(0.1)
+
+@router.callback_query(Pagination.filter(F.subject == "minmsg"))
+async def minmsg_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    text, keyboard = await generate_minmsg_msg(callback.bot, callback.message.chat.id, callback_data.page, callback_data.query)
+
+    if text:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+
+@router.callback_query(Pagination.filter(F.subject == "inactive"))
+async def inactive_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    text, keyboard = await generate_inactive_msg(callback.bot, callback.message.chat.id, callback_data.page, deserialize_timedelta(callback_data.query))
+
+    if text:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+
+@router.callback_query(Pagination.filter(F.subject == "cleaning"))
+async def cleaning_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    text, keyboard = await generate_cleaning_msg(callback.bot, callback.message.chat.id, callback_data.page)
+
+    if text:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
