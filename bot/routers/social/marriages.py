@@ -268,95 +268,149 @@ async def family_tree_handler(msg: Message):
     await family_tree(msg.bot, int(msg.chat.id), int(msg.from_user.id), msg.from_user)
 
 
-# TODO: split such a things to 3 handlers
-@router.callback_query(MarriageRequest.filter())
-async def marriage_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
-    """Обрабатывает предложение брака."""
+@router.callback_query(MarriageRequest.filter(F.response == "accept"))
+async def marriage_accept_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
+    """Обрабатывает согласие на предложение о браке."""
     bot = callback.bot
     msg = callback.message
     if not msg or not msg.chat: return
-    marriage = callback_data
 
     chat_id = int(msg.chat.id)
 
     # Проверка прав доступа
-    if marriage.response == "retire" and int(callback.from_user.id) != marriage.trigger_user_id:
-        await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
-        return
-    elif marriage.response != "retire" and int(callback.from_user.id) != marriage.target_user_id:
+    if int(callback.from_user.id) != callback_data.target_user_id:
         await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
         return
 
     await msg.edit_reply_markup()
-    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=marriage.trigger_user_id)
-    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=marriage.target_user_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
 
-    if marriage.response == "accept":
-        loyality = await check_marriage_loyality(bot, chat_id, marriage.trigger_user_id, marriage.target_user_id)
-        if not loyality:
-            return
-        
-        ic = await incest_cycle(int(msg.chat.id), marriage.trigger_user_id, marriage.target_user_id)
-        if ic:
-            ans = "❌ Вы не можете заключить брак со своим предком."
-            await msg.reply(text=ans, parse_mode="HTML")
-            return
-
-        result = await make_marriage(chat_id, [marriage.trigger_user_id, marriage.target_user_id])
-        failure = not result.get("success", False) if isinstance(result, dict) else False
-
-        if failure:
-            ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке."
-            await msg.reply(text=ans, parse_mode="HTML")
-            return
-        
-        ans = f"💍 Поздравляем молодоженов!\n💝 С сегодняшнего дня {trigger_user} и {target_user} женаты!"
-        
-    elif marriage.response == "decline":
-        ans = f"💔 {trigger_user}, мне очень жаль..\n🥀 {target_user} отказался(-ась) от вашего предложения."
-            
-    elif marriage.response == "retire":
-        ans = f"💔 {target_user}, мне очень жаль..\n💍 {trigger_user} аннулировал предложение о заключении брака."
+    loyality = await check_marriage_loyality(bot, chat_id, callback_data.trigger_user_id, callback_data.target_user_id)
+    if not loyality:
+        return
     
+    ic = await incest_cycle(int(msg.chat.id), callback_data.trigger_user_id, callback_data.target_user_id)
+    if ic:
+        ans = "❌ Вы не можете заключить брак со своим предком."
+        await msg.reply(text=ans, parse_mode="HTML")
+        return
+
+    result = await make_marriage(chat_id, [callback_data.trigger_user_id, callback_data.target_user_id])
+    failure = not result.get("success", False) if isinstance(result, dict) else False
+
+    if failure:
+        ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке."
+        await msg.reply(text=ans, parse_mode="HTML")
+        return
+    
+    ans = f"💍 Поздравляем молодоженов!\n💝 С сегодняшнего дня {trigger_user} и {target_user} женаты!"
+
     await msg.edit_caption(caption=ans, parse_mode="HTML")
 
-@router.callback_query(AdoptionRequest.filter())
-async def adoption_callback_handler(callback: CallbackQuery, callback_data: AdoptionRequest):
-    """Обрабатывает предложение усыновления/удочерения."""
+@router.callback_query(MarriageRequest.filter(F.response == "decline"))
+async def marriage_decline_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
+    """Обрабатывает отказ от предложения брака."""
     bot = callback.bot
     msg = callback.message
     if not msg or not msg.chat: return
-    adoption_request = callback_data
+
+    chat_id = int(msg.chat.id)
+
+    # Проверка прав доступа
+    if int(callback.from_user.id) != callback_data.target_user_id:
+        await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
+        return
+
+    await msg.edit_reply_markup()
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id) 
+    
+    ans = f"💔 {trigger_user}, мне очень жаль..\n🥀 {target_user} отказался(-ась) от вашего предложения."
+    await msg.edit_caption(caption=ans, parse_mode="HTML")
+
+@router.callback_query(MarriageRequest.filter(F.response == "retire"))
+async def marriage_retire_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
+    """Обрабатывает побег в предложении брака."""
+    msg = callback.message
+    if not msg or not msg.chat: return
+
+    # Проверка прав доступа
+    if int(callback.from_user.id) != callback_data.trigger_user_id:
+        await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
+    else:
+        await msg.delete()
+
+
+@router.callback_query(AdoptionRequest.filter(F.response == "accept"))
+async def adoption_accept_callback_handler(callback: CallbackQuery, callback_data: AdoptionRequest):
+    """Обрабатывает согласие на предложение усыновления/удочерения."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+
+    chat_id = int(msg.chat.id)
+
+    # Проверка прав доступа
+    if int(callback.from_user.id) != callback_data.target_user_id:
+        await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
+        return
+
+    await msg.edit_reply_markup()
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
+
+    adoption_possibility = await check_adoption_possibility(chat_id, callback_data.target_user_id, parent_id=callback_data.trigger_user_id)
+    if not adoption_possibility.get("success", False):
+        await msg.reply(f"❌ {trigger_user}, {adoption_possibility.get('error', 'Вы не можете быть усыновлены.')}", parse_mode="HTML")
+        return
+
+    await adopt_child(chat_id, callback_data.trigger_user_id, callback_data.target_user_id)
+    
+    ans = f"👨‍👩‍👧 Поздравляем с пополнением в семье!\n💞 {trigger_user} теперь приёмный родитель {target_user}!"
+    
+    await msg.edit_text(text=ans, parse_mode="HTML")
+
+@router.callback_query(AdoptionRequest.filter(F.response == "decline"))
+async def adoption_decline_callback_handler(callback: CallbackQuery, callback_data: AdoptionRequest):
+    """Обрабатывает отказ от предложения усыновления/удочерения."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
 
     chat_id = int(msg.chat.id)
 
      # Проверка прав доступа
-    if adoption_request.response == "retire" and int(callback.from_user.id) != adoption_request.trigger_user_id:
-        await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
-        return
-    elif adoption_request.response != "retire" and int(callback.from_user.id) != adoption_request.target_user_id:
+    if int(callback.from_user.id) != callback_data.target_user_id:
         await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
         return
 
     await msg.edit_reply_markup()
-    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=adoption_request.target_user_id)
-    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=adoption_request.trigger_user_id)
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
 
-    if adoption_request.response == "accept":
-        adoption_possibility = await check_adoption_possibility(chat_id, adoption_request.target_user_id, parent_id=adoption_request.trigger_user_id)
-        if not adoption_possibility.get("success", False):
-            await msg.reply(f"❌ {trigger_user}, {adoption_possibility.get('error', 'Вы не можете быть усыновлены.')}", parse_mode="HTML")
-            return
+    ans = f"💔 {trigger_user}, мне очень жаль..\n🥀 {target_user} отказался(-ась) от вашего предложения."
 
-        await adopt_child(chat_id, adoption_request.trigger_user_id, adoption_request.target_user_id)
-        
-        ans = f"👨‍👩‍👧 Поздравляем с пополнением в семье!\n💞 {trigger_user} теперь приёмный родитель {target_user}!"
+    await msg.edit_text(text=ans, parse_mode="HTML")
 
-    elif adoption_request.response == "decline":
-        ans = f"💔 {trigger_user}, мне очень жаль..\n🥀 {target_user} отказался(-ась) от вашего предложения."
-        
-    elif adoption_request.response == "retire":
-        ans = f"💔 {target_user}, мне очень жаль..\n🥀 {trigger_user} передумал принимать вас в семью."
+@router.callback_query(AdoptionRequest.filter(F.response == "retire"))
+async def adoption_retire_callback_handler(callback: CallbackQuery, callback_data: AdoptionRequest):
+    """Обрабатывает предложение усыновления/удочерения."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
 
-    
+    chat_id = int(msg.chat.id)
+
+     # Проверка прав доступа
+    if int(callback.from_user.id) != callback_data.target_user_id:
+        await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
+        return
+
+    await msg.edit_reply_markup()
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
+
+    ans = f"💔 {target_user}, мне очень жаль..\n🥀 {trigger_user} передумал принимать вас в семью."
+
     await msg.edit_text(text=ans, parse_mode="HTML")

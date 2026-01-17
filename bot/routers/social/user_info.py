@@ -97,10 +97,10 @@ async def user_info_handler(msg: Message):
     )
 
 @router.callback_query(
-    UserInfo.filter()
+    UserInfo.filter(F.secondary_action == "family")
 )
-async def user_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
-    """Обрабатывает запросы об наградах, предупрежденях и семья пользователя."""
+async def user_family_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
+    """Обрабатывает запрос об семье пользователя."""
     bot = callback.bot
     msg = callback.message
     if not msg or not msg.chat: return
@@ -114,16 +114,56 @@ async def user_info_callback_handler(callback: CallbackQuery, callback_data: Use
 
     user = member.user
     
-    if user_info.secondary_action == "family":
-        await family_tree(bot, chat_id, user_id, user)
+    await family_tree(bot, chat_id, user_id, user)
+
+@router.callback_query(
+    UserInfo.filter(F.secondary_action == "awards")
+)
+async def user_awards_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
+    """Обрабатывает запросы об наградах пользователя."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+    user_info = callback_data
+    chat_id = int(msg.chat.id)
+    user_id = user_info.user_id
+
+    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
+    if not member:
         return
+
+    user = member.user
     
-    elif user_info.secondary_action == "awards":
-        answers = await generate_awards_msg(bot, chat_id, user)
-        photo = AWARDS_PICTURE_ID
-    else: # action == "warnings"
-        answers = await generate_warnings_msg(bot, chat_id, user)
-        photo = WARNINGS_PICTURE_ID
+    answers = await generate_awards_msg(bot, chat_id, user)
+    photo = AWARDS_PICTURE_ID
+
+    for ans in answers:
+        await msg.reply_photo(
+            photo=photo, 
+            caption=ans, 
+            reply_to_message_id=msg.message_id, 
+            parse_mode="HTML"
+        )
+
+@router.callback_query(
+    UserInfo.filter(F.secondary_action == "warnings")
+)
+async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
+    """Обрабатывает запросы об предупрежденях пользователя."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+    user_info = callback_data
+    chat_id = int(msg.chat.id)
+    user_id = user_info.user_id
+
+    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
+    if not member:
+        return
+
+    user = member.user
+    answers = await generate_warnings_msg(bot, chat_id, user)
+    photo = WARNINGS_PICTURE_ID
 
     for ans in answers:
         await msg.reply_photo(

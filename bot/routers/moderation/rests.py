@@ -271,26 +271,17 @@ async def user_rest_handler(msg: Message):
     await msg.reply(ans, parse_mode="HTML")
 
 
-@router.callback_query(RestRequest.filter())
-async def rest_request_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
-    """Обрабатывает выдачу реста."""
+@router.callback_query(RestRequest.filter(F.response == "accept"))
+async def rest_request_accept_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
+    """Обрабатывает согласие на выдачу реста."""
     bot = callback.bot
     msg = callback.message
     if not msg or not msg.chat: return
-    request = callback_data
 
     chat_id = int(msg.chat.id)
     trigger_user = callback.from_user
     target_user = msg.reply_to_message.from_user
     trigger_user_id = int(callback.from_user.id)
-
-    if request.response == "retire":
-        if trigger_user_id != int(target_user.id):
-            await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
-            return
-        
-        await msg.delete()
-        return
 
     # Проверка на самого себя
     if trigger_user_id == int(target_user.id):
@@ -308,29 +299,73 @@ async def rest_request_callback_handler(callback: CallbackQuery, callback_data: 
     trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
     target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
     
-    if request.response == "decline":
+    delta = deserialize_timedelta(callback_data.delta)
+    if delta < timedelta(days=1):
+        ans = "❌ Вы не можете выдать рест на период меньше одной добы."
+    
+    else:
+        until = datetime.now(timezone.utc) + delta
+        beauty_until = TimedeltaFormatter.format(delta, suffix="none")
+
+        await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
+
         ans = (
-            f"❗️ {target_user_mention}, вам отказано в ресте.\n"
+            f"⏰ Рест выдан успешно!\n\n"
+            f"👤 Пользователь: {target_user_mention}.\n"
+            f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
             f"👮 Администратор: {trigger_user_mention}."
         )
-
-    else:
-        delta = deserialize_timedelta(request.delta)
-        if delta < timedelta(days=1):
-            ans = "❌ Вы не можете выдать рест на период меньше одной добы."
-        
-        else:
-            until = datetime.now(timezone.utc) + delta
-            beauty_until = TimedeltaFormatter.format(delta, suffix="none")
-
-            await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
-
-            ans = (
-                f"⏰ Рест выдан успешно!\n\n"
-                f"👤 Пользователь: {target_user_mention}.\n"
-                f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
-                f"👮 Администратор: {trigger_user_mention}."
-            )
         
     await msg.edit_reply_markup()
     await msg.edit_text(text=ans, parse_mode="HTML")
+
+@router.callback_query(RestRequest.filter(F.response == "decline"))
+async def rest_request_decline_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
+    """Обрабатывает отказ в выдаче реста."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+
+    chat_id = int(msg.chat.id)
+    trigger_user = callback.from_user
+    target_user = msg.reply_to_message.from_user
+    trigger_user_id = int(callback.from_user.id)
+
+    # Проверка на самого себя
+    if trigger_user_id == int(target_user.id):
+        creator = await is_creator(bot, chat_id, trigger_user_id)
+        if not creator:
+            await msg.reply("❌ Вы не можете выдать рест самому себе.", parse_mode="HTML")
+            return
+
+    # Проверка прав администратора
+    admin = await is_admin(bot, chat_id, trigger_user_id)
+    if not admin:
+        await msg.reply(text="❌ Вы должны быть админом, чтобы выдать рест.", parse_mode="HTML")
+        return
+
+    trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
+    target_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+
+    ans = (
+        f"❗️ {target_user_mention}, вам отказано в ресте.\n"
+        f"👮 Администратор: {trigger_user_mention}."
+    )
+        
+    await msg.edit_reply_markup()
+    await msg.edit_text(text=ans, parse_mode="HTML")
+
+@router.callback_query(RestRequest.filter(F.response == "retire"))
+async def rest_request_retire_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
+    """Обрабатывает отмену запроса на выдачу реста."""
+    msg = callback.message
+    if not msg or not msg.chat: return
+
+    target_user = msg.reply_to_message.from_user
+    trigger_user_id = int(callback.from_user.id)
+
+    if trigger_user_id != int(target_user.id):
+        await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
+        return
+    
+    await msg.delete()
