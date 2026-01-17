@@ -30,7 +30,7 @@ async def generate_minmsg_msg(bot: Bot, chat_id: int, page: int, msg_count: int)
         mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
         
         percentage = (u['count'] / msg_count) * 100
-        line = f"▫️ {mention}: {u['count']} ({percentage:.0f}%)\n"
+        line = f"• {mention}: {u['count']} ({percentage:.0f}%)\n"
 
         ans += line
     ans += "</blockquote>"
@@ -64,7 +64,7 @@ async def generate_inactive_msg(bot: Bot, chat_id: int, page: int, duration: tim
         mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
 
         date = TimedeltaFormatter.format(now - u["last_message_date"], suffix="none") if u["last_message_date"] else "никогда"
-        line = f"▫️ {mention}: уже {date}\n"
+        line = f"• {mention}: уже {date}\n"
         ans += line
     ans += "</blockquote>"
 
