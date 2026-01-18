@@ -7,7 +7,6 @@ from services.messages.family import family_tree
 from utils.telegram.users import parse_user_mention, mention_user
 
 from utils.telegram.keyboards import AdoptionRequest, get_adoption_request_keyboard
-from config import MARRIAGES_PICTURE_ID
 from db.marriages import get_user_marriage
 from db.marriages.families import adopt_child, check_adoption_possibility, is_parent, is_child, abandon
 
