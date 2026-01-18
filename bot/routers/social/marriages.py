@@ -3,8 +3,10 @@ from datetime import datetime, timezone
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+from services.messages.family import family_tree
+
 from utils.time import TimedeltaFormatter
-from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify, family_tree
+from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
 from utils.telegram.users import mention_user_with_delay, parse_user_mention, mention_user
 
 from utils.telegram.keyboards import MarriageRequest, get_marriage_request_keyboard, AdoptionRequest, get_adoption_request_keyboard
@@ -259,14 +261,24 @@ async def abandon_parent(msg: Message):
 
     await msg.reply(text=ans, parse_mode="HTML")
 
+# TODO: сделать команду cемья @user — показать семейное древо указанного пользователя
 @router.message(
     F.text.lower().startswith("семейное древо") |
     F.text.lower().startswith("моя семья")
 )
 async def family_tree_handler(msg: Message):
     """Команда: семейное древо/моя семья"""
-    await family_tree(msg.bot, int(msg.chat.id), int(msg.from_user.id), msg.from_user)
-
+    text, keyboard, img = await family_tree(msg.bot, int(msg.chat.id), msg.from_user)
+    if not text:
+        await msg.reply("❌ Вы пока не состоите в семье.", parse_mode="HTML")
+        return
+    
+    await msg.reply_photo(
+        photo=img,
+        caption=text, reply_to_message_id=msg.message_id,
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
 @router.callback_query(MarriageRequest.filter(F.response == "accept"))
 async def marriage_accept_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):

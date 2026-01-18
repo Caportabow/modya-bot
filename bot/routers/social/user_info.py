@@ -6,10 +6,10 @@ from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 
 from services.messages.warnings import generate_user_warnings_msg
 from services.messages.awards import generate_user_awards_msg
+from services.messages.family import family_tree
 from services.messages.user_info import generate_user_info_msg
 
 from utils.telegram.keyboards import UserInfo, Pagination
-from utils.telegram.message_templates import family_tree
 from utils.telegram.users import parse_user_mention, get_chat_member_or_fall
 
 router = Router(name="user_info")
@@ -71,9 +71,19 @@ async def user_family_info_callback_handler(callback: CallbackQuery, callback_da
     if not member:
         return
 
-    user = member.user
-    
-    await family_tree(bot, chat_id, user_id, user)
+    text, keyboard, img = await family_tree(bot, chat_id, member.user, True)
+    if not text:
+        if user_id == int(msg.from_user.id):
+            await callback.answer(text=f"❕Вы пока не состоите в семье.", show_alert=True)
+        else:
+            await callback.answer(text=f"❕Этот пользователь пока не состоит в семье.", show_alert=True)
+
+    await msg.edit_caption(
+        photo=img, 
+        caption=text, 
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
 
 @router.callback_query(
     UserInfo.filter(F.secondary_action == "awards")
@@ -136,7 +146,7 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
     )
 
 
-@router.callback_query(Pagination.filter((F.subject == "user_rests" | F.subject == "user_awards") & F.back_button == True))
+@router.callback_query(Pagination.filter((F.subject == "user_rests" | F.subject == "user_awards" | F.subject == "family") & F.back_button == True))
 async def user_info_back_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     msg = callback.message

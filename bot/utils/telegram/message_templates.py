@@ -1,6 +1,6 @@
 import random
 from aiogram import Bot
-from aiogram.types import User, Message, BufferedInputFile
+from aiogram.types import Message
 
 from config import HELLO_PICTURE_ID
 
@@ -9,12 +9,10 @@ from db.users.rp_commands import get_user_rp_commands
 from db.quotes import get_random_quote
 
 from db.marriages import get_user_marriage, delete_marriage
-from db.marriages.families import get_family_tree_data
 
 from utils.telegram.keyboards import get_quote_delition_keyboard
 from utils.telegram.users import mention_user
 from utils.roleplay import parse_rp_command
-from utils.web.families import make_family_tree
 
 # TODO: Full util rework
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
@@ -77,19 +75,6 @@ async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int) -> bo
 
         return True
     else: return False
-
-async def family_tree(bot: Bot, chat_id: int, user_id: int, user_entity: User):
-    mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=user_entity)
-    family_tree_data = await get_family_tree_data(chat_id, user_id)
-
-    if not family_tree_data or len(family_tree_data) == 0:
-        await bot.send_message(chat_id=chat_id, text=f"❌ {mention} не состоит в какой-либо семье.", parse_mode="HTML")
-        return
-    
-    family_tree_bytes = await make_family_tree(family_tree_data)
-
-    photo = BufferedInputFile(family_tree_bytes, filename="family_tree.jpeg")
-    await bot.send_photo(chat_id=chat_id, photo=photo, caption=f"🌳 Семейное древо {mention}", parse_mode="HTML")
 
 async def process_roleplay_message(msg: Message) -> bool:
     """
