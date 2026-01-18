@@ -171,7 +171,8 @@ async def adoption_accept_callback_handler(callback: CallbackQuery, callback_dat
 
     adoption_possibility = await check_adoption_possibility(chat_id, callback_data.target_user_id, parent_id=callback_data.trigger_user_id)
     if not adoption_possibility.get("success", False):
-        await msg.reply(f"❌ {trigger_user}, {adoption_possibility.get('error', 'Вы не можете быть усыновлены.')}", parse_mode="HTML")
+        await callback.answer(text="❌ Вы не можете выдать рест самому себе.", show_alert=True)
+        await msg.edit_text(f"❌ {trigger_user}, {adoption_possibility.get('error', 'Вы не можете быть усыновлены.')}", parse_mode="HTML")
         return
 
     await adopt_child(chat_id, callback_data.trigger_user_id, callback_data.target_user_id)

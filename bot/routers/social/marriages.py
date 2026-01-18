@@ -146,7 +146,7 @@ async def marriage_accept_callback_handler(callback: CallbackQuery, callback_dat
     ic = await incest_cycle(int(msg.chat.id), callback_data.trigger_user_id, callback_data.target_user_id)
     if ic:
         ans = "❌ Вы не можете заключить брак со своим предком."
-        await msg.reply(text=ans, parse_mode="HTML")
+        await msg.edit_text(text=ans, parse_mode="HTML")
         return
 
     result = await make_marriage(chat_id, [callback_data.trigger_user_id, callback_data.target_user_id])
@@ -154,7 +154,7 @@ async def marriage_accept_callback_handler(callback: CallbackQuery, callback_dat
 
     if failure:
         ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке."
-        await msg.reply(text=ans, parse_mode="HTML")
+        await msg.edit_text(text=ans, parse_mode="HTML")
         return
     
     ans = f"💍 Поздравляем молодоженов!\n💝 С сегодняшнего дня {trigger_user} и {target_user} женаты!"

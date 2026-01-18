@@ -261,13 +261,13 @@ async def rest_request_accept_callback_handler(callback: CallbackQuery, callback
     if trigger_user_id == int(target_user.id):
         creator = await is_creator(bot, chat_id, trigger_user_id)
         if not creator:
-            await msg.reply("❌ Вы не можете выдать рест самому себе.", parse_mode="HTML")
+            await callback.answer(text="❌ Вы не можете выдать рест самому себе.", show_alert=True)
             return
 
     # Проверка прав администратора
     admin = await is_admin(bot, chat_id, trigger_user_id)
     if not admin:
-        await msg.reply(text="❌ Вы должны быть админом, чтобы выдать рест.", parse_mode="HTML")
+        await callback.answer(text="❌ Вы должны быть админом, чтобы выдать рест.", show_alert=True)
         return
 
     trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
@@ -308,13 +308,13 @@ async def rest_request_decline_callback_handler(callback: CallbackQuery, callbac
     if trigger_user_id == int(target_user.id):
         creator = await is_creator(bot, chat_id, trigger_user_id)
         if not creator:
-            await msg.reply("❌ Вы не можете выдать рест самому себе.", parse_mode="HTML")
+            await callback.answer(text="❌ Вы не можете отказать в ресте самому себе.", show_alert=True)
             return
 
     # Проверка прав администратора
     admin = await is_admin(bot, chat_id, trigger_user_id)
     if not admin:
-        await msg.reply(text="❌ Вы должны быть админом, чтобы выдать рест.", parse_mode="HTML")
+        await callback.answer(text="❌ Вы должны быть админом, чтобы отказать в выдаче реста.", show_alert=True)
         return
 
     trigger_user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=trigger_user)
