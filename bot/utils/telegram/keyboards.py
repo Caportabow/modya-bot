@@ -160,14 +160,6 @@ async def get_pagination_keyboard(subject: str, query: Optional[int], next_page:
             )
         )
 
-    if back_button_active:
-        row_buttons.append(
-            InlineKeyboardButton(
-                text="Назад",
-                callback_data=Pagination(subject=subject, query=query, page=0, back_button=True).pack()
-            )
-        )
-
     if next_page is not None:
         row_buttons.append(
             InlineKeyboardButton(
@@ -178,5 +170,13 @@ async def get_pagination_keyboard(subject: str, query: Optional[int], next_page:
 
     if row_buttons:
         builder.row(*row_buttons)
+    
+    if back_button_active:
+        builder.row(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data=Pagination(subject=subject, query=query, page=0, back_button=True).pack()
+            )
+        )
     
     return builder.as_markup()
