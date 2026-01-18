@@ -82,46 +82,6 @@ async def generate_awards_msg(bot: Bot, chat_id: int, target_user):
 
     return answers
 
-async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
-    """Генерируем сообщение с предупреждениями пользователя."""
-    warnings = await get_user_warnings(chat_id, int(target_user.id))
-    mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
-
-    if not warnings:
-        return [f"❕У пользователя {mention} нет варнов."]
-
-    answers = [] # список для сообщений
-
-    warnings_count = len(warnings)
-    max_warns = await get_max_warns(int(chat_id))
-
-    ans_header = f"⚠️ Варны пользователя {mention} ({warnings_count}/{max_warns}):\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-    for i, w in enumerate(warnings):
-        reason = w["reason"] or "Причина не указана."
-        date = TimedeltaFormatter.format(datetime.now(timezone.utc) - w["assignment_date"])
-        moderator_mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
-        formatted_expire_date = TimedeltaFormatter.format(w["expire_date"] - datetime.now(timezone.utc), suffix="none") if w["expire_date"] else "навсегда"
-        line = f"┌ Варн #{i+1}\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
-
-        # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            answers.append(ans)
-            ans = ans_header  # сбрасываем накопленное сообщение
-            ans += "<blockquote expandable>"
-
-        ans += line
-    
-    # добавляем остаток, если есть
-    if ans.strip():
-        ans += "</blockquote>"
-        answers.append(ans)
-
-    return answers
-
 async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, target_user_id: int) -> bool:
     """Проверяем чтобы человек был не в браке."""
     marriage = await get_user_marriage(chat_id, trigger_user_id)

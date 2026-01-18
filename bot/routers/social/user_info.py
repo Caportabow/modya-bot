@@ -6,12 +6,14 @@ from datetime import datetime, timezone
 from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 from db.messages import plot_user_activity
 
+from services.messages.warnings import generate_user_warnings_msg
+
 from utils.time import TimedeltaFormatter
-from utils.telegram.message_templates import generate_warnings_msg, generate_awards_msg, family_tree
+from utils.telegram.message_templates import generate_awards_msg, family_tree
 from utils.telegram.users import parse_user_mention, mention_user, get_chat_member_or_fall
 from utils.web.activity_chart import make_activity_chart
 
-from utils.telegram.keyboards import get_user_info_keyboard, UserInfo
+from utils.telegram.keyboards import get_user_info_keyboard, UserInfo, Pagination
 from db.messages.statistics import user_stats, get_favorite_word
 from db.users import get_uid
 
@@ -161,14 +163,20 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
     if not member:
         return
 
-    user = member.user
-    answers = await generate_warnings_msg(bot, chat_id, user)
-    photo = WARNINGS_PICTURE_ID
+    text, keyboard = await generate_user_warnings_msg(bot, chat_id, member.user, 1, True)
+    if not text:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
 
-    for ans in answers:
-        await msg.reply_photo(
-            photo=photo, 
-            caption=ans, 
-            reply_to_message_id=msg.message_id, 
-            parse_mode="HTML"
-        )
+    await msg.edit_caption(
+        photo=WARNINGS_PICTURE_ID, 
+        caption=text, 
+        reply_to_message_id=msg.message_id, 
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+
+
+@router.callback_query(Pagination.filter(F.subject == "user_rests" & F.back_button == True))
+async def user_info_back_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    # TODO
+    pass

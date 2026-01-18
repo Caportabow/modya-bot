@@ -1,15 +1,17 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
 
-from config import WARNINGS_PICTURE_ID, MAX_MESSAGE_LENGTH
+from services.messages.warnings import generate_all_warnings_msg, generate_user_warnings_msg
+from utils.telegram.keyboards import Pagination
+
+from config import WARNINGS_PICTURE_ID
 from utils.time import DurationParser, TimedeltaFormatter
-from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, mention_user_with_delay
-from utils.telegram.message_templates import generate_warnings_msg
+from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, get_chat_member_or_fall
 
 from db.chats.settings import get_max_warns
-from db.warnings import add_warning, remove_warning, get_all_warnings, amnesty
+from db.warnings import add_warning, remove_warning, amnesty
 
 router = Router(name="warnings")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -21,32 +23,12 @@ async def stats_handler(msg: Message):
     """Команда: все варны"""
     bot = msg.bot
 
-    users_with_warnings = await get_all_warnings(int(msg.chat.id))
-    if not users_with_warnings or len(users_with_warnings) == 0:
+    text, keyboard = await generate_all_warnings_msg(bot, int(msg.chat.id), 1)
+    if not text:
         await msg.reply("❌ У пользователей этого чата нет варнов.")
         return
     
-    ans_header = f"📛 Список предупреждений:\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-    for i, u in enumerate(users_with_warnings):
-        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-        
-        max_warns = await get_max_warns(int(msg.chat.id))
-        line = f"▫️ {mention} - {u['count']}/{max_warns}\n"
-        
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            await msg.reply(ans, parse_mode="HTML")
-            ans = ans_header  # сбрасываем накопленное сообщение
-            ans += "<blockquote expandable>"
-        
-        ans += line
-    
-    # отправляем остаток, если есть
-    if ans.strip():
-        await msg.reply(ans, parse_mode="HTML")
+    await msg.reply_photo(photo=WARNINGS_PICTURE_ID, parse_mode="HTML", caption=text, reply_markup=keyboard)
 
 @router.message(
     F.text.lower().startswith("варны")
@@ -55,6 +37,7 @@ async def get_user_warnings_handler(msg: Message):
     """Команда: варны @user"""
     bot = msg.bot
     target_user = None
+    chat_id = int(msg.chat.id)
 
     if msg.reply_to_message and msg.reply_to_message.from_user:
         target_user = msg.reply_to_message.from_user
@@ -66,11 +49,14 @@ async def get_user_warnings_handler(msg: Message):
     if target_user.is_bot:
         await msg.reply("❌ Вы не можете просмотреть варны бота.")
         return
+    
+    text, keyboard = await generate_user_warnings_msg(bot, chat_id, target_user, 1)
+    if not text:
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
+        await msg.reply(f"❕У пользователя {mention} нет варнов.", parse_mode="HTML")
+        return
 
-    answers = await generate_warnings_msg(bot, int(msg.chat.id), target_user)
-
-    for ans in answers:
-        await msg.reply_photo(photo=WARNINGS_PICTURE_ID, caption=ans, parse_mode="HTML")
+    await msg.reply_photo(photo=WARNINGS_PICTURE_ID, caption=text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.regexp(r"^\+варн(?:\s|$)", flags=re.IGNORECASE)
@@ -216,3 +202,27 @@ async def do_amnesty(msg: Message):
 
     await amnesty(chat_id)
     await msg.reply(f"✅ Все варны очищены.", parse_mode="HTML")
+
+@router.callback_query(Pagination.filter(F.subject == "all_warnings"))
+async def all_warnings_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    text, keyboard = await generate_all_warnings_msg(callback.bot, int(callback.message.chat.id), callback_data.page)
+
+    if text:
+        await callback.message.edit_caption(caption=text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+
+@router.callback_query(Pagination.filter(F.subject == "user_warnings" & F.back_button == False))
+async def user_warnings_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    bot = callback.bot
+    chat_id = int(callback.message.chat.id)
+    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
+    if not member: return
+
+    text, keyboard = await generate_user_warnings_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page)
+    if text:
+        await callback.message.edit_caption(photo=WARNINGS_PICTURE_ID, caption=text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
