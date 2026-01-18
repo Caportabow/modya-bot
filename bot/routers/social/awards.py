@@ -67,6 +67,7 @@ async def get_awards_handler(msg: Message):
 
     text, keyboard = await generate_user_awards_msg(bot, chat_id, target_user, 1)
     if not text:
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user)
         await msg.reply(f"❕У пользователя {mention} нет наград.", parse_mode="HTML")
         return
 
