@@ -4,13 +4,14 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from services.messages.family import family_tree
+from services.messages.marriages import generate_all_marriages_msg
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
 from utils.telegram.users import mention_user_with_delay, parse_user_mention, mention_user
 
-from utils.telegram.keyboards import MarriageRequest, get_marriage_request_keyboard, AdoptionRequest, get_adoption_request_keyboard
-from config import MARRIAGES_PICTURE_ID, MAX_MESSAGE_LENGTH
+from utils.telegram.keyboards import MarriageRequest, get_marriage_request_keyboard, AdoptionRequest, get_adoption_request_keyboard, Pagination
+from config import MARRIAGES_PICTURE_ID
 from db.marriages import get_marriages, get_user_marriage, make_marriage
 from db.marriages.families import adopt_child, check_adoption_possibility, is_parent, is_child, abandon, incest_cycle
 
@@ -26,36 +27,12 @@ async def all_marriages_handler(msg: Message):
     bot = msg.bot
     chat_id = int(msg.chat.id)  
     
-    marriages = await get_marriages(chat_id)
-    if not marriages or len(marriages) == 0:
+    text, keyboard = await generate_all_marriages_msg(bot, chat_id, page=1)
+    if not text:
         await msg.reply("❌ В этом чате нет браков.")
         return
     
-    now = datetime.now(timezone.utc)
-    ans_header = f"💕 Пары нашего чата:\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-    for i, m in enumerate(marriages):
-        mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][0]))
-        mention_2 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][1]))
-        
-        date = f"{m['date']:%d.%m.%Y} ({TimedeltaFormatter.format(now - m['date'])})"
-        line = f"▫️ {mention_1} & {mention_2}\n   └ Вместе с {date}\n\n"
-
-        # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
-            ans = ans_header  # сбрасываем накопленное сообщение
-            ans += "<blockquote expandable>"
-        
-        ans += line
-    
-    # добавляем остаток, если есть
-    if ans.strip():
-        ans += "</blockquote>"
-        await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=ans, parse_mode="HTML")
+    await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.lower().startswith("мой брак")
@@ -426,3 +403,17 @@ async def adoption_retire_callback_handler(callback: CallbackQuery, callback_dat
     ans = f"💔 {target_user}, мне очень жаль..\n🥀 {trigger_user} передумал принимать вас в семью."
 
     await msg.edit_text(text=ans, parse_mode="HTML")
+
+@router.callback_query(Pagination.filter(F.subject == "all_marriages"))
+async def all_marriages_pagination_callback_handler(callback: CallbackQuery, callback_data: Pagination):
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+    chat_id = int(msg.chat.id)
+
+    text, keyboard = await generate_all_marriages_msg(bot, chat_id, page=callback_data.page)
+    if not text:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+        return
+
+    await msg.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)

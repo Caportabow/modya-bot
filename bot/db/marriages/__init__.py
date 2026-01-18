@@ -44,7 +44,7 @@ async def make_marriage(chat_id: int, users: list[int]) -> dict:
         
         return {"success": True, "marriage_id": int(result['marriage_id'])} if result else {"success": False}
 
-async def get_marriages(chat_id: int) -> list[dict]:
+async def get_marriages(chat_id: int, page: int, per_page: int = 10) -> dict:
     """
     Получаем все браки в чате с информацией:
     - points
@@ -52,6 +52,9 @@ async def get_marriages(chat_id: int) -> list[dict]:
     - список участников (id)
     Сортировка по points (по убыванию)
     """
+    # Pagination
+    limit = per_page + 1 # Берём на 1 больше, чтобы смотреть есть след. страница или нет
+    offset = per_page * (page - 1)
 
     # Делаем join marriages и users, сортируем по points
     rows = await db.fetchmany(
@@ -61,9 +64,16 @@ async def get_marriages(chat_id: int) -> list[dict]:
             JOIN users u ON u.marriage_id = m.id
             WHERE m.chat_id = $1
             ORDER BY m.date ASC
+            LIMIT $2 OFFSET $3;
         """,
-        chat_id
+        chat_id, limit, offset
     )
+    if rows:  # проверяем, что список не пуст
+        if len(rows) == limit:
+            rows = rows[:-1]  # убираем последний элемент, т.к он часть след. страницы
+            next_page = page + 1
+        else:
+            next_page = None
 
     # Группируем участников по браку
     marriages = {}
@@ -76,7 +86,13 @@ async def get_marriages(chat_id: int) -> list[dict]:
             }
         marriages[mid]["participants"].append(int(row["user_id"]))
 
-    return list(marriages.values())
+    return {
+        "data": list(marriages.values()),
+        "pagination": {
+            "next_page": next_page,
+            "prev_page": page-1 if page > 1 else None,
+        }
+    } if rows else None
 
 async def get_user_marriage(chat_id: int, user_id: int):
     """
