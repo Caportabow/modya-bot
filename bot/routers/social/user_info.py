@@ -1,12 +1,12 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 
 from services.messages.warnings import generate_user_warnings_msg
 from services.messages.awards import generate_user_awards_msg
-from services.messages.family import family_tree
+from services.messages.family import generate_family_tree_msg
 from services.messages.user_info import generate_user_info_msg
 
 from utils.telegram.keyboards import UserInfo, Pagination
@@ -71,17 +71,20 @@ async def user_family_info_callback_handler(callback: CallbackQuery, callback_da
     if not member:
         return
 
-    text, keyboard, img = await family_tree(bot, chat_id, member.user, True)
+    text, keyboard, img = await generate_family_tree_msg(bot, chat_id, member.user, True)
     if not text:
-        if user_id == int(msg.from_user.id):
+        if user_id == int(callback.from_user.id):
             await callback.answer(text=f"❕Вы пока не состоите в семье.", show_alert=True)
         else:
             await callback.answer(text=f"❕Этот пользователь пока не состоит в семье.", show_alert=True)
+        return
 
-    await msg.edit_caption(
-        photo=img, 
-        caption=text, 
-        parse_mode="HTML",
+    await msg.edit_media(
+        media=InputMediaPhoto(
+            media=img,
+            caption=text,
+            parse_mode="HTML"
+        ), 
         reply_markup=keyboard
     )
 
@@ -103,15 +106,18 @@ async def user_awards_info_callback_handler(callback: CallbackQuery, callback_da
 
     text, keyboard = await generate_user_awards_msg(bot, chat_id, member.user, 1, True)
     if not text:
-        if user_id == int(msg.from_user.id):
+        if user_id == int(callback.from_user.id):
             await callback.answer(text=f"❕У вас нет наград.", show_alert=True)
         else:
             await callback.answer(text=f"❕У этого пользователя нет наград.", show_alert=True)
+        return
 
-    await msg.edit_caption(
-        photo=AWARDS_PICTURE_ID, 
-        caption=text, 
-        parse_mode="HTML",
+    await msg.edit_media(
+        media=InputMediaPhoto(
+            media=AWARDS_PICTURE_ID,
+            caption=text,
+            parse_mode="HTML"
+        ), 
         reply_markup=keyboard
     )
 
@@ -133,20 +139,27 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
 
     text, keyboard = await generate_user_warnings_msg(bot, chat_id, member.user, 1, True)
     if not text:
-        if user_id == int(msg.from_user.id):
+        if user_id == int(callback.from_user.id):
             await callback.answer(text=f"❕У вас нет предупреждений.", show_alert=True)
         else:
             await callback.answer(text=f"❕У этого пользователя нет предупреждений.", show_alert=True)
+        return
 
-    await msg.edit_caption(
-        photo=WARNINGS_PICTURE_ID, 
-        caption=text, 
-        parse_mode="HTML",
+    await msg.edit_media(
+        media=InputMediaPhoto(
+            media=WARNINGS_PICTURE_ID,
+            caption=text,
+            parse_mode="HTML"
+        ), 
         reply_markup=keyboard
     )
 
 
-@router.callback_query(Pagination.filter((F.subject == "user_rests" | F.subject == "user_awards" | F.subject == "family") & F.back_button == True))
+@router.callback_query(
+    Pagination.filter(
+        F.subject.in_({"user_warnings", "user_awards", "family"}) & F.is_back_button
+    )
+)
 async def user_info_back_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     msg = callback.message
@@ -156,10 +169,12 @@ async def user_info_back_pagination_handler(callback: CallbackQuery, callback_da
 
     text, keyboard, img = await generate_user_info_msg(callback.bot, callback.message.chat.id, member.user)
     if text:
-        await msg.edit_caption(
-            photo=img, 
-            caption=text, 
-            parse_mode="HTML",
+        await msg.edit_media(
+            media=InputMediaPhoto(
+                media=img,
+                caption=text,
+                parse_mode="HTML"
+            ), 
             reply_markup=keyboard
         )
     

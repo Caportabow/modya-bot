@@ -93,16 +93,16 @@ async def remove_award_handler(msg: Message):
     else:
         await msg.reply("❌ Не удалось снять награду. Проверьте правильность индекса." if award_index is not None else "❌ У вас нет наград.")
 
-@router.callback_query(Pagination.filter(F.subject == "user_awards" & F.back_button == False))
+@router.callback_query(Pagination.filter((F.subject == "user_awards") & F.is_back_button == False))
 async def user_awards_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)
     member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
     if not member: return
 
-    text, keyboard = await generate_user_awards_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page)
+    text, keyboard = await generate_user_awards_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)
     if text:
-        await callback.message.edit_caption(photo=AWARDS_PICTURE_ID, caption=text, reply_markup=keyboard)
+        await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

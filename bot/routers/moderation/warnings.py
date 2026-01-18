@@ -208,21 +208,21 @@ async def all_warnings_pagination_handler(callback: CallbackQuery, callback_data
     text, keyboard = await generate_all_warnings_msg(callback.bot, int(callback.message.chat.id), callback_data.page)
 
     if text:
-        await callback.message.edit_caption(caption=text, reply_markup=keyboard)
+        await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
 
-@router.callback_query(Pagination.filter(F.subject == "user_warnings" & F.back_button == False))
+@router.callback_query(Pagination.filter((F.subject == "user_warnings") & F.is_back_button == False))
 async def user_warnings_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)
     member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
     if not member: return
 
-    text, keyboard = await generate_user_warnings_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page)
+    text, keyboard = await generate_user_warnings_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)
     if text:
-        await callback.message.edit_caption(photo=WARNINGS_PICTURE_ID, caption=text, reply_markup=keyboard)
+        await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

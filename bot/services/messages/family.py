@@ -10,7 +10,7 @@ from utils.telegram.keyboards import get_pagination_keyboard
 from utils.telegram.users import mention_user
 
 
-async def family_tree(bot: Bot, chat_id: int, user_entity: User, with_back_button: bool = False) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup], Optional[BufferedInputFile]]:
+async def generate_family_tree_msg(bot: Bot, chat_id: int, user_entity: User, with_back_button: bool = False) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup], Optional[BufferedInputFile]]:
     user_id = int(user_entity.id)
     family_tree_data = await get_family_tree_data(chat_id, user_id)
 
@@ -22,7 +22,7 @@ async def family_tree(bot: Bot, chat_id: int, user_entity: User, with_back_butto
 
     photo = BufferedInputFile(family_tree_bytes, filename="family_tree.jpeg")
     keyboard = await get_pagination_keyboard(
-        subject = "family", query=None, next_page=None,
+        subject = "family", query=user_id, next_page=None,
         prev_page=None, back_button_active=with_back_button
     )
     return f"🌳 Семейное древо {mention}", keyboard, photo

@@ -146,7 +146,8 @@ class Pagination(CallbackData, prefix="pn"):
         subject: str
         page: int
         query: Optional[int]
-        back_button: bool
+        with_back_button: bool
+        is_back_button: bool
 
 async def get_pagination_keyboard(subject: str, query: Optional[int], next_page: Optional[int] = None, prev_page: Optional[int] = None, back_button_active: bool = False):
     builder = InlineKeyboardBuilder()
@@ -156,7 +157,7 @@ async def get_pagination_keyboard(subject: str, query: Optional[int], next_page:
         row_buttons.append(
             InlineKeyboardButton(
                 text="⬅️ Пред.",
-                callback_data=Pagination(subject=subject, query=query, page=prev_page, back_button=False).pack()
+                callback_data=Pagination(subject=subject, query=query, page=prev_page, with_back_button=back_button_active, is_back_button=False).pack()
             )
         )
 
@@ -164,7 +165,7 @@ async def get_pagination_keyboard(subject: str, query: Optional[int], next_page:
         row_buttons.append(
             InlineKeyboardButton(
                 text="След. ➡️",
-                callback_data=Pagination(subject=subject, query=query, page=next_page, back_button=False).pack()
+                callback_data=Pagination(subject=subject, query=query, page=next_page, with_back_button=back_button_active, is_back_button=False).pack()
             )
         )
 
@@ -175,7 +176,7 @@ async def get_pagination_keyboard(subject: str, query: Optional[int], next_page:
         builder.row(
             InlineKeyboardButton(
                 text="Назад",
-                callback_data=Pagination(subject=subject, query=query, page=0, back_button=True).pack()
+                callback_data=Pagination(subject=subject, query=query, page=0, with_back_button=back_button_active, is_back_button=True).pack()
             )
         )
     

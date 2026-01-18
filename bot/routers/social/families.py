@@ -2,7 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
-from services.messages.family import family_tree
+from services.messages.family import generate_family_tree_msg
 
 from utils.telegram.users import parse_user_mention, mention_user
 
@@ -138,11 +138,11 @@ async def abandon_parent(msg: Message):
 )
 async def family_tree_handler(msg: Message):
     """Команда: семейное древо/моя семья"""
-    text, keyboard, img = await family_tree(msg.bot, int(msg.chat.id), msg.from_user)
+    text, keyboard, img = await generate_family_tree_msg(msg.bot, int(msg.chat.id), msg.from_user)
     if not text:
         await msg.reply("❌ Вы пока не состоите в семье.", parse_mode="HTML")
         return
-    
+
     await msg.reply_photo(
         photo=img,
         caption=text, reply_to_message_id=msg.message_id,
