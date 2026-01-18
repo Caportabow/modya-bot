@@ -1,12 +1,11 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
-from datetime import timedelta, datetime, timezone
+from services.messages.leaderboard import generate_leaderboard_msg
 
-from utils.telegram.users import mention_user_with_delay
-from utils.time import TimedeltaFormatter, DurationParser
-from db.leaderboard import user_leaderboard
+from utils.telegram.keyboards import Pagination, deserialize_timedelta
+from utils.time import DurationParser
 
 router = Router(name="leaderboard")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -20,6 +19,7 @@ async def stats_handler(msg: Message):
     bot = msg.bot
     parts = msg.text.split(maxsplit=1)
 
+    duration = None
     if len(parts) > 1:
         duration = DurationParser.parse(parts[1].strip())
 
@@ -28,39 +28,25 @@ async def stats_handler(msg: Message):
             if not DurationParser.parse_forever(parts[1].strip()):
                 # команда вероятно сработала случайно, останавливаем обработку
                 return
-            
-            # пользователь указал "навсегда"
-            since = None
-            beauty_since = "всё время"
-        
-        else:
-            # время распарсилось корректно
-            since = datetime.now(timezone.utc) - duration
-            beauty_since = TimedeltaFormatter.format(duration, suffix="none")
-    
-    else:
-        # Если аргумента нет - смотрим за всё время
-        since = None
-        beauty_since = "всё время"
 
-    limit = 30
-    top = await user_leaderboard(int(msg.chat.id), limit=limit, since=since)
-    if not top or len(top) == 0:
+    text, keyboard = await generate_leaderboard_msg(bot, int(msg.chat.id), page=1, duration=duration)
+    if not text:
         await msg.reply("❌ Недостаточно информации.")
         return
+
+    await msg.reply(text, parse_mode="HTML", reply_markup=keyboard)
+
+
+@router.callback_query(Pagination.filter(F.subject == "leaderboard"))
+async def leaderboard_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    if callback_data.query is not None:
+        duration = deserialize_timedelta(callback_data.query)
+    else: duration = None
+
+    text, keyboard = await generate_leaderboard_msg(callback.bot, callback.message.chat.id, callback_data.page, duration)
+
+    if text:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     
-    ans = f"📊 Топ активности за {beauty_since}:\n\n"
-    ans += "<blockquote expandable>"
-    msg_count = sum(u["count"] for u in top)
-
-    for i, u in enumerate(top):
-        mention = await mention_user_with_delay(bot=bot, chat_id=int(msg.chat.id), user_id=int(u["user_id"]))
-        
-        percentage = (u["count"] / msg_count * 100) if msg_count > 0 else 0
-        
-        ans += f"{i+1} {mention}: {u['count']} ({percentage:.1f}%)\n"
-
-    ans += "</blockquote>"
-    ans += f"\n💬 Итого: {msg_count}"
-
-    await msg.reply(ans, parse_mode="HTML")
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
