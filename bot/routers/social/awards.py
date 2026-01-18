@@ -1,11 +1,13 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
+
+from services.messages.awards import generate_user_awards_msg
+from utils.telegram.keyboards import Pagination
 
 from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID
-from utils.telegram.users import mention_user, parse_user_mention
-from utils.telegram.message_templates import generate_awards_msg
+from utils.telegram.users import mention_user, parse_user_mention, get_chat_member_or_fall
 
 router = Router(name="awards")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -54,6 +56,7 @@ async def get_awards_handler(msg: Message):
     """Команда: награды @user"""
     bot = msg.bot
     target_user = None
+    chat_id = int(msg.chat.id)
 
     if msg.reply_to_message and msg.reply_to_message.from_user:
         target_user = msg.reply_to_message.from_user
@@ -62,10 +65,12 @@ async def get_awards_handler(msg: Message):
 
     if not target_user: target_user = msg.from_user
 
-    answers = await generate_awards_msg(bot, int(msg.chat.id), target_user)
+    text, keyboard = await generate_user_awards_msg(bot, chat_id, target_user, 1)
+    if not text:
+        await msg.reply(f"❕У пользователя {mention} нет наград.", parse_mode="HTML")
+        return
 
-    for ans in answers:   
-        await msg.reply_photo(photo=AWARDS_PICTURE_ID, caption=ans, parse_mode="HTML")
+    await msg.reply_photo(photo=AWARDS_PICTURE_ID, caption=text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.regexp(r"^снять награду(?:\s|$)", flags=re.IGNORECASE)
@@ -86,3 +91,17 @@ async def remove_award_handler(msg: Message):
         await msg.reply(f"✅ Награда{f' #{award_index+1}' if award_index else ''} снята успешно.", parse_mode="HTML")
     else:
         await msg.reply("❌ Не удалось снять награду. Проверьте правильность индекса." if award_index is not None else "❌ У вас нет наград.")
+
+@router.callback_query(Pagination.filter(F.subject == "user_awards" & F.back_button == False))
+async def user_awards_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    bot = callback.bot
+    chat_id = int(callback.message.chat.id)
+    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
+    if not member: return
+
+    text, keyboard = await generate_user_awards_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page)
+    if text:
+        await callback.message.edit_caption(photo=AWARDS_PICTURE_ID, caption=text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
