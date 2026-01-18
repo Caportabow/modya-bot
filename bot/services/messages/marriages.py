@@ -8,7 +8,7 @@ from db.marriages import get_marriages
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user_with_delay
+from utils.telegram.users import mention_user
 
 
 async def generate_all_marriages_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
@@ -22,8 +22,8 @@ async def generate_all_marriages_msg(bot: Bot, chat_id: int, page: int) -> Tuple
 
     ans += "<blockquote expandable>"
     for i, m in enumerate(marriages):
-        mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][0]))
-        mention_2 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(m["participants"][1]))
+        mention_1 = await mention_user(bot=bot, chat_id=chat_id, user_id=int(m["participants"][0]))
+        mention_2 = await mention_user(bot=bot, chat_id=chat_id, user_id=int(m["participants"][1]))
         
         date = f"{m['date']:%d.%m.%Y} ({TimedeltaFormatter.format(now - m['date'], suffix='none')})"
         line = f"• {mention_1} & {mention_2}\n   └ Вместе с {date}\n\n"

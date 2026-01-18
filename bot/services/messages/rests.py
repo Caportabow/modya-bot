@@ -8,7 +8,7 @@ from db.users.rests import get_all_rests, get_user_rest
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user_with_delay, mention_user
+from utils.telegram.users import mention_user
 
 async def generate_all_rests_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     data = await get_all_rests(chat_id, page=page)
@@ -23,7 +23,7 @@ async def generate_all_rests_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Opt
 
     ans += "<blockquote expandable>"
     for i, r in enumerate(rests):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
         rest_info = f"до {r['valid_until']:%d.%m.%Y} (еще {TimedeltaFormatter.format(r['valid_until'] - now, suffix="none")})"
         line = f"• {mention} - {rest_info}\n"
 

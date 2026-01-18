@@ -8,7 +8,7 @@ from utils.telegram.keyboards import Pagination
 
 from config import WARNINGS_PICTURE_ID
 from utils.time import DurationParser, TimedeltaFormatter
-from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, get_chat_member_or_fall
+from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention, get_chat_member
 
 from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, amnesty
@@ -217,7 +217,7 @@ async def all_warnings_pagination_handler(callback: CallbackQuery, callback_data
 async def user_warnings_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = callback_data.query)
     if not member: return
 
     text, keyboard = await generate_user_warnings_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)

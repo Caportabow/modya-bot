@@ -4,7 +4,7 @@ import asyncio
 from aiogram import Router, F
 from aiogram.types import Message
 
-from utils.telegram.users import is_admin, mention_user_with_delay
+from utils.telegram.users import is_admin, mention_user
 from db.users import get_all_users_in_chat
 
 router = Router(name="call")
@@ -47,7 +47,7 @@ async def сall_members(msg: Message):
         chunk = users[i:i+5]
         text = f"⚡ {arg if arg.strip() else 'Внимание!'}\n\n"
 
-        mentions = await asyncio.gather(*(mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=u) for u in chunk))
+        mentions = await asyncio.gather(*(mention_user(bot=bot, chat_id=chat_id, user_id=u) for u in chunk))
         text += "\n".join(mentions)
 
         if reply_msg_id:

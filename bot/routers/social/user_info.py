@@ -10,7 +10,7 @@ from services.messages.family import generate_family_tree_msg
 from services.messages.user_info import generate_user_info_msg
 
 from utils.telegram.keyboards import UserInfo, Pagination
-from utils.telegram.users import parse_user_mention, get_chat_member_or_fall
+from utils.telegram.users import parse_user_mention, get_chat_member
 
 router = Router(name="user_info")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -67,7 +67,7 @@ async def user_family_info_callback_handler(callback: CallbackQuery, callback_da
     chat_id = int(msg.chat.id)
     user_id = user_info.user_id
 
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
     if not member:
         return
 
@@ -100,7 +100,7 @@ async def user_awards_info_callback_handler(callback: CallbackQuery, callback_da
     chat_id = int(msg.chat.id)
     user_id = user_info.user_id
 
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
     if not member:
         return
 
@@ -133,7 +133,7 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
     chat_id = int(msg.chat.id)
     user_id = user_info.user_id
 
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = user_id)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
     if not member:
         return
 
@@ -164,7 +164,7 @@ async def user_info_back_pagination_handler(callback: CallbackQuery, callback_da
     bot = callback.bot
     msg = callback.message
     chat_id = int(callback.message.chat.id)
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = callback_data.query)
     if not member: return
 
     text, keyboard, img = await generate_user_info_msg(callback.bot, callback.message.chat.id, member.user)

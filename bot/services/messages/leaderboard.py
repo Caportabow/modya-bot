@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard, serialize_timedelta
-from utils.telegram.users import mention_user_with_delay
+from utils.telegram.users import mention_user
 from db.leaderboard import user_leaderboard
 
 
@@ -28,7 +28,7 @@ async def generate_leaderboard_msg(bot, chat_id: int, page: int, duration: Optio
     adder = per_page * (page - 1)
     ans += "<blockquote expandable>"
     for i, u in enumerate(top):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
         
         percentage = (u["count"] / msg_count * 100) if msg_count > 0 else 0
         

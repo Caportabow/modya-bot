@@ -9,7 +9,7 @@ from db.chats.cleaning import check_cleaning_accuracy, minmsg_users, inactive_us
 from utils.telegram.keyboards import serialize_timedelta
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user_with_delay
+from utils.telegram.users import mention_user
 
 async def generate_minmsg_msg(bot: Bot, chat_id: int, page: int, msg_count: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     cleaning_accuracy = await check_cleaning_accuracy(chat_id)
@@ -27,7 +27,7 @@ async def generate_minmsg_msg(bot: Bot, chat_id: int, page: int, msg_count: int)
     ans += "<blockquote expandable>"
 
     for i, u in enumerate(users):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
         
         percentage = (u['count'] / msg_count) * 100
         line = f"• {mention}: {u['count']} ({percentage:.0f}%)\n"
@@ -61,7 +61,7 @@ async def generate_inactive_msg(bot: Bot, chat_id: int, page: int, duration: tim
     ans += "<blockquote expandable>"
 
     for i, u in enumerate(users):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
 
         date = TimedeltaFormatter.format(now - u["last_message_date"], suffix="none") if u["last_message_date"] else "никогда"
         line = f"• {mention}: уже {date}\n"
@@ -94,7 +94,7 @@ async def generate_cleaning_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Opti
     ans += "<blockquote expandable>"
 
     for i, u in enumerate(users):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
         date = TimedeltaFormatter.format(u["last_message"]) if u["last_message"] else "никогда"
         norm = f"{u["message_count"]}/{data["min_messages"]} сообщ."
 

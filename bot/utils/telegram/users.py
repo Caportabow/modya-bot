@@ -1,7 +1,7 @@
 import asyncio
 from aiogram import Bot
 from aiogram.types import Message, User
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 
 from db.users import get_uid
 from db.users.nicknames import get_nickname
@@ -13,8 +13,23 @@ async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
     except TelegramBadRequest as e:
         print(f"⚠️ Failed to get chat member {user_id} in chat {chat_id}: {e}")
         return None
+    except TelegramRetryAfter as e:
+        await asyncio.sleep(e.retry_after)
+
+        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
     
     return member
+
+# Общий семафор
+_TG_SEMAPHORE = asyncio.Semaphore(20)
+async def tg_call(coro):
+    async with _TG_SEMAPHORE:
+        return await coro
+
+async def get_chat_member(bot: Bot, chat_id: int, user_id: int):
+    return await tg_call(
+        get_chat_member_or_fall(bot, chat_id, user_id)
+    )
 
 async def mention_user(
     bot: Bot,
@@ -42,7 +57,7 @@ async def mention_user(
     # 3. Если нет user_entity, но есть user_id, пытаемся получить entity из чата.
     elif user_id:
         # 
-        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
+        member = await get_chat_member(bot=bot, chat_id=chat_id, user_id=user_id)
         if member:
             user_entity = member.user
 
@@ -65,10 +80,6 @@ async def mention_user(
 
     return user_entity.mention_html(name=name)
 
-async def mention_user_with_delay(bot, chat_id, user_id):
-    await asyncio.sleep(0.15) # or random.randrange(15, 30) / 100
-    return await mention_user(bot=bot, chat_id=chat_id, user_id=user_id)
-
 async def parse_user_mention(bot: Bot, msg: Message):
     """Парсит пользователя из сообщения."""
     user = None
@@ -83,7 +94,7 @@ async def parse_user_mention(bot: Bot, msg: Message):
                     uid = await get_uid(int(msg.chat.id), username)
 
                     if uid:
-                        member = await get_chat_member_or_fall(bot=bot, chat_id=msg.chat.id, user_id=uid)
+                        member = await get_chat_member(bot=bot, chat_id=msg.chat.id, user_id=uid)
                         if member:
                             user = member.user
                             break

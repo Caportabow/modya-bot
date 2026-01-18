@@ -7,7 +7,7 @@ from utils.telegram.keyboards import Pagination
 
 from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID
-from utils.telegram.users import mention_user, parse_user_mention, get_chat_member_or_fall
+from utils.telegram.users import mention_user, parse_user_mention, get_chat_member
 
 router = Router(name="awards")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -97,7 +97,7 @@ async def remove_award_handler(msg: Message):
 async def user_awards_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)
-    member = await get_chat_member_or_fall(bot = bot, chat_id = chat_id, user_id = callback_data.query)
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = callback_data.query)
     if not member: return
 
     text, keyboard = await generate_user_awards_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)

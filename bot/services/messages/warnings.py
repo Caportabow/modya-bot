@@ -9,7 +9,7 @@ from db.chats.settings import get_max_warns
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user_with_delay, mention_user
+from utils.telegram.users import mention_user
 
 
 async def generate_all_warnings_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
@@ -24,7 +24,7 @@ async def generate_all_warnings_msg(bot: Bot, chat_id: int, page: int) -> Tuple[
 
     ans += "<blockquote expandable>"
     for i, u in enumerate(users_with_warnings):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
+        mention = await mention_user(bot=bot, chat_id=chat_id, user_id=int(u["user_id"]))
         line = f"• {mention} - {u['count']}/{max_warns}\n"
         
         ans += line
@@ -56,7 +56,7 @@ async def generate_user_warnings_msg(bot: Bot, chat_id: int, target_user: User, 
     for i, w in enumerate(warnings):
         reason = w["reason"] or "Причина не указана."
         date = TimedeltaFormatter.format(datetime.now(timezone.utc) - w["assignment_date"])
-        moderator_mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
+        moderator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
         formatted_expire_date = TimedeltaFormatter.format(w["expire_date"] - datetime.now(timezone.utc), suffix="none") if w["expire_date"] else "навсегда"
 
         ans += f"┌ Варн #{adder+i+1}\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"

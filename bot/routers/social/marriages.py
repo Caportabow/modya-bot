@@ -7,7 +7,7 @@ from services.messages.marriages import generate_all_marriages_msg
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
-from utils.telegram.users import mention_user_with_delay, parse_user_mention, mention_user
+from utils.telegram.users import parse_user_mention, mention_user
 
 from utils.telegram.keyboards import MarriageRequest, get_marriage_request_keyboard, Pagination
 from config import MARRIAGES_PICTURE_ID
@@ -47,8 +47,8 @@ async def my_marriage_handler(msg: Message):
         await msg.reply("❌ Вы не женаты.")
         return
     
-    mention_1 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][0]))
-    mention_2 = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][1]))
+    mention_1 = await mention_user(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][0]))
+    mention_2 = await mention_user(bot=bot, chat_id=chat_id, user_id=int(marriage["participants"][1]))
     now = datetime.now(timezone.utc)
     duration = TimedeltaFormatter.format(now-marriage["date"], suffix="none")
 

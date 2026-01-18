@@ -7,8 +7,8 @@ from middlewares import middlewares
 import db
 import scheduler
 
+# TODO: сделать текст интерфейса более единым
 # TODO: check_adoption_possibility и check_marriage_loyality под полный реворк
-# TODO: ремейкнуть mention_user_with_delay чтобы улучшить быстродействие
 # TODO: ввести лог последних действий админов на неделю +-
 # TODO: если во время тех обслуживания кто-то выйдет из чата или модю удалят из группы, бот не отреагирует на это
 # TODO: хандлить конверсию в супергруппу
