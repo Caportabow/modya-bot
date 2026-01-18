@@ -89,7 +89,7 @@ async def minmsg_pagination_handler(callback: CallbackQuery, callback_data: Pagi
     text, keyboard = await generate_minmsg_msg(callback.bot, callback.message.chat.id, callback_data.page, callback_data.query)
 
     if text:
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
@@ -99,7 +99,7 @@ async def inactive_pagination_handler(callback: CallbackQuery, callback_data: Pa
     text, keyboard = await generate_inactive_msg(callback.bot, callback.message.chat.id, callback_data.page, deserialize_timedelta(callback_data.query))
 
     if text:
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
@@ -109,7 +109,7 @@ async def cleaning_pagination_handler(callback: CallbackQuery, callback_data: Pa
     text, keyboard = await generate_cleaning_msg(callback.bot, callback.message.chat.id, callback_data.page)
 
     if text:
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

@@ -349,7 +349,7 @@ async def all_rests_pagination_handler(callback: CallbackQuery, callback_data: P
     text, keyboard = await generate_all_rests_msg(callback.bot, int(callback.message.chat.id), callback_data.page)
 
     if text:
-        await callback.message.edit_text(text, reply_markup=keyboard)
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

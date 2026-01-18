@@ -157,7 +157,7 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
 
 @router.callback_query(
     Pagination.filter(
-        F.subject.in_({"user_warnings", "user_awards", "family"}) & F.is_back_button
+        F.subject.in_({"user_warnings", "user_awards", "family"}) & (F.is_back_button == True)
     )
 )
 async def user_info_back_pagination_handler(callback: CallbackQuery, callback_data: Pagination):

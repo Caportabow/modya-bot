@@ -213,7 +213,7 @@ async def all_warnings_pagination_handler(callback: CallbackQuery, callback_data
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
 
-@router.callback_query(Pagination.filter((F.subject == "user_warnings") & F.is_back_button == False))
+@router.callback_query(Pagination.filter((F.subject == "user_warnings") & (F.is_back_button == False)))
 async def user_warnings_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)

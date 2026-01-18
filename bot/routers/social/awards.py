@@ -93,7 +93,7 @@ async def remove_award_handler(msg: Message):
     else:
         await msg.reply("❌ Не удалось снять награду. Проверьте правильность индекса." if award_index is not None else "❌ У вас нет наград.")
 
-@router.callback_query(Pagination.filter((F.subject == "user_awards") & F.is_back_button == False))
+@router.callback_query(Pagination.filter((F.subject == "user_awards") & (F.is_back_button == False)))
 async def user_awards_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
     bot = callback.bot
     chat_id = int(callback.message.chat.id)
