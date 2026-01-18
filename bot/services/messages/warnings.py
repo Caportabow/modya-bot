@@ -39,7 +39,8 @@ async def generate_all_warnings_msg(bot: Bot, chat_id: int, page: int) -> Tuple[
     return ans, keyboard
 
 async def generate_user_warnings_msg(bot: Bot, chat_id: int, target_user: User, page: int, with_back_button: bool = False) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
-    data = await get_user_warnings(chat_id, int(target_user.id), page)
+    per_page = 10
+    data = await get_user_warnings(chat_id, int(target_user.id), page, per_page)
     if not data:
         return None, None
 
@@ -50,6 +51,7 @@ async def generate_user_warnings_msg(bot: Bot, chat_id: int, target_user: User, 
 
     ans = f"⚠️ Варны пользователя {mention} ({warnings_count}/{max_warns}):\n\n"
 
+    adder = per_page * (page - 1)
     ans += "<blockquote expandable>"
     for i, w in enumerate(warnings):
         reason = w["reason"] or "Причина не указана."
@@ -57,7 +59,7 @@ async def generate_user_warnings_msg(bot: Bot, chat_id: int, target_user: User, 
         moderator_mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=w["administrator_user_id"])
         formatted_expire_date = TimedeltaFormatter.format(w["expire_date"] - datetime.now(timezone.utc), suffix="none") if w["expire_date"] else "навсегда"
 
-        ans += f"┌ Варн #{i+1}\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
+        ans += f"┌ Варн #{adder+i+1}\n├ Срок: {formatted_expire_date}\n├ Причина: {reason}\n├ Модератор: {moderator_mention}\n└ Выдан: {date}\n\n"
     ans += "</blockquote>"
 
     pagination = data["pagination"]
