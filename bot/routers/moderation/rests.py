@@ -4,13 +4,13 @@ from aiogram.types import Message, CallbackQuery
 
 from datetime import timedelta, datetime, timezone
 
-from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta
-from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator, mention_user_with_delay
-from utils.telegram.message_templates import describe_rest
+from services.messages.rests import generate_all_rests_msg, generate_rest_description_msg
+
+from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta, Pagination
+from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator
 from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
-from db.users.rests import add_rest, remove_rest, get_all_rests, get_user_rest
-from config import MAX_MESSAGE_LENGTH
+from db.users.rests import add_rest, remove_rest
 
 router = Router(name="rests")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -23,36 +23,14 @@ async def rests_handler(msg: Message):
     """Команда: ресты"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
-    rests = await get_all_rests(chat_id)
+    
+    text, keyboard = await generate_all_rests_msg(bot, chat_id, 1)
 
-    if not rests or len(rests) == 0:
+    if not text:
         await msg.reply(f"❗️ В этом чате нету активных рестов.")
         return
 
-    now = datetime.now(timezone.utc)
-    ans_header = f"💤 Пользователи в ресте:\n\n"
-    ans = ans_header
-    ans += "<blockquote expandable>"
-
-
-    for i, r in enumerate(rests):
-        mention = await mention_user_with_delay(bot=bot, chat_id=chat_id, user_id=int(r["user_id"]))
-        rest_info = f"до {r['valid_until']:%d.%m.%Y} (еще {TimedeltaFormatter.format(r['valid_until'] - now, suffix="none")})"
-        line = f"▫️ {mention} - {rest_info}\n"
-
-        # если добавление строки превысит лимит — отправляем текущее сообщение и начинаем новое
-        if len(ans) + len(line) >= MAX_MESSAGE_LENGTH:
-            ans += "</blockquote>"
-            await msg.reply(ans, parse_mode="HTML")
-            ans = ans_header  # сбрасываем накопленное сообщение
-            ans += "<blockquote expandable>"
-
-        ans += line
-
-    # отправляем остаток, если есть
-    if ans.strip():
-        ans += "</blockquote>"
-        await msg.reply(ans, parse_mode="HTML")
+    await msg.reply(text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
     F.text.regexp(r"^взять рест(?:\s|$)", flags=re.IGNORECASE)
@@ -219,7 +197,7 @@ async def remove_rest_handler(msg: Message):
         ans = f"⏰ Рест {user_mention} снят.\n"
         ans += f"👮 Администратор: {administrator_mention}\n"
     else:
-        ans = f"🔓 Рест снят успешно."
+        ans = f"⏰ Рест снят успешно."
 
     await remove_rest(chat_id, target_user_id)
     await msg.reply(ans, parse_mode="HTML")
@@ -231,15 +209,13 @@ async def my_rest_handler(msg: Message):
     """Команда: мой рест"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
-    rest = await get_user_rest(chat_id, msg.from_user.id)
+    text = await generate_rest_description_msg(bot=bot, chat_id=chat_id, target_user_entity=msg.from_user)
 
-    if not rest:
+    if not text:
         await msg.reply(f"❗️ У вас нет активного реста.")
         return
 
-    ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=msg.from_user, rest=rest)
-    
-    await msg.reply(ans, parse_mode="HTML")
+    await msg.reply(text, parse_mode="HTML")
 
 @router.message(
     F.text.regexp(r"^рест(?:\s|$)")
@@ -260,15 +236,13 @@ async def user_rest_handler(msg: Message):
     if target_user.is_bot:
         await msg.reply("❌ Вы не можете просмотреть рест бота.")
         return
-    rest = await get_user_rest(chat_id, target_user.id)
-
-    if not rest:
+    
+    text = await generate_rest_description_msg(bot=bot, chat_id=chat_id, target_user_entity=target_user)
+    if not text:
         await msg.reply(f"❗️ У этого пользователя нету активного реста.")
         return
 
-    ans = await describe_rest(bot=bot, chat_id=chat_id, target_user_entity=target_user, rest=rest)
-    
-    await msg.reply(ans, parse_mode="HTML")
+    await msg.reply(text, parse_mode="HTML")
 
 
 @router.callback_query(RestRequest.filter(F.response == "accept"))
@@ -310,8 +284,7 @@ async def rest_request_accept_callback_handler(callback: CallbackQuery, callback
         await add_rest(chat_id, int(target_user.id), administrator_user_id=int(trigger_user.id), valid_until=until)
 
         ans = (
-            f"⏰ Рест выдан успешно!\n\n"
-            f"👤 Пользователь: {target_user_mention}.\n"
+            f"⏰ Пользователю {target_user_mention} успешно выдан рест.\n"
             f"📅 До: {until:%d.%m.%Y} (еще {beauty_until})\n"
             f"👮 Администратор: {trigger_user_mention}."
         )
@@ -369,3 +342,14 @@ async def rest_request_retire_callback_handler(callback: CallbackQuery, callback
         return
     
     await msg.delete()
+
+
+@router.callback_query(Pagination.filter(F.subject == "all_rests"))
+async def all_rests_pagination_handler(callback: CallbackQuery, callback_data: Pagination):
+    text, keyboard = await generate_all_rests_msg(callback.bot, int(callback.message.chat.id), callback_data.page)
+
+    if text:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    
+    else:
+        await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

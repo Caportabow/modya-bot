@@ -1,8 +1,12 @@
 import db
 from datetime import datetime, timezone
 
-async def get_all_rests(chat_id:int) -> list[dict] | None:
+async def get_all_rests(chat_id:int, page: int, per_page: int = 20) -> list[dict] | None:
     """Возвращает все активные ресты в чате."""
+    # Pagination
+    limit = per_page + 1 # Берём на 1 больше, чтобы смотреть есть след. страница или нет
+    offset = per_page * (page - 1)
+
     now = datetime.now(timezone.utc)
     rests = await db.fetchmany(
         """
@@ -10,15 +14,29 @@ async def get_all_rests(chat_id:int) -> list[dict] | None:
         FROM rests
         WHERE chat_id = $1
         AND valid_until > $2
-        """, chat_id, now
+        LIMIT $3 OFFSET $4;
+        """, chat_id, now, limit, offset
     )
+    
+    if rests:  # проверяем, что список не пуст
+        if len(rests) == limit:
+            rests = rests[:-1]  # убираем последний элемент, т.к он часть след. страницы
+            next_page = page + 1
+        else:
+            next_page = None
 
-    return [
-        {
+    data = {
+        "data": [{
             'user_id': int(r['user_id']),
             'valid_until': r['valid_until'],
-        } for r in rests
-    ] if rests else None
+        } for r in rests],
+        "pagination": {
+            "next_page": next_page,
+            "prev_page": page-1 if page > 1 else None,
+        }
+    } if rests else None
+
+    return data
 
 async def add_rest(chat_id: int, user_id: int, administrator_user_id: int, valid_until: datetime):
     """Добавляем рест пользователю в чате."""

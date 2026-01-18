@@ -122,20 +122,6 @@ async def generate_warnings_msg(bot: Bot, chat_id: int, target_user):
 
     return answers
 
-async def describe_rest(bot: Bot, chat_id: int, target_user_entity: User, rest: dict) -> str:
-    now = datetime.now(timezone.utc)
-    beauty_until = TimedeltaFormatter.format(rest['valid_until'] - now, suffix="none")
-    beauty_assignment_date = TimedeltaFormatter.format(now - rest['assignment_date'])
-    user_mention = await mention_user(bot=bot, chat_id=chat_id, user_entity=target_user_entity)
-    administrator_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=rest['administrator_user_id'])
-
-    ans = f"⏰ Рест пользователя {user_mention}.\n"
-    ans += f"🗓 Взят: {rest['assignment_date']:%d.%m.%Y} ({beauty_assignment_date})\n"
-    ans += f"📅 Действителен до: {rest['valid_until']:%d.%m.%Y} (еще {beauty_until})\n"
-    ans += f"👮 Администратор: {administrator_mention}."
-    
-    return ans
-
 async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, target_user_id: int) -> bool:
     """Проверяем чтобы человек был не в браке."""
     marriage = await get_user_marriage(chat_id, trigger_user_id)
