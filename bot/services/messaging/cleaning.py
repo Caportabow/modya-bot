@@ -7,7 +7,7 @@ from aiogram.types import InlineKeyboardMarkup
 from services.telegram.user_mention import mention_user
 from db.chats.cleaning import check_cleaning_accuracy, minmsg_users, inactive_users, do_cleaning
 
-from utils.time import TimedeltaFormatter, serialize_timedelta
+from services.time_utils import TimedeltaFormatter, serialize_timedelta
 from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 async def generate_minmsg_msg(bot: Bot, chat_id: int, page: int, msg_count: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:

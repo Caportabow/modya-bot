@@ -8,7 +8,7 @@ from services.telegram.user_mention import mention_user
 from db.warnings import get_all_warnings, get_user_warnings
 from db.chats.settings import get_max_warns
 
-from utils.time import TimedeltaFormatter
+from services.time_utils import TimedeltaFormatter
 from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 

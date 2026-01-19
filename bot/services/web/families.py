@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from config import FAMILY_TEMPLATE
 from services.web import screenshot
-from utils.time import TimedeltaFormatter
+from services.time_utils import TimedeltaFormatter
 
 # Constants
 MAX_NAME_LENGTH_REFERENCE = 12

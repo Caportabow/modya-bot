@@ -9,7 +9,7 @@ from services.telegram.user_parser import parse_user_mention
 from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.marriages import MarriageRequest, get_marriage_request_keyboard
 
-from utils.time import TimedeltaFormatter
+from services.time_utils import TimedeltaFormatter
 from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
 
 from config import MARRIAGES_PICTURE_ID

@@ -9,7 +9,7 @@ from db.users import get_uid
 from db.messages import plot_user_activity
 from db.messages.statistics import user_stats, get_favorite_word
 
-from utils.time import TimedeltaFormatter
+from services.time_utils import TimedeltaFormatter
 from services.telegram.keyboards.user_info import get_user_info_keyboard
 from services.web.activity_chart import make_activity_chart
 

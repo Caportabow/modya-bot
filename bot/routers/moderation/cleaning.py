@@ -7,8 +7,8 @@ from datetime import timedelta
 from services.messaging.cleaning import generate_minmsg_msg, generate_inactive_msg, generate_cleaning_msg
 from services.telegram.keyboards.pagination import Pagination
 
-from utils.time import deserialize_timedelta
-from utils.time import DurationParser
+from services.time_utils import deserialize_timedelta
+from services.time_utils import DurationParser
 from db.chats.cleaning import check_cleanability
 
 router = Router(name="cleaning")

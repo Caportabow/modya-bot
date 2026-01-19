@@ -5,7 +5,7 @@ from aiogram.types import Message, CallbackQuery
 from services.messaging.leaderboard import generate_leaderboard_msg
 
 from services.telegram.keyboards.pagination import Pagination
-from utils.time import DurationParser, deserialize_timedelta
+from services.time_utils import DurationParser, deserialize_timedelta
 
 router = Router(name="leaderboard")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))

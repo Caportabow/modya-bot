@@ -11,7 +11,7 @@ from services.telegram.user_parser import parse_user_mention
 from services.telegram.keyboards.pagination import Pagination
 
 from config import WARNINGS_PICTURE_ID
-from utils.time import DurationParser, TimedeltaFormatter
+from services.time_utils import DurationParser, TimedeltaFormatter
 
 from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, amnesty

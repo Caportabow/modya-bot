@@ -11,7 +11,7 @@ from services.telegram.user_parser import parse_user_mention
 from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.rests import RestRequest, get_rest_request_keyboard
 
-from utils.time import DurationParser, TimedeltaFormatter, deserialize_timedelta
+from services.time_utils import DurationParser, TimedeltaFormatter, deserialize_timedelta
 from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest
 

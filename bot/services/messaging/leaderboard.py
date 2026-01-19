@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from aiogram.types import InlineKeyboardMarkup
 
 from services.telegram.user_mention import mention_user
-from utils.time import TimedeltaFormatter, serialize_timedelta
+from services.time_utils import TimedeltaFormatter, serialize_timedelta
 from services.telegram.keyboards.pagination import get_pagination_keyboard
 from db.leaderboard import user_leaderboard
 

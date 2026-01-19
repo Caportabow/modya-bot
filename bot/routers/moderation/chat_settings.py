@@ -7,7 +7,7 @@ from services.telegram.user_permissions import is_admin
 
 from db.chats.settings import set_max_warns, set_cleaning_min_messages, set_cleaning_max_inactive, set_cleaning_eligibility_duration, set_cleaning_lookback, enable_auto_cleaning, disable_auto_cleaning, get_all_settings
 from db.chats.cleaning import check_cleanability
-from utils.time import DurationParser, TimedeltaFormatter
+from services.time_utils import DurationParser, TimedeltaFormatter
 
 router = Router(name="chat_settings")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))

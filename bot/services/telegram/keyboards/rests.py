@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import ClassVar, Optional
 
-from utils.time import serialize_timedelta
+from services.time_utils import serialize_timedelta
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
