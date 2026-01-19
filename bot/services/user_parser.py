@@ -1,7 +1,7 @@
 from aiogram import Bot
 from aiogram.types import Message
 
-from services.telegram_chat_member import get_chat_member
+from services.telegram.chat_member import get_chat_member
 from db.users import get_uid
 
 async def parse_user_mention(bot: Bot, msg: Message):

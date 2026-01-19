@@ -1,7 +1,7 @@
 from aiogram import Bot
 from aiogram.types import User
 
-from services.telegram_chat_member import get_chat_member
+from services.telegram.chat_member import get_chat_member
 from db.users import get_uid
 from db.users.nicknames import get_nickname
 

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from services.telegram_chat_permissions import is_admin, is_creator
 from services.messages.warnings import generate_all_warnings_msg, generate_user_warnings_msg
-from services.telegram_chat_member import get_chat_member
+from services.telegram.chat_member import get_chat_member
 from services.user_mention import mention_user
 from services.user_parser import parse_user_mention
 from utils.telegram.keyboards import Pagination

@@ -1,5 +1,5 @@
 from aiogram import Bot
-from services.telegram_chat_member import get_chat_member
+from services.telegram.chat_member import get_chat_member
 
 async def is_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
     member = await get_chat_member(bot, chat_id, user_id)
