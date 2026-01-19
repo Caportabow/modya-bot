@@ -12,7 +12,7 @@ from db.marriages import get_user_marriage, delete_marriage
 
 from services.telegram.keyboards.quotes import get_quote_delition_keyboard
 from services.telegram.user_mention import mention_user
-from utils.roleplay import parse_rp_command
+from services.messaging.roleplay import parse_rp_command
 
 # TODO: Full util rework
 async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
