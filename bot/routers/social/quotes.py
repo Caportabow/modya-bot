@@ -1,12 +1,12 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
-from utils.telegram.keyboards import get_quote_delition_keyboard, QuoteDelition
 from services.telegram.user_permissions import is_admin
 from services.telegram.media.fetch import fetch_bytes
 from services.telegram.media.convert import image_bytes_to_webp
 from services.telegram.media.info import get_mime_type
 from services.telegram.media import get_message_media, get_user_avatar, get_quotable_media_id
+from services.telegram.keyboards.quotes import QuoteDelition, get_quote_delition_keyboard
 from utils.web.quotes import make_quote
 
 from db.quotes import add_quote, remove_quote

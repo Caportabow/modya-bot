@@ -8,7 +8,7 @@ from services.telegram.user_mention import mention_user
 from db.users.rests import get_all_rests, get_user_rest
 
 from utils.time import TimedeltaFormatter
-from utils.telegram.keyboards import get_pagination_keyboard
+from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 async def generate_all_rests_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     data = await get_all_rests(chat_id, page=page)

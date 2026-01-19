@@ -8,7 +8,7 @@ from services.messages.warnings import generate_all_warnings_msg, generate_user_
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
-from utils.telegram.keyboards import Pagination
+from services.telegram.keyboards.pagination import Pagination
 
 from config import WARNINGS_PICTURE_ID
 from utils.time import DurationParser, TimedeltaFormatter

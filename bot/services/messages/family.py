@@ -7,7 +7,7 @@ from services.telegram.user_mention import mention_user
 from db.marriages.families import get_family_tree_data
 
 from utils.web.families import make_family_tree
-from utils.telegram.keyboards import get_pagination_keyboard
+from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 
 async def generate_family_tree_msg(bot: Bot, chat_id: int, user_entity: User, with_back_button: bool = False) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup], Optional[BufferedInputFile]]:

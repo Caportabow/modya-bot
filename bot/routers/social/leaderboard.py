@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from services.messages.leaderboard import generate_leaderboard_msg
 
-from utils.telegram.keyboards import Pagination
+from services.telegram.keyboards.pagination import Pagination
 from utils.time import DurationParser, deserialize_timedelta
 
 router = Router(name="leaderboard")

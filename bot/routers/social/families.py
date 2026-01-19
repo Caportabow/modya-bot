@@ -6,7 +6,7 @@ from services.messages.family import generate_family_tree_msg
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 
-from utils.telegram.keyboards import AdoptionRequest, get_adoption_request_keyboard
+from services.telegram.keyboards.families import AdoptionRequest, get_adoption_request_keyboard
 from db.marriages import get_user_marriage
 from db.marriages.families import adopt_child, check_adoption_possibility, is_parent, is_child, abandon
 

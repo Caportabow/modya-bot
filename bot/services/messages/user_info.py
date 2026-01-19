@@ -10,7 +10,7 @@ from db.messages import plot_user_activity
 from db.messages.statistics import user_stats, get_favorite_word
 
 from utils.time import TimedeltaFormatter
-from utils.telegram.keyboards import get_user_info_keyboard
+from services.telegram.keyboards.user_info import get_user_info_keyboard
 from utils.web.activity_chart import make_activity_chart
 
 async def generate_user_info_msg(bot: Bot, chat_id: int, user_entity: User) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup], Optional[BufferedInputFile]]:

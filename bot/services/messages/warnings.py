@@ -9,7 +9,7 @@ from db.warnings import get_all_warnings, get_user_warnings
 from db.chats.settings import get_max_warns
 
 from utils.time import TimedeltaFormatter
-from utils.telegram.keyboards import get_pagination_keyboard
+from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 
 async def generate_all_warnings_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:

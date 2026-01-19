@@ -6,7 +6,7 @@ from services.messages.awards import generate_user_awards_msg
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
-from utils.telegram.keyboards import Pagination
+from services.telegram.keyboards.pagination import Pagination
 
 from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID

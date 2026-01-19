@@ -8,7 +8,7 @@ from services.telegram.user_mention import mention_user
 from db.chats.cleaning import check_cleaning_accuracy, minmsg_users, inactive_users, do_cleaning
 
 from utils.time import TimedeltaFormatter, serialize_timedelta
-from utils.telegram.keyboards import get_pagination_keyboard
+from services.telegram.keyboards.pagination import get_pagination_keyboard
 
 async def generate_minmsg_msg(bot: Bot, chat_id: int, page: int, msg_count: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     cleaning_accuracy = await check_cleaning_accuracy(chat_id)
