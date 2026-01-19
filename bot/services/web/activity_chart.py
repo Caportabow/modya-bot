@@ -1,5 +1,5 @@
 from config import ACTIVITY_CHART_TEMPLATE
-from utils.web import screenshot
+from services.web import screenshot
 
 
 async def make_activity_chart(stats):

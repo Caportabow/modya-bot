@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from config import FAMILY_TEMPLATE
-from utils.web import screenshot
+from services.web import screenshot
 from utils.time import TimedeltaFormatter
 
 # Constants

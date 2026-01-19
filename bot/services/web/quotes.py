@@ -3,7 +3,7 @@ import html
 from itertools import groupby
 from typing import Optional
 
-from utils.web import screenshot
+from services.web import screenshot
 from config import QUOTE_TEMPLATE
 
 
