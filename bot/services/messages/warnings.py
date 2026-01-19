@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from db.warnings import get_all_warnings, get_user_warnings
 from db.chats.settings import get_max_warns
 

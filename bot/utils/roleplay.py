@@ -1,5 +1,5 @@
 from aiogram import Bot, types
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from config import RP_COMMANDS
 
 def _find_command(text: str, rp_commands: dict):

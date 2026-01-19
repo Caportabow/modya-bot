@@ -8,7 +8,7 @@ from db.awards import get_awards
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 
 async def generate_user_awards_msg(bot: Bot, chat_id: int, target_user: User, page: int, with_back_button: bool = False) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     per_page = 15

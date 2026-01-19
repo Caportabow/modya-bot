@@ -2,7 +2,7 @@ from typing import Tuple, Optional
 from datetime import datetime, timedelta, timezone
 from aiogram.types import InlineKeyboardMarkup
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard, serialize_timedelta
 from db.leaderboard import user_leaderboard

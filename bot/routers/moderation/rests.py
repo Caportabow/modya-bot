@@ -6,8 +6,8 @@ from datetime import timedelta, datetime, timezone
 
 from services.messages.rests import generate_all_rests_msg, generate_rest_description_msg
 from services.telegram.user_permissions import is_admin, is_creator
-from services.user_mention import mention_user
-from services.user_parser import parse_user_mention
+from services.telegram.user_mention import mention_user
+from services.telegram.user_parser import parse_user_mention
 
 from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta, Pagination
 from utils.time import DurationParser, TimedeltaFormatter

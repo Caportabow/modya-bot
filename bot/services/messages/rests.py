@@ -4,8 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup
 
-from services.user_mention import mention_user
-from services.user_parser import parse_user_mention
+from services.telegram.user_mention import mention_user
 from db.users.rests import get_all_rests, get_user_rest
 
 from utils.time import TimedeltaFormatter

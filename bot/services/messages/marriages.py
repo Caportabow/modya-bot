@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from db.marriages import get_marriages
 
 from utils.time import TimedeltaFormatter

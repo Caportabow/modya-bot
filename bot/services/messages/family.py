@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup, BufferedInputFile
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from db.marriages.families import get_family_tree_data
 
 from utils.web.families import make_family_tree

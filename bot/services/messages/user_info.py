@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup, BufferedInputFile
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from db.users import get_uid
 from db.messages import plot_user_activity
 from db.messages.statistics import user_stats, get_favorite_word

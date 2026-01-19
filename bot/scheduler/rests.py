@@ -1,7 +1,7 @@
 from aiogram import Bot
 
 from db.users.rests import verify_rests
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 
 async def rests(bot: Bot):
     users = await verify_rests()

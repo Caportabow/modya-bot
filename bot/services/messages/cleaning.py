@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup
 
-from services.user_mention import mention_user
+from services.telegram.user_mention import mention_user
 from db.chats.cleaning import check_cleaning_accuracy, minmsg_users, inactive_users, do_cleaning
 
 from utils.telegram.keyboards import serialize_timedelta
