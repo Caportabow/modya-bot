@@ -2,7 +2,7 @@ from aiogram import Bot
 from datetime import datetime, timezone
 
 from db.chats.cleaning import fetch_chats_for_scheduled_cleaning, update_last_cleaning_time
-from services.messages.cleaning import generate_cleaning_msg
+from services.messaging.cleaning import generate_cleaning_msg
 
 
 async def run_scheduled_cleanings(bot: Bot):

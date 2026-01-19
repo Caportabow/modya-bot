@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from datetime import timedelta
 
-from services.messages.cleaning import generate_minmsg_msg, generate_inactive_msg, generate_cleaning_msg
+from services.messaging.cleaning import generate_minmsg_msg, generate_inactive_msg, generate_cleaning_msg
 from services.telegram.keyboards.pagination import Pagination
 
 from utils.time import deserialize_timedelta

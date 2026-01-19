@@ -2,7 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
-from services.messages.leaderboard import generate_leaderboard_msg
+from services.messaging.leaderboard import generate_leaderboard_msg
 
 from services.telegram.keyboards.pagination import Pagination
 from utils.time import DurationParser, deserialize_timedelta

@@ -2,7 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
-from services.messages.family import generate_family_tree_msg
+from services.messaging.family import generate_family_tree_msg
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 
