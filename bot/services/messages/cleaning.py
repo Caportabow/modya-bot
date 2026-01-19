@@ -53,7 +53,7 @@ async def generate_inactive_msg(bot: Bot, chat_id: int, page: int, duration: tim
     if not data:
         return None, None
     
-    users = data["users"]
+    users = data["data"]
 
     now = datetime.now(timezone.utc)
     ans_header = f"💤 Неактивны последние {TimedeltaFormatter.format(duration, suffix='none')}:{warning}\n\n"
