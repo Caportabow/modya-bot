@@ -3,9 +3,10 @@ from aiogram import Router, F
 from aiogram.types import Message
 from datetime import timedelta, datetime, time
 
+from services.telegram_chat_permissions import is_admin
+
 from db.chats.settings import set_max_warns, set_cleaning_min_messages, set_cleaning_max_inactive, set_cleaning_eligibility_duration, set_cleaning_lookback, enable_auto_cleaning, disable_auto_cleaning, get_all_settings
 from db.chats.cleaning import check_cleanability
-from utils.telegram.users import is_admin
 from utils.time import DurationParser, TimedeltaFormatter
 
 router = Router(name="chat_settings")

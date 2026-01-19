@@ -3,13 +3,14 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
 
+from services.telegram_chat_permissions import is_admin, is_creator
 from services.messages.warnings import generate_all_warnings_msg, generate_user_warnings_msg
 from services.telegram_chat_member import get_chat_member
 from utils.telegram.keyboards import Pagination
 
 from config import WARNINGS_PICTURE_ID
 from utils.time import DurationParser, TimedeltaFormatter
-from utils.telegram.users import is_admin, is_creator, mention_user, parse_user_mention
+from utils.telegram.users import mention_user, parse_user_mention
 
 from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, amnesty

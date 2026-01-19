@@ -5,9 +5,10 @@ from aiogram.types import Message, CallbackQuery
 from datetime import timedelta, datetime, timezone
 
 from services.messages.rests import generate_all_rests_msg, generate_rest_description_msg
+from services.telegram_chat_permissions import is_admin, is_creator
 
 from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta, Pagination
-from utils.telegram.users import mention_user, parse_user_mention, is_admin, is_creator
+from utils.telegram.users import mention_user, parse_user_mention
 from utils.time import DurationParser, TimedeltaFormatter
 from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest
