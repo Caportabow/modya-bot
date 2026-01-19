@@ -9,8 +9,8 @@ from services.telegram.user_permissions import is_admin, is_creator
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 
-from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, deserialize_timedelta, Pagination
-from utils.time import DurationParser, TimedeltaFormatter
+from utils.telegram.keyboards import get_rest_request_keyboard, RestRequest, Pagination
+from utils.time import DurationParser, TimedeltaFormatter, deserialize_timedelta
 from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest
 

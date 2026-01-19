@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 from aiogram.types import InlineKeyboardMarkup
 
 from services.telegram.user_mention import mention_user
-from utils.time import TimedeltaFormatter
-from utils.telegram.keyboards import get_pagination_keyboard, serialize_timedelta
+from utils.time import TimedeltaFormatter, serialize_timedelta
+from utils.telegram.keyboards import get_pagination_keyboard
 from db.leaderboard import user_leaderboard
 
 async def generate_leaderboard_msg(bot, chat_id: int, page: int, duration: Optional[timedelta]) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:

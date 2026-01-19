@@ -372,3 +372,11 @@ class TimedeltaFormatter:
             result = "через " + result
         
         return result
+
+# сериализация timedelta -> int
+def serialize_timedelta(delta: timedelta) -> int:
+    return int(delta.total_seconds())
+
+# десериализация int -> timedelta
+def deserialize_timedelta(seconds: int) -> timedelta:
+    return timedelta(seconds=seconds)

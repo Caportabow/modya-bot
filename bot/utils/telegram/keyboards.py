@@ -1,16 +1,10 @@
 from datetime import timedelta
 from typing import ClassVar, Optional
 
+from utils.time import serialize_timedelta
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
-
-# сериализация timedelta -> int
-def serialize_timedelta(delta: timedelta) -> int:
-    return int(delta.total_seconds())
-# десериализация int -> timedelta
-def deserialize_timedelta(seconds: int) -> timedelta:
-    return timedelta(seconds=seconds)
 
 # -- Rests --
 class RestRequest(CallbackData, prefix="rr"):
