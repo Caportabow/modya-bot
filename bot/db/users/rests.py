@@ -64,7 +64,7 @@ async def remove_rest(chat_id: int, user_id: int):
         """, chat_id, user_id
     )
 
-async def verify_rests() -> list[dict] | None:
+async def expire_rests() -> list[dict] | None:
     """Сбрасывает rest у всех пользователей, у которых дата истекла, и возвращает их список."""
     now = datetime.now(timezone.utc)
 

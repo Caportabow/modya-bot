@@ -5,7 +5,7 @@ from config import TELEGRAM_TOKEN
 from routers import routers
 from middlewares import middlewares
 import db
-import scheduler
+from services.scheduler import scheduler
 
 # TODO: check_adoption_possibility и check_marriage_loyality под полный реворк
 # TODO: если во время тех обслуживания кто-то выйдет из чата или модю удалят из группы, бот не отреагирует на это

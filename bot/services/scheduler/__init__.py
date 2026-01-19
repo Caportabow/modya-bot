@@ -1,17 +1,17 @@
 import asyncio
 from aiogram import Bot
 
-from db.warnings import expire_warnings
-from .rests import rests
-from .cleaning import run_scheduled_cleanings
+from services.scheduler.jobs.cleaning import run_cleanings
+from services.scheduler.jobs.rests import expire_rests
+from services.scheduler.jobs.warnings import expire_warnings
 
 async def scheduler(bot: Bot):
     print("⚙️ Scheduler started...")
     while True:
         # Выполняем задачи
-        await rests(bot)
+        await expire_rests(bot)
         await expire_warnings()
-        await run_scheduled_cleanings(bot)
+        await run_cleanings(bot)
 
         wait_seconds = 60
         await asyncio.sleep(wait_seconds)

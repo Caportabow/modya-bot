@@ -5,7 +5,7 @@ from db.chats.cleaning import fetch_chats_for_scheduled_cleaning, update_last_cl
 from services.messaging.cleaning import generate_cleaning_msg
 
 
-async def run_scheduled_cleanings(bot: Bot):
+async def run_cleanings(bot: Bot):
     """Запускает чистку для всех чатов с включенной автоматической чисткой."""
     now = datetime.now(timezone.utc)
 
