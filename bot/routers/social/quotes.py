@@ -3,7 +3,10 @@ from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
 from utils.telegram.keyboards import get_quote_delition_keyboard, QuoteDelition
 from services.telegram.user_permissions import is_admin
-from utils.telegram.media import get_message_media, get_user_avatar, get_file_bytes, get_mime_type, get_quotable_media_id, image_bytes_to_webp
+from services.telegram.media.fetch import fetch_bytes
+from services.telegram.media.convert import image_bytes_to_webp
+from services.telegram.media.info import get_mime_type
+from services.telegram.media import get_message_media, get_user_avatar, get_quotable_media_id
 from utils.web.quotes import make_quote
 
 from db.quotes import add_quote, remove_quote
@@ -33,7 +36,7 @@ async def add_quote_handler(msg: Message):
         await msg.reply("❌ В ответе должно быть медиа (стикер, фото, видео, гифка) не превышающее 10мб.")
         return
     
-    media_bytes = await get_file_bytes(bot, media["file_id"])
+    media_bytes = await fetch_bytes(bot, media["file_id"])
     webp_bytes = await image_bytes_to_webp(media_bytes) 
 
     quote_file = BufferedInputFile(webp_bytes, filename="quote.webp")
@@ -107,7 +110,7 @@ async def make_quote_handler(msg: Message):
             # Получаем медиа, если есть
             media = None
             if media_id:
-                media_bytes = await get_file_bytes(bot, media_id)
+                media_bytes = await fetch_bytes(bot, media_id)
                 mime_type = await get_mime_type(media_bytes)
                 if mime_type:
                     media = {"source": media_bytes, "type": mime_type}

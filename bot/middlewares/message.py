@@ -8,7 +8,7 @@ from config import PRODUCTION, DEVELOPERS_ID
 from db.users import upsert_user
 from db.messages import add_message
 
-from utils.telegram.media import get_quotable_media_id
+from services.telegram.media import get_quotable_media_id
 
 class MessageOnlyMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: Message, data: dict):

@@ -1,43 +1,7 @@
-import aiohttp
-import filetype
-import io
-from PIL import Image
-
 from aiogram import Bot
 from aiogram.types import Message, UserProfilePhotos
-
-from config import TELEGRAM_TOKEN
-
-async def get_file_bytes(bot: Bot, file_id: str) -> bytes:
-    file = await bot.get_file(file_id)
-
-    async with aiohttp.ClientSession() as sess:
-        url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file.file_path}"
-        async with sess.get(url) as resp:
-            resp.raise_for_status()
-            bytes = await resp.read()
-    return bytes
-
-async def image_bytes_to_webp(image_bytes: bytes, quality: int = 80) -> bytes:
-    input_buffer = io.BytesIO(image_bytes)
-    output_buffer = io.BytesIO()
-
-    with Image.open(input_buffer) as img:
-        # если есть альфа — сохраняем
-        img.save(
-            output_buffer,
-            format="WEBP",
-            quality=quality,
-            method=6  # максимальное сжатие без потери качества
-        )
-
-    return output_buffer.getvalue()
-
-async def get_mime_type(file_bytes: bytes) -> str | None:
-    kind = filetype.guess(file_bytes)
-    if kind:
-        return kind.mime
-    return None
+from services.telegram.media.info import get_mime_type
+from services.telegram.media.fetch import fetch_bytes
 
 async def get_user_avatar(bot: Bot, user_id: int) -> bytes | None:
     avatar_data: UserProfilePhotos = await bot.get_user_profile_photos(user_id, offset=0, limit=1)
@@ -45,7 +9,7 @@ async def get_user_avatar(bot: Bot, user_id: int) -> bytes | None:
 
     sizes = avatar_data.photos[0]  # список PhotoSize
     best = max(sizes, key=lambda p: (p.width or 0) * (p.height or 0))
-    bytes = await get_file_bytes(bot, best.file_id)
+    bytes = await fetch_bytes(bot, best.file_id)
     return bytes
 
 async def get_quotable_media_id(message: Message) -> dict | None:
@@ -95,7 +59,7 @@ async def get_message_media(bot, message: Message) -> dict | None:
 
     # Если нашли медиа
     if file_id and file_size and file_size <= 10 * 1024 * 1024:  # ≤ 10 МБ
-        file_bytes = await get_file_bytes(bot, file_id)
+        file_bytes = await fetch_bytes(bot, file_id)
 
         # Получаем mime type
         mime_type = await get_mime_type(file_bytes)
