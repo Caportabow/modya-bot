@@ -1,35 +1,10 @@
-import asyncio
 from aiogram import Bot
 from aiogram.types import Message, User
-from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
+
+from services.telegram_chat_member import get_chat_member
 
 from db.users import get_uid
 from db.users.nicknames import get_nickname
-
-async def get_chat_member_or_fall(bot: Bot, chat_id: int, user_id: int):
-    """Пытается получить информацию о пользователе в чате, возвращает None при ошибке."""
-    try:
-        member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
-    except TelegramBadRequest as e:
-        print(f"⚠️ Failed to get chat member {user_id} in chat {chat_id}: {e}")
-        return None
-    except TelegramRetryAfter as e:
-        await asyncio.sleep(e.retry_after)
-
-        member = await get_chat_member_or_fall(bot=bot, chat_id=chat_id, user_id=user_id)
-    
-    return member
-
-# Общий семафор
-_TG_SEMAPHORE = asyncio.Semaphore(20)
-async def tg_call(coro):
-    async with _TG_SEMAPHORE:
-        return await coro
-
-async def get_chat_member(bot: Bot, chat_id: int, user_id: int):
-    return await tg_call(
-        get_chat_member_or_fall(bot, chat_id, user_id)
-    )
 
 async def mention_user(
     bot: Bot,

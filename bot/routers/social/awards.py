@@ -3,11 +3,12 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from services.messages.awards import generate_user_awards_msg
+from services.telegram_chat_member import get_chat_member
 from utils.telegram.keyboards import Pagination
 
 from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID
-from utils.telegram.users import mention_user, parse_user_mention, get_chat_member
+from utils.telegram.users import mention_user, parse_user_mention
 
 router = Router(name="awards")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
