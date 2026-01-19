@@ -3,7 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
 
-from services.telegram_chat_permissions import is_admin, is_creator
+from services.telegram.user_permissions import is_admin, is_creator
 from services.messages.warnings import generate_all_warnings_msg, generate_user_warnings_msg
 from services.telegram.chat_member import get_chat_member
 from services.user_mention import mention_user
