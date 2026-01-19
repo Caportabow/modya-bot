@@ -3,10 +3,11 @@ from aiogram import Router, F
 from aiogram.types import Message
 
 from db.users.rp_commands import get_user_rp_commands
+from db.quotes import get_random_quote
 
+from services.telegram.keyboards.quotes import get_quote_delition_keyboard
 from services.process_roleplay import parse_rp_command
 from services.telegram.user_parser import parse_user_mention_and_clean_text
-from utils.telegram.message_templates import send_random_sticker_quote
 
 router = Router(name="groups")
 
@@ -44,4 +45,9 @@ async def on_message(msg: Message):
     
     # выдача рандомной цитаты
     if random.random() < 0.005:  # ~0.5% шанс
-        await send_random_sticker_quote(msg)
+        quote_sticker_id = await get_random_quote(int(msg.chat.id))
+
+        if quote_sticker_id:
+            keyboard = await get_quote_delition_keyboard()
+
+            await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=keyboard)

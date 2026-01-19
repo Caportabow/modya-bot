@@ -1,14 +1,8 @@
 import random
 from aiogram import Bot
-from aiogram.types import Message
 
 from config import HELLO_PICTURE_ID
-
-from db.quotes import get_random_quote
-
 from db.marriages import get_user_marriage, delete_marriage
-
-from services.telegram.keyboards.quotes import get_quote_delition_keyboard
 from services.telegram.user_mention import mention_user
 
 # TODO: Full util rework
@@ -72,12 +66,3 @@ async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int) -> bo
 
         return True
     else: return False
-
-async def send_random_sticker_quote(msg: Message):
-    """Отправляет рандомную цитату в чат."""
-    quote_sticker_id = await get_random_quote(int(msg.chat.id))
-
-    if quote_sticker_id:
-        keyboard = await get_quote_delition_keyboard()
-
-        await msg.reply_sticker(sticker=quote_sticker_id, reply_markup=keyboard)
