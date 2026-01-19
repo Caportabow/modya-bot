@@ -4,11 +4,12 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup
 
+from services.user_mention import mention_user
+from services.user_parser import parse_user_mention
 from db.users.rests import get_all_rests, get_user_rest
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user
 
 async def generate_all_rests_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
     data = await get_all_rests(chat_id, page=page)

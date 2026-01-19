@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup, BufferedInputFile
 
+from services.user_mention import mention_user
 from db.users import get_uid
 from db.messages import plot_user_activity
 from db.messages.statistics import user_stats, get_favorite_word
@@ -11,8 +12,6 @@ from db.messages.statistics import user_stats, get_favorite_word
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_user_info_keyboard
 from utils.web.activity_chart import make_activity_chart
-from utils.telegram.users import mention_user
-
 
 async def generate_user_info_msg(bot: Bot, chat_id: int, user_entity: User) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup], Optional[BufferedInputFile]]:
     user_id = int(user_entity.id)

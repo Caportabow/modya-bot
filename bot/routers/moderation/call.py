@@ -4,8 +4,8 @@ import asyncio
 from aiogram import Router, F
 from aiogram.types import Message
 
+from services.user_mention import mention_user
 from services.telegram_chat_permissions import is_admin
-from utils.telegram.users import mention_user
 from db.users import get_all_users_in_chat
 
 router = Router(name="call")

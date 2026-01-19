@@ -3,8 +3,8 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from services.messages.family import generate_family_tree_msg
-
-from utils.telegram.users import parse_user_mention, mention_user
+from services.user_mention import mention_user
+from services.user_parser import parse_user_mention
 
 from utils.telegram.keyboards import AdoptionRequest, get_adoption_request_keyboard
 from db.marriages import get_user_marriage

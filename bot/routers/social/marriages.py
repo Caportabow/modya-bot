@@ -4,10 +4,11 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from services.messages.marriages import generate_all_marriages_msg
+from services.user_mention import mention_user
+from services.user_parser import parse_user_mention
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
-from utils.telegram.users import parse_user_mention, mention_user
 
 from utils.telegram.keyboards import MarriageRequest, get_marriage_request_keyboard, Pagination
 from config import MARRIAGES_PICTURE_ID

@@ -5,13 +5,13 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 
 from services.telegram_chat_member import get_chat_member
+from services.user_parser import parse_user_mention
 from services.messages.warnings import generate_user_warnings_msg
 from services.messages.awards import generate_user_awards_msg
 from services.messages.family import generate_family_tree_msg
 from services.messages.user_info import generate_user_info_msg
 
 from utils.telegram.keyboards import UserInfo, Pagination
-from utils.telegram.users import parse_user_mention
 
 router = Router(name="user_info")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))

@@ -4,12 +4,12 @@ from typing import Optional, Tuple
 from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup
 
+from services.user_mention import mention_user
 from db.warnings import get_all_warnings, get_user_warnings
 from db.chats.settings import get_max_warns
 
 from utils.time import TimedeltaFormatter
 from utils.telegram.keyboards import get_pagination_keyboard
-from utils.telegram.users import mention_user
 
 
 async def generate_all_warnings_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Optional[str], Optional[InlineKeyboardMarkup]]:
