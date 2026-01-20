@@ -5,8 +5,10 @@ from config import TELEGRAM_TOKEN
 from routers import routers
 from middlewares import middlewares
 import db
-from services.scheduler import scheduler
+from services import scheduler
 
+# TODO: родители одиночки
+# TODO: команда "команды" с инлайн клавиатурой
 # TODO: check_adoption_possibility и check_marriage_loyality под полный реворк
 # TODO: если во время тех обслуживания кто-то выйдет из чата или модю удалят из группы, бот не отреагирует на это
 # TODO: хандлить конверсию в супергруппу
