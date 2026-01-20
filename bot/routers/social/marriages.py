@@ -110,7 +110,7 @@ async def propose(msg: Message):
     )
 
 @router.message(
-    F.text.lower().startswith("развод")
+    F.text.lower() == "развод"
 )
 async def divorce(msg: Message):
     """Команда: развод"""

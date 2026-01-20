@@ -132,6 +132,7 @@ async def abandon_parent(msg: Message):
     await msg.reply(text=ans, parse_mode="HTML")
 
 # TODO: сделать команду cемья @user — показать семейное древо указанного пользователя
+# TODO: сделать команду чтобы попросить удочерить/усыновить себя
 @router.message(
     F.text.lower().startswith("семейное древо") |
     F.text.lower().startswith("моя семья")

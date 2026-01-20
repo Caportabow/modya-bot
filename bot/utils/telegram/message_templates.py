@@ -41,14 +41,16 @@ async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, 
         return False
     return True
 
-async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int) -> bool:
+async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int, gone_from_chat: bool) -> bool:
     """Удаляет брак пользователя."""
     users = await delete_marriage(chat_id, user_id) # Удаляем брак пользователя, если был
 
     if users:  # Пользователь был в браке
         # Отправляем сообщение оставшемуся супругу
         partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=users['partner'])
-        await bot.send_message(chat_id, text=f"💔 {partner_mention}, ваш супруг покинул чат. Семейная жизнь окончена.", parse_mode="HTML")
+        if gone_from_chat: msg = f"💔 {partner_mention}, ваш супруг покинул чат. Семейная жизнь окончена."
+        else: msg = f"💔 {partner_mention}, мне очень жаль, ваш супруг подал на развод. Семейная жизнь окончена."
+        await bot.send_message(chat_id, text=msg, parse_mode="HTML")
         
         # Уведомляем всех детей одним сообщением
         if users['abandoned_children']:
