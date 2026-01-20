@@ -66,7 +66,7 @@ async def inactive_handler(msg: Message):
     await msg.reply(text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
-    F.text.lower().startswith("чистка")
+    F.text.lower() == "чистка"
 )
 async def cleaning_handler(msg: Message):
     """Команда: чистка"""

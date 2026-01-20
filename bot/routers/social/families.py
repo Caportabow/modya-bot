@@ -108,8 +108,8 @@ async def abandon_child(msg: Message):
     await msg.reply(text=ans, parse_mode="HTML")
 
 @router.message(
-    F.text.lower().startswith("уйти из семьи") |
-    F.text.lower().startswith("покинуть семью")
+    (F.text.lower() == "уйти из семьи") |
+    (F.text.lower() == "покинуть семью")
 )
 async def abandon_parent(msg: Message):
     """Команда: уйти из семьи"""
@@ -134,8 +134,8 @@ async def abandon_parent(msg: Message):
 # TODO: сделать команду cемья @user — показать семейное древо указанного пользователя
 # TODO: сделать команду чтобы попросить удочерить/усыновить себя
 @router.message(
-    F.text.lower().startswith("семейное древо") |
-    F.text.lower().startswith("моя семья")
+    (F.text.lower() == "семейное древо") |
+    (F.text.lower() == "моя семья")
 )
 async def family_tree_handler(msg: Message):
     """Команда: семейное древо/моя семья"""

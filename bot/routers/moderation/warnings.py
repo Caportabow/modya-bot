@@ -20,7 +20,7 @@ router = Router(name="warnings")
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(
-    F.text.lower().startswith("все варны")
+    F.text.lower() == "все варны"
 )
 async def stats_handler(msg: Message):
     """Команда: все варны"""
@@ -190,7 +190,7 @@ async def remove_warning_handler(msg: Message):
             await msg.reply(f"ℹ️ Предупреждений не найдено.", parse_mode="HTML")
 
 @router.message(
-    F.text.lower().startswith("амнистия")
+    F.text.lower() == "амнистия"
 )
 async def do_amnesty(msg: Message):
     """Команда: амнистия"""

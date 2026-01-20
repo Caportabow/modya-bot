@@ -26,7 +26,7 @@ async def set_nick(msg: Message):
     await msg.reply(f"🎭 Теперь вы известны как: {nickname}")
 
 @router.message(
-    F.text.lower().startswith("-ник")
+    F.text.lower() == "-ник"
 )
 async def unset_nick(msg: Message):
     """Команда: -ник (сброс ника)"""

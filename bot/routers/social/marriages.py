@@ -21,7 +21,7 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    F.text.lower().startswith("браки")
+    F.text.lower() == "браки"
 )
 async def all_marriages_handler(msg: Message):
     """Команда: браки"""
@@ -36,7 +36,7 @@ async def all_marriages_handler(msg: Message):
     await msg.reply_photo(photo=MARRIAGES_PICTURE_ID, caption=text, parse_mode="HTML", reply_markup=keyboard)
 
 @router.message(
-    F.text.lower().startswith("мой брак")
+    F.text.lower() == "мой брак"
 )
 async def my_marriage_handler(msg: Message):
     """Команда: мой брак"""

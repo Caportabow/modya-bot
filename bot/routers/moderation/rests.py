@@ -206,7 +206,7 @@ async def remove_rest_handler(msg: Message):
     await msg.reply(ans, parse_mode="HTML")
 
 @router.message(
-    F.text.lower().startswith("мой рест")
+    F.text.lower() == "мой рест"
 )
 async def my_rest_handler(msg: Message):
     """Команда: мой рест"""

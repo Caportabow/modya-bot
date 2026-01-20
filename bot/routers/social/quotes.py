@@ -17,7 +17,7 @@ router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
 @router.message(
-    F.text.lower().startswith("/qs")
+    F.text.lower() == "/qs"
 )
 async def add_quote_handler(msg: Message):
     """
