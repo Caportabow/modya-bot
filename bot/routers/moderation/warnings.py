@@ -212,6 +212,7 @@ async def all_warnings_pagination_handler(callback: CallbackQuery, callback_data
 
     if text:
         await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
@@ -226,6 +227,7 @@ async def user_warnings_pagination_handler(callback: CallbackQuery, callback_dat
     text, keyboard = await generate_user_warnings_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)
     if text:
         await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

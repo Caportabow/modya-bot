@@ -105,6 +105,7 @@ async def user_awards_pagination_handler(callback: CallbackQuery, callback_data:
     text, keyboard = await generate_user_awards_msg(callback.bot, callback.message.chat.id, member.user, callback_data.page, callback_data.with_back_button)
     if text:
         await callback.message.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

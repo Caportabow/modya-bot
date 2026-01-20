@@ -162,6 +162,7 @@ async def marriage_accept_callback_handler(callback: CallbackQuery, callback_dat
     ans = f"💍 Поздравляем молодоженов!\n💝 С сегодняшнего дня {trigger_user} и {target_user} женаты!"
 
     await msg.edit_caption(caption=ans, parse_mode="HTML")
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(MarriageRequest.filter(F.response == "decline"))
 async def marriage_decline_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
@@ -183,6 +184,7 @@ async def marriage_decline_callback_handler(callback: CallbackQuery, callback_da
     
     ans = f"💔 {trigger_user}, мне очень жаль..\n🥀 {target_user} отказался(-ась) от вашего предложения."
     await msg.edit_caption(caption=ans, parse_mode="HTML")
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(MarriageRequest.filter(F.response == "retire"))
 async def marriage_retire_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):
@@ -195,6 +197,7 @@ async def marriage_retire_callback_handler(callback: CallbackQuery, callback_dat
         await callback.answer(text="❌ Вы не можете нажать на эту кнопку.", show_alert=True)
     else:
         await msg.delete()
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 
 @router.callback_query(Pagination.filter(F.subject == "all_marriages"))
@@ -210,3 +213,4 @@ async def all_marriages_pagination_callback_handler(callback: CallbackQuery, cal
         return
 
     await msg.edit_caption(caption=text, parse_mode="HTML", reply_markup=keyboard)
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"

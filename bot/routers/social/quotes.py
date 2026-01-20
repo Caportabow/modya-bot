@@ -165,3 +165,4 @@ async def quotes_callback_handler(callback: CallbackQuery):
     sticker_file_id = msg.sticker.file_id
     await remove_quote(chat_id, sticker_file_id)
     await msg.delete()
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"

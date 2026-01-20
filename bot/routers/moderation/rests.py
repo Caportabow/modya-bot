@@ -294,6 +294,7 @@ async def rest_request_accept_callback_handler(callback: CallbackQuery, callback
         
     await msg.edit_reply_markup()
     await msg.edit_text(text=ans, parse_mode="HTML")
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(RestRequest.filter(F.response == "decline"))
 async def rest_request_decline_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
@@ -330,6 +331,7 @@ async def rest_request_decline_callback_handler(callback: CallbackQuery, callbac
         
     await msg.edit_reply_markup()
     await msg.edit_text(text=ans, parse_mode="HTML")
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(RestRequest.filter(F.response == "retire"))
 async def rest_request_retire_callback_handler(callback: CallbackQuery, callback_data: RestRequest):
@@ -345,6 +347,7 @@ async def rest_request_retire_callback_handler(callback: CallbackQuery, callback
         return
     
     await msg.delete()
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 
 @router.callback_query(Pagination.filter(F.subject == "all_rests"))
@@ -353,6 +356,7 @@ async def all_rests_pagination_handler(callback: CallbackQuery, callback_data: P
 
     if text:
         await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

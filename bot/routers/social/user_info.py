@@ -88,6 +88,7 @@ async def user_family_info_callback_handler(callback: CallbackQuery, callback_da
         ), 
         reply_markup=keyboard
     )
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(
     UserInfo.filter(F.secondary_action == "awards")
@@ -121,6 +122,7 @@ async def user_awards_info_callback_handler(callback: CallbackQuery, callback_da
         ), 
         reply_markup=keyboard
     )
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 @router.callback_query(
     UserInfo.filter(F.secondary_action == "warnings")
@@ -154,6 +156,7 @@ async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_
         ), 
         reply_markup=keyboard
     )
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 
 @router.callback_query(
@@ -178,6 +181,7 @@ async def user_info_back_pagination_handler(callback: CallbackQuery, callback_da
             ), 
             reply_markup=keyboard
         )
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)

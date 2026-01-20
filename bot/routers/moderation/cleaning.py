@@ -91,6 +91,7 @@ async def minmsg_pagination_handler(callback: CallbackQuery, callback_data: Pagi
 
     if text:
         await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
@@ -101,6 +102,7 @@ async def inactive_pagination_handler(callback: CallbackQuery, callback_data: Pa
 
     if text:
         await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
@@ -111,6 +113,7 @@ async def cleaning_pagination_handler(callback: CallbackQuery, callback_data: Pa
 
     if text:
         await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await callback.answer("") # пустой ответ, чтобы убрать "часики"
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
