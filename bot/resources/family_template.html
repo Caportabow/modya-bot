@@ -10,25 +10,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Music&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
     <style>
         /* Основные стили */
-        body { 
+        body {
+            font-family: 'Inter', 'Noto Sans Math', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Color Emoji', 'Noto Music', 'Noto Sans Symbols', 'Noto Sans Symbols 2';
             background-color: #1e1e2e; 
-            font-family: 'Inter', 'Noto Sans Math', 'Noto Sans JP', 'Noto Sans KR', 'Noto Sans SC', 'Noto Color Emoji', 'Noto Music', 'Noto Sans Symbols 2';
-            padding: 50px; 
+            padding: 50px;
             color: #cdd6f4;
-            display: flex; 
-            justify-content: center;
+            margin: 0;
+            text-align: center; /* Центрируем дерево на странице */
+        }
+
+        .tree {
+            display: inline-block; /* Чтобы дерево не обрезалось */
         }
 
         /* === МАГИЯ CSS ДЕРЕВА === */
         .tree ul {
             padding-top: 20px;
-            padding-left: 0;
             position: relative;
             display: flex;
             justify-content: center;
+            white-space: nowrap;
+            padding-left: 0; /* Убираем отступ слева */
         }
 
         .tree li {
@@ -97,6 +103,12 @@
             border-radius: 8px;
             min-width: 80px;
             border: 1px solid #45475a;
+
+            max-width: 150px; /* Ограничиваем ширину */
+            overflow: hidden;
+
+            min-height: 35px;
+            max-height: 35px;
         }
 
         /* Подсветка меня */
@@ -105,7 +117,15 @@
             background: #45475a !important;
         }
 
-        .name { font-weight: bold; font-size: 14px; margin-bottom: 2px;}
+        .name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Добавляет три точки в конце (...) */
+        }
         .id { font-size: 10px; color: #a6adc8; }
 
         /* Стили для ссылок на повторяющиеся семьи */

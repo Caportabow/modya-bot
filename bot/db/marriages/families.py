@@ -1,3 +1,5 @@
+import os
+from collections import defaultdict
 from datetime import datetime, timezone
 
 import db
@@ -180,7 +182,7 @@ async def abandon(chat_id: int, child_id: int):
         """,
         chat_id, child_id
     )
-    
+
 async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
     query = """
         WITH RECURSIVE 
@@ -289,101 +291,94 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
     if not rows:
         return None
 
-    nodes = {}
-    person_to_node = {}
+    # Row example: 'parent_marriage_id': 6, 'parent_ids': [3, 6]
+    os.makedirs("debug", exist_ok=True)
+    with open("debug/database_result.py", "w", encoding="utf-8") as f:
+        f.write(repr(rows))
 
-    def resolve_node_key(marriage_id: int | None, uid: int):
-        return marriage_id if marriage_id else -uid
+    def make_id(person):
+        """Возвращает уникальный id для человека: marriage_id если есть, иначе -user_id"""
+        return person['marriage_id'] or -person['user_id']
 
+    def make_processed_id(person):
+        """Возвращает уникальный идентификатор для проверки дубликатов"""
+        return f"{person['user_id']}:{person['parent_marriage_id']}"
 
-    def sort_priority(r):
-        is_me = 1 if r["user_id"] == user_id else 0
-        has_adoption = 1 if r.get("adoption_date") else 0
-        return (is_me, has_adoption)
+    # 1. Группируем людей по их собственному marriage_id
+    marriages = defaultdict(list)
+    processed_marriages = set()  # используем set для O(1) проверки
 
+    for person in rows:
+        processed_id = make_processed_id(person)
+        if processed_id in processed_marriages:
+            continue
 
-    rows = sorted(rows, key=sort_priority, reverse=True)
+        marriages[make_id(person)].append(person)
+        processed_marriages.add(processed_id)
 
+    def get_children(marriage_id):
+        """Ищет детей: это те браки, у которых parent_marriage_id равен текущему m_id"""
+        children = set()
+        processed_children = set()  # Отдельный список для детей
 
-    def upsert_member(node, member):
-        """
-        Добавляет человека в members или обновляет существующего.
-        adoption_date не затирается, если уже есть.
-        """
-        for m in node["members"]:
-            if m["id"] == member["id"]:
-                if "adoption_date" not in m and "adoption_date" in member:
-                    m["adoption_date"] = member["adoption_date"]
-                return
-        node["members"].append(member)
+        for person in rows:
+            if person['parent_marriage_id'] != marriage_id:
+                continue
 
+            processed_id = make_processed_id(person)
+            if processed_id in processed_children:
+                continue
+            
+            children.add(make_id(person))
+            processed_children.add(processed_id)
 
-    # === 1 & 2. Создаём узлы, заполняем участников ===
-    for row in rows:
-        current_user_id = row["user_id"]
-        node_key = resolve_node_key(row["marriage_id"], current_user_id)
+        return children
+    
+    # 2. Находим корневые браки (у которых нет parent_marriage_id или он не найден в списке)
+    # Вспомогательная функция для сборки узла брака
+    def build_marriage_node(m_id, p_marriage_id_context):
+        members = []
+        for p in marriages[m_id]:
+            # Если parent_marriage_id человека совпадает с контекстом этого узла, он "кровный"
+            # Иначе он пришел из другой семьи (is_partner)
+            is_partner = (
+                p['parent_marriage_id'] != p_marriage_id_context
+            ) or (
+                p['parent_marriage_id'] is None
+            )
 
-        if node_key not in nodes:
-            nodes[node_key] = {
-                "marriage_id": row["marriage_id"],
-                "parent_marriage_id": row["parent_marriage_id"],
-                "parent_ids": row["parent_ids"] if row["parent_ids"] else [],
-                "members": [],
-                "children": []
+            is_me = p['user_id'] == user_id
+            
+            members.append({
+                'id': p['user_id'],
+                'name': p['name'],
+                'is_me': is_me,
+                'is_partner': is_partner,
+                'adoption_date': p['adoption_date']
+            })
+
+        if m_id < 0:  # Одиночка (использовали -user_id как ключ) (все айди браков положительные)
+            return {
+                'marriage_id': None,
+                'parent_marriage_id': p_marriage_id_context,
+                'members': members,
+                'children': []
+            }
+        
+        else: # Ищем детей
+            children = get_children(m_id)
+            
+            # Рекурсивно собираем детей
+            children_nodes = [build_marriage_node(child_id, m_id) for child_id in children]
+
+            return {
+                'marriage_id': m_id,
+                'parent_marriage_id': p_marriage_id_context,
+                'members': members,
+                'children': children_nodes
             }
 
-        node = nodes[node_key]
-
-        # --- КРОВНЫЙ ---
-        blood_member = {
-            "id": current_user_id,
-            "name": row["name"] or str(current_user_id),
-            "is_me": (current_user_id == user_id),
-            "is_partner": False,
-        }
-        if row.get("adoption_date"):
-            blood_member["adoption_date"] = row["adoption_date"]
-
-        upsert_member(node, blood_member)
-        person_to_node[current_user_id] = node_key
-
-        # --- СУПРУГ ---
-        spouse_id = row.get("spouse_id")
-        if spouse_id:
-            spouse_member = {
-                "id": spouse_id,
-                "name": row["spouse_name"] or str(spouse_id),
-                "is_me": (spouse_id == user_id),
-                "is_partner": True,
-            }
-
-            upsert_member(node, spouse_member)
-            person_to_node[spouse_id] = node_key
-
-    # === 3. Связываем узлы в дерево ===
-    roots = []
-
-    for node_key, node in nodes.items():
-        parent_ids = node.get("parent_ids", [])
-        parent_marriage_id = node.get("parent_marriage_id")
-
-        linked = False
-
-        if parent_ids:
-            for pid in parent_ids:
-                if pid in nodes:
-                    nodes[pid]["children"].append(node)
-                    linked = True
-
-        elif parent_marriage_id and parent_marriage_id in nodes:
-            nodes[parent_marriage_id]["children"].append(node)
-            linked = True
-
-        if not linked:
-            roots.append(node)
-
-
-    if len(roots) == 1 and len(roots[0]["members"]) == 1 and not roots[0]["children"]:
-        return None
-
-    return roots
+    # Находим стартовые точки (где parent_marriage_id None)
+    root_ids = {p['marriage_id'] for p in rows if p['generation'] == -1}
+    
+    return [build_marriage_node(rid, None) for rid in root_ids]
