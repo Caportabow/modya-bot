@@ -41,7 +41,7 @@ async def on_user_left(message: Message):
     cid = (int(message.chat.id))
     uid = int(user.id)
 
-    await delete_marriage_and_notify(message.bot, cid, uid) # Удаляем брак пользователя, если был
+    await delete_marriage_and_notify(message.bot, cid, uid, gone_from_chat=True) # Удаляем брак пользователя, если был
     await remove_user(cid, uid)
     
     
