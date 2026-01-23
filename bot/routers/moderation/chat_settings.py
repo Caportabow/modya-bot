@@ -1,7 +1,7 @@
 import re
 from aiogram import Router, F
 from aiogram.types import Message
-from datetime import timedelta, datetime, time
+from datetime import timedelta, datetime, time, timezone
 
 from services.telegram.user_permissions import is_admin
 
@@ -145,7 +145,7 @@ async def set_cleaning_lookback_handler(msg: Message):
 )
 async def auto_cleaning_handler(msg: Message):
     """
-    Команда: .авточистка {день недели} {время по utc}
+    Команда: .авточистка {день недели} {время по МСК}
     Или: .авточистка выключить
     """
     chat_id = int(msg.chat.id)
@@ -183,9 +183,14 @@ async def auto_cleaning_handler(msg: Message):
     }
     day = DAYS_MAP[day_str.lower()]
 
-    # преобразуем в объект времени, пригодный для PostgreSQL TIME
+    # --- читаем ввод пользователя в МСК ---
+    MSK = timezone(timedelta(hours=3))  # сама таймзона МСК
     hour, minute = map(int, time_str.split(":"))
-    pg_time = time(hour, minute)  # хранить как TIME
+    msc_time = time(hour, minute, tzinfo=MSK)
+
+    # через datetime конвертируем в UTC
+    dt = datetime.combine(datetime.today(), msc_time).astimezone(timezone.utc)
+    pg_time = dt.time()  # конвертируем datetime в time для PostgreSQL TIME
 
 
     # проверяем, хватает ли нам данных чтобы включить чистку
