@@ -25,12 +25,14 @@ async def on_message(msg: Message):
         prefixes = ["!", "/", "-", "—", "."]
         text = text.lstrip("".join(prefixes))
 
-        if msg.reply_to_message and msg.reply_to_message.from_user:
-            # Реплай на пользователя
-            target_user_entity = msg.reply_to_message.from_user
-        else:
-            # Упоминание пользователя в тексте
-            target_user_entity, text = await parse_user_mention_and_clean_text(bot, msg)
+        # Упоминание пользователя в тексте
+        target_user_entity, text = await parse_user_mention_and_clean_text(bot, msg)
+        if not text: return # Если текст пустой после удаления упоминания, то сразу пропускаем
+
+        if not target_user_entity:
+            if msg.reply_to_message and msg.reply_to_message.from_user:
+                # Реплай на пользователя
+                target_user_entity = msg.reply_to_message.from_user
             # Если target_user_entity стал None, то действие направлено на самих нас
 
         user_rp_commands = await get_user_rp_commands(int(chat.id), int(user.id))

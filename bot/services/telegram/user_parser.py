@@ -28,7 +28,7 @@ async def parse_user_mention(bot: Bot, msg: Message) -> Optional[User]:
     return user
 
 
-async def parse_user_mention_and_clean_text(bot: Bot, msg: Message) -> Tuple[Optional[User], str]:
+async def parse_user_mention_and_clean_text(bot: Bot, msg: Message) -> Tuple[Optional[User], Optional[str]]:
     """
     Парсит пользователя из сообщения и возвращает текст без упоминания этого пользователя.
     """
@@ -59,5 +59,5 @@ async def parse_user_mention_and_clean_text(bot: Bot, msg: Message) -> Tuple[Opt
                     pass
 
     # убираем лишние пробелы после удаления
-    clean_text = clean_text.strip()
+    if clean_text: clean_text = clean_text.strip()
     return user, clean_text
