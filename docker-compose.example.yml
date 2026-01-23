@@ -23,3 +23,5 @@ services:
     environment:
       TELEGRAM_TOKEN: "YOUR BOT TOKEN" # @BotFather in Telegram
       DATABASE_URL: "postgresql://modya:YOUR PASSWORD@db:5432/modyadb"
+    volumes:
+      - ./debug:/app/debug
