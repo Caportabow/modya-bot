@@ -3,10 +3,13 @@ import emoji
 from aiogram import Router, F
 from aiogram.types import Message
 
+from middlewares.maintenance import MaintenanceMiddleware
 from config import MAX_RP_COMMANDS_IN_CHAT_PER_USER
 from db.users.rp_commands import count_user_commands, upsert_command, delete_rp_command, get_user_rp_commands, export_rp_commands
 
 router = Router(name="personal_rp_commands")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

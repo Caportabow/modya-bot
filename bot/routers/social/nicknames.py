@@ -2,9 +2,12 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message
 
+from middlewares.maintenance import MaintenanceMiddleware
 from db.users.nicknames import set_nickname
 
 router = Router(name="nicknames")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(

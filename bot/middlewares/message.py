@@ -3,24 +3,21 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
-from config import PRODUCTION, DEVELOPERS_ID
-
 from db.users import upsert_user
 from db.messages import add_message
 
 from services.telegram.media import get_quotable_media_id
 
 class MessageOnlyMiddleware(BaseMiddleware):
-    async def __call__(self, handler, event: Message, data: dict):
+    async def __call__(self, handler, event, data):
         # Это будет выполняться для каждого сообщения
-        user = event.from_user
         if (isinstance(event, Message)
                 and event.from_user
                 and event.chat.type in ["group", "supergroup"]
                 and not event.from_user.is_bot
                 and not event.left_chat_member
                 and not event.new_chat_members):
-            
+            user = event.from_user
             chat = event.chat
             await upsert_user(int(chat.id), int(user.id),
                               user.first_name, user.username)
@@ -40,7 +37,6 @@ class MessageOnlyMiddleware(BaseMiddleware):
                     text, forward_user_id=forward_user_id,
                     file_id=file_id
             )
+        
+        return await handler(event, data)
 
-        # Продолжаем выполнение хэндлера только если сейчас на продакшене
-        if PRODUCTION or int(user.id) in DEVELOPERS_ID:
-            return await handler(event, data)

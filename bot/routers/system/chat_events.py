@@ -5,11 +5,14 @@ from aiogram.types import Message
 from db.users.rp_commands import get_user_rp_commands
 from db.quotes import get_random_quote
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.telegram.keyboards.quotes import get_quote_delition_keyboard
 from services.process_roleplay import parse_rp_command
 from services.telegram.user_parser import parse_user_mention_and_clean_text
 
 router = Router(name="groups")
+router.message.middleware(MaintenanceMiddleware(notify=False))
+router.callback_query.middleware(MaintenanceMiddleware(notify=False))
 
 
 @router.message(F.chat.type.in_(["group", "supergroup"]))

@@ -2,9 +2,12 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from middlewares.maintenance import MaintenanceMiddleware
 from utils.telegram.message_templates import send_welcome_message
 
 router = Router(name="help")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 
 
 @router.message(Command("start", "help"))

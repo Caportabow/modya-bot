@@ -2,6 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.awards import generate_user_awards_msg
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_mention import mention_user
@@ -12,6 +13,8 @@ from db.awards import add_award, remove_award
 from config import AWARDS_PICTURE_ID
 
 router = Router(name="awards")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(

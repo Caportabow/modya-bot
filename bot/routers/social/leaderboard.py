@@ -2,12 +2,15 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.leaderboard import generate_leaderboard_msg
 
 from services.telegram.keyboards.pagination import Pagination
 from services.time_utils import DurationParser, deserialize_timedelta
 
 router = Router(name="leaderboard")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

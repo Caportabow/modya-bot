@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from datetime import timedelta, datetime, timezone
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.rests import generate_all_rests_msg, generate_rest_description_msg
 from services.telegram.user_permissions import is_admin, is_creator
 from services.telegram.user_mention import mention_user
@@ -16,6 +17,8 @@ from db.messages.statistics import user_stats
 from db.users.rests import add_rest, remove_rest
 
 router = Router(name="rests")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

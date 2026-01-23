@@ -1,3 +1,3 @@
-from . import message
+from middlewares.message import MessageOnlyMiddleware
 
-middlewares = [message.MessageOnlyMiddleware()]
+middlewares = [MessageOnlyMiddleware()]

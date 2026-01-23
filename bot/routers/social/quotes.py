@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.telegram.user_permissions import is_admin
 from services.telegram.media.fetch import fetch_bytes
 from services.telegram.media.convert import image_bytes_to_webp
@@ -13,6 +14,8 @@ from db.quotes import add_quote, remove_quote
 from db.messages import get_next_messages
 
 router = Router(name="quotes")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

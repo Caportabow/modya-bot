@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery
 
 from datetime import timedelta
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.cleaning import generate_minmsg_msg, generate_inactive_msg, generate_cleaning_msg
 from services.telegram.keyboards.pagination import Pagination
 
@@ -12,6 +13,8 @@ from services.time_utils import DurationParser
 from db.chats.cleaning import check_cleanability
 
 router = Router(name="cleaning")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(

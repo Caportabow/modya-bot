@@ -3,6 +3,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.telegram.user_permissions import is_admin, is_creator
 from services.messaging.warnings import generate_all_warnings_msg, generate_user_warnings_msg
 from services.telegram.chat_member import get_chat_member
@@ -17,6 +18,8 @@ from db.chats.settings import get_max_warns
 from db.warnings import add_warning, remove_warning, amnesty
 
 router = Router(name="warnings")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 @router.message(

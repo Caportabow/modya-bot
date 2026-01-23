@@ -3,12 +3,15 @@ import asyncio
 
 from aiogram import Router, F
 from aiogram.types import Message
+from middlewares.maintenance import MaintenanceMiddleware
 
 from services.telegram.user_mention import mention_user
 from services.telegram.user_permissions import is_admin
 from db.users import get_all_users_in_chat
 
 router = Router(name="call")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

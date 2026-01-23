@@ -2,6 +2,7 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.family import generate_family_tree_msg
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
@@ -11,6 +12,8 @@ from db.marriages import get_user_marriage
 from db.marriages.families import adopt_child, check_adoption_possibility, is_parent, is_child, abandon
 
 router = Router(name="marriages")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

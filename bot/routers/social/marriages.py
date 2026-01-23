@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.marriages import generate_all_marriages_msg
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
@@ -17,6 +18,8 @@ from db.marriages import get_user_marriage, make_marriage
 from db.marriages.families import incest_cycle
 
 router = Router(name="marriages")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 

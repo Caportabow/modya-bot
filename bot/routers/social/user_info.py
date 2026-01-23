@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
 
+from middlewares.maintenance import MaintenanceMiddleware
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_parser import parse_user_mention
 from services.messaging.warnings import generate_user_warnings_msg
@@ -14,6 +15,8 @@ from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.user_info import UserInfo
 
 router = Router(name="user_info")
+router.message.middleware(MaintenanceMiddleware())
+router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
