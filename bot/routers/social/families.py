@@ -184,7 +184,7 @@ async def adoption_accept_callback_handler(callback: CallbackQuery, callback_dat
     target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=parent_id)
     trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=child_id)
 
-    ok, text = await can_become_parent(chat_id, child_id, parent_id)
+    ok, text = await can_become_parent(chat_id, parent_id, child_id)
     if not ok and text:
         await msg.edit_text(text=text, show_alert=True)
         return
