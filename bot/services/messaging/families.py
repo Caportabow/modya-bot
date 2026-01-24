@@ -49,4 +49,8 @@ async def can_become_parent(
         if ancestor:
             return False, f"❌ Вы не можете стать родителем своего предка."
     
+    children = marriage["children"]
+    if children and len(children) >= 5:
+        return False, f"❌ Вы не можете иметь более 5ти детей."
+    
     return True, None
