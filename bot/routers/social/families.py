@@ -128,26 +128,41 @@ async def abandon_parent(msg: Message):
 
     await msg.reply(text=ans, parse_mode="HTML")
 
-# TODO: сделать команду cемья @user — показать семейное древо указанного пользователя
 # TODO: сделать команду чтобы попросить удочерить/усыновить себя
 @router.message(
-    (F.text.lower() == "семейное древо") |
-    (F.text.lower() == "моя семья")
+    F.text.regexp(r"^(семейное древо|моя семья)(?:\s|$)", flags=re.IGNORECASE)
 )
 async def family_tree_handler(msg: Message):
-    """Команда: семейное древо/моя семья"""
-    text, keyboard, img = await generate_family_tree_msg(msg.bot, int(msg.chat.id), msg.from_user)
+    """Команда: семейное древо [упоминание] / моя семья"""
+    # 1. Reply
+    if msg.reply_to_message:
+        target_user = msg.reply_to_message.from_user
+    
+    # 2. Явное упоминание в тексте
+    target_user = await parse_user_mention(msg.bot, msg)
+    
+    if not target_user: target_user = msg.from_user # 3. По умолчанию — сам пользователь
+
+    text, keyboard, img = await generate_family_tree_msg(
+        msg.bot,
+        int(msg.chat.id),
+        target_user
+    )
+
     if not text:
-        await msg.reply("❌ Вы пока не состоите в семье.", parse_mode="HTML")
+        if target_user.id == msg.from_user.id:
+            await msg.reply("❌ Вы пока не состоите в семье.", parse_mode="HTML")
+        else:
+            await msg.reply("❌ Этот пользователь пока не состоит в семье.", parse_mode="HTML")
         return
 
     await msg.reply_photo(
         photo=img,
-        caption=text, reply_to_message_id=msg.message_id,
+        caption=text,
+        reply_to_message_id=msg.message_id,
         reply_markup=keyboard,
         parse_mode="HTML"
     )
-
 
 @router.callback_query(AdoptionRequest.filter(F.response == "accept"))
 async def adoption_accept_callback_handler(callback: CallbackQuery, callback_data: AdoptionRequest):
