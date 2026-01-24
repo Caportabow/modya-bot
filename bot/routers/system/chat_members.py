@@ -1,7 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import ChatMemberUpdated, Message
 
-from utils.telegram.message_templates import send_welcome_message, delete_marriage_and_notify
+from utils.telegram.message_templates import send_welcome_message
+from services.messaging.marriages import delete_marriage_and_notify
 from db.users import upsert_user, remove_user
 from db.chats import add_chat, forget_chat
 
@@ -28,20 +29,23 @@ async def on_my_chat_member(update: ChatMemberUpdated):
         await forget_chat(cid)
 
 @router.message(F.new_chat_members)
-async def on_user_joined(message: Message):
-    cid = (int(message.chat.id))
-    for user in message.new_chat_members:
+async def on_user_joined(msg: Message):
+    cid = (int(msg.chat.id))
+    for user in msg.new_chat_members:
         if not user.is_bot:
             await upsert_user(cid, user.id, user.first_name, user.username)
 
 @router.message(F.left_chat_member)
-async def on_user_left(message: Message):
-    user = message.left_chat_member
+async def on_user_left(msg: Message):
+    user = msg.left_chat_member
     if user.is_bot: return
-    cid = (int(message.chat.id))
+    cid = (int(msg.chat.id))
     uid = int(user.id)
 
-    await delete_marriage_and_notify(message.bot, cid, uid, gone_from_chat=True) # Удаляем брак пользователя, если был
+    text = await delete_marriage_and_notify(msg.bot, chat_id=int(msg.chat.id), user_id=int(msg.from_user.id))
+    if text:
+        await msg.reply(text, parse_mode="HTML")
+    
     await remove_user(cid, uid)
     
     

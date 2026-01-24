@@ -4,18 +4,16 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from middlewares.maintenance import MaintenanceMiddleware
-from services.messaging.marriages import generate_all_marriages_msg, can_get_married
+from services.messaging.marriages import generate_all_marriages_msg, can_get_married, delete_marriage_and_notify
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.marriages import MarriageRequest, get_marriage_request_keyboard
 
 from services.time_utils import TimedeltaFormatter
-from utils.telegram.message_templates import delete_marriage_and_notify
 
 from config import MARRIAGES_PICTURE_ID
 from db.marriages import get_user_marriage, make_marriage
-from db.marriages.families import incest_cycle
 
 router = Router(name="marriages")
 router.message.middleware(MaintenanceMiddleware())
@@ -113,14 +111,9 @@ async def propose(msg: Message):
 )
 async def divorce(msg: Message):
     """Команда: развод"""
-    bot = msg.bot
-    chat_id = int(msg.chat.id)
-    trigger_user_id = int(msg.from_user.id)
-
-    success = await delete_marriage_and_notify(bot, chat_id, trigger_user_id)
-    if not success:
-        await msg.reply("❌ Вы не женаты.", parse_mode="HTML") 
-
+    text = await delete_marriage_and_notify(msg.bot, chat_id=int(msg.chat.id), user_id=int(msg.from_user.id))
+    if text:
+        await msg.reply(text, parse_mode="HTML")
 
 @router.callback_query(MarriageRequest.filter(F.response == "accept"))
 async def marriage_accept_callback_handler(callback: CallbackQuery, callback_data: MarriageRequest):

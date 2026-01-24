@@ -6,7 +6,7 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup
 
 from services.telegram.user_mention import mention_user
-from db.marriages import get_marriages, get_user_marriage
+from db.marriages import get_marriages, get_user_marriage, delete_marriage
 from db.marriages.families import incest_cycle
 
 from services.time_utils import TimedeltaFormatter
@@ -70,3 +70,34 @@ async def can_get_married(bot: Bot, chat_id: int, user_id: int, potential_partne
                         "error 404: верность не найдена",
                         "ваше уплыло", "ваш партнёр сбежал, заберите пожалуйста"]
     return False, f"❗️ {partner_mention}, {random.choice(random_phrases)}!"
+
+async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int, left_chat: bool = False) -> Optional[str]:
+    marriage = await get_user_marriage(chat_id, user_id)
+    if not marriage:
+        # Уведомляем что брака не было только если юзер хотел развестись умышленно
+        return "❌ Вы не женаты." if not left_chat else None
+        
+    # Удаляем брак
+    await delete_marriage(chat_id, marriage_id=marriage["marriage_id"])
+   
+    # Уведомляем партнёра и детей в одном сообщении
+    partner_id = marriage["participants"][0] if marriage["participants"][0] != user_id else marriage["participants"][1]
+    partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=partner_id)
+    children = marriage["children"]
+
+    children_mentions = []
+    if children:
+        for child_id in children:
+            child_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=child_id)
+            children_mentions.append(child_mention)
+
+    # Формируем текст сообщения
+    reason = "покинул чат" if left_chat else "подал на развод"
+    text = f"💔 {partner_mention}, мне очень жаль, ваш супруг {reason}. Семейная жизнь окончена."
+
+    if len(children_mentions):
+        text += "\n\n🥀 Один из родителей покинул семью. Ваши дети осиротели:\n"
+        for mention in children_mentions:
+            text += f" - {mention}\n"
+
+    return text
