@@ -87,7 +87,7 @@ async def generate_cleaning_msg(bot: Bot, chat_id: int, page: int) -> Tuple[Opti
     pagination = data["pagination"]
 
     ans_header = f"📊 Проверка активности за {TimedeltaFormatter.format(data["сleaning_lookback"], suffix='none')}\n"
-    if cleaning_accuracy: ans_header += f"<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>\n"
+    if not cleaning_accuracy: ans_header += f"<i>ℹ️ Бот в чате недавно, статистика может быть неполной.</i>\n"
     ans_header += f"📌 Норма: {data["min_messages"]} сообщ.\n📌 Макс. неактив: {TimedeltaFormatter.format(data["inactive_cutoff"], suffix='none')}\n\n"
     ans = ans_header
     ans += "<blockquote expandable>"
