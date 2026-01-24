@@ -139,38 +139,6 @@ async def is_child(chat_id: int, user_id: int) -> bool:
     )
     return bool(row)
 
-# TODO: исправить функцию чтобы в ДБ не был кусок фронтенда
-async def check_adoption_possibility(chat_id: int, child_id: int, marriage: dict | None = None, parent_id: int | None = None) -> dict:
-    """
-    Проверяет, может ли пользователь усыновить другого пользователя.
-    Возвращает True, если усыновление возможно, иначе False.
-    """
-    # 0. Получаем брак, если не передан
-    if not marriage:
-        marriage = await get_user_marriage(chat_id, parent_id)
-        if not marriage:
-            return {"success": False, "error": "Вам нужен супруг, чтобы завести детей."}
-    
-    # 1. Проверяем, не является ли ребенок уже чьим-то ребенком
-    child_row = await db.fetchone(
-        "SELECT parent_marriage_id FROM users WHERE chat_id = $1 AND user_id = $2",
-        chat_id, child_id
-    )
-    if child_row and child_row['parent_marriage_id']:
-        return {"success": False, "error": "Этот пользователь уже чей-то ребёнок."}
-
-    # 2. Проверяем, не является ли ребенок одним из супругов в этом браке
-    if child_id in marriage['participants']:
-        return {"success": False, "error": "Вы не можете стать родителем для своего супруга."}
-    
-    # 3. Проверяем, не является ли ребенок уже ребенком этой пары
-    for spouse in marriage['participants']:
-        ancestor = await is_ancestor(chat_id, child_id, spouse)
-        if ancestor:
-            return {"success": False, "error": "Вы не можете стать родителем своего предка."}
-
-    return {"success": True}  # Усыновление возможно
-
 async def adopt_child(chat_id: int, parent_id: int, child_id: int) -> dict:
     """
     Позволяет паре в браке усыновить другого пользователя.

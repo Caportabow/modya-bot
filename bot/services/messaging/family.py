@@ -4,7 +4,8 @@ from aiogram import Bot
 from aiogram.types import User, InlineKeyboardMarkup, BufferedInputFile
 
 from services.telegram.user_mention import mention_user
-from db.marriages.families import get_family_tree_data
+from db.marriages import get_user_marriage
+from db.marriages.families import get_family_tree_data, is_child, is_ancestor
 
 from services.web.families import make_family_tree
 from services.telegram.keyboards.pagination import get_pagination_keyboard
@@ -26,3 +27,26 @@ async def generate_family_tree_msg(bot: Bot, chat_id: int, user_entity: User, wi
         prev_page=None, back_button_active=with_back_button
     )
     return f"🌳 Семейное древо {mention}", keyboard, photo
+
+async def can_become_parent(
+    chat_id: int,
+    parent_user_id: int,
+    child_user_id: int,
+) -> Tuple[bool, Optional[str]]:
+    marriage = await get_user_marriage(chat_id, parent_user_id)
+    if not marriage:
+        return False, f"❌ Вы должны быть в браке, чтобы стать родителем."
+    
+    if child_user_id in marriage['participants']:
+        return False, f"❌ Вы не можете стать родителем для своего супруга."
+
+    child = await is_child(chat_id, child_user_id)
+    if child:
+        return False, f"❌ Этот пользователь уже чей-то ребёнок."
+    
+    for spouse in marriage['participants']:
+        ancestor = await is_ancestor(chat_id, child_user_id, spouse)
+        if ancestor:
+            return False, f"❌ Вы не можете стать родителем своего предка."
+    
+    return True, None

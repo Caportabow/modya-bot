@@ -4,14 +4,14 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from middlewares.maintenance import MaintenanceMiddleware
-from services.messaging.marriages import generate_all_marriages_msg
+from services.messaging.marriages import generate_all_marriages_msg, can_get_married
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.marriages import MarriageRequest, get_marriage_request_keyboard
 
 from services.time_utils import TimedeltaFormatter
-from utils.telegram.message_templates import check_marriage_loyality, delete_marriage_and_notify
+from utils.telegram.message_templates import delete_marriage_and_notify
 
 from config import MARRIAGES_PICTURE_ID
 from db.marriages import get_user_marriage, make_marriage
@@ -89,13 +89,9 @@ async def propose(msg: Message):
         await msg.reply("❌ Вы не можете жениться на самом себе.")
         return
     
-    loyality = await check_marriage_loyality(bot, chat_id, trigger_user_id, target_user_id)
-    if not loyality: return
-
-    ic = await incest_cycle(int(msg.chat.id), trigger_user_id, target_user_id)
-    if ic:
-        ans = "❌ Вы не можете заключить брак со своим предком."
-        await msg.reply(text=ans, parse_mode="HTML")
+    ok, text = await can_get_married(bot, chat_id, trigger_user_id, target_user_id)
+    if not ok:
+        await msg.reply(text, parse_mode="HTML")
         return
 
     keyboard = await get_marriage_request_keyboard(trigger_user_id, target_user_id)
@@ -134,33 +130,25 @@ async def marriage_accept_callback_handler(callback: CallbackQuery, callback_dat
     if not msg or not msg.chat: return
 
     chat_id = int(msg.chat.id)
+    trigger_id = int(callback.from_user.id)
+    first_partner = callback_data.trigger_user_id
+    second_partner = callback_data.target_user_id
 
     # Проверка прав доступа
-    if int(callback.from_user.id) != callback_data.target_user_id:
+    if trigger_id != second_partner:
         await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
         return
 
     await msg.edit_reply_markup()
-    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
-    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=first_partner)
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=second_partner)
 
-    loyality = await check_marriage_loyality(bot, chat_id, callback_data.trigger_user_id, callback_data.target_user_id)
-    if not loyality:
-        return
-    
-    ic = await incest_cycle(int(msg.chat.id), callback_data.trigger_user_id, callback_data.target_user_id)
-    if ic:
-        ans = "❌ Вы не можете заключить брак со своим предком."
-        await msg.edit_text(text=ans, parse_mode="HTML")
+    ok, text = await can_get_married(bot, chat_id, first_partner, second_partner)
+    if not ok:
+        await msg.edit_caption(text, parse_mode="HTML")
         return
 
-    result = await make_marriage(chat_id, [callback_data.trigger_user_id, callback_data.target_user_id])
-    failure = not result.get("success", False) if isinstance(result, dict) else False
-
-    if failure:
-        ans = "❌ Брак не может быть заключён, кто-то из участников уже в браке."
-        await msg.edit_text(text=ans, parse_mode="HTML")
-        return
+    await make_marriage(chat_id, [first_partner, second_partner])
     
     ans = f"💍 Поздравляем молодоженов!\n💝 С сегодняшнего дня {trigger_user} и {target_user} женаты!"
 

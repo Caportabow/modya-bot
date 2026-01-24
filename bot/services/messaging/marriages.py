@@ -1,3 +1,4 @@
+import random
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
@@ -5,7 +6,8 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup
 
 from services.telegram.user_mention import mention_user
-from db.marriages import get_marriages
+from db.marriages import get_marriages, get_user_marriage
+from db.marriages.families import incest_cycle
 
 from services.time_utils import TimedeltaFormatter
 from services.telegram.keyboards.pagination import get_pagination_keyboard
@@ -37,3 +39,34 @@ async def generate_all_marriages_msg(bot: Bot, chat_id: int, page: int) -> Tuple
     )
 
     return ans, keyboard
+
+async def can_get_married(bot: Bot, chat_id: int, user_id: int, potential_partner_id: int) -> Tuple[bool, Optional[str]]:
+    """Проверяем может ли пара поженится."""
+    marriage = await get_user_marriage(chat_id, user_id)
+
+    if not marriage: # Юзер не женат
+        marriage = await get_user_marriage(chat_id, potential_partner_id) # Брак потенциального партнёра
+
+        if not marriage: # Оба юзера не женаты
+            cycle = await incest_cycle(chat_id, user_id, potential_partner_id)
+            if not cycle: # Потенциальная пара не связана вертикальным родством
+                return True, None
+            
+            # Потенциальная пара связана вертикальным родством
+            return False, "❌ Вы не можете заключить брак со своим предком."
+        
+        # Один из партнёров женат
+        potential_partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=potential_partner_id)
+        return False, f"❌ {potential_partner_mention} уже в браке."
+
+    # Юзер женат
+    if potential_partner_id in marriage["participants"]: # Юзер и потенциальный партнёр и так женаты
+        return False, f"❌ Вы и так в браке."
+
+    # Юзер пытается изменить своему партнёру
+    partner_id = marriage["participants"][0] if marriage["participants"][0] != user_id else marriage["participants"][1]
+    partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=partner_id)
+    random_phrases = ["потяните сильнее за поводок пожалуйста",
+                        "error 404: верность не найдена",
+                        "ваше уплыло", "ваш партнёр сбежал, заберите пожалуйста"]
+    return False, f"❗️ {partner_mention}, {random.choice(random_phrases)}!"

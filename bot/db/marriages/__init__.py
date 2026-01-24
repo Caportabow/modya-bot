@@ -1,48 +1,25 @@
 import db
 from asyncpg import Connection
 
-
-async def make_marriage(chat_id: int, users: list[int]) -> dict:
+async def make_marriage(chat_id: int, users: list[int]):
     """Создаём новый брак в чате между двумя пользователями."""
     
     if len(users) != 2:
         raise ValueError("Должно быть ровно 2 пользователя для создания брака.")
     
-    async with db.transaction() as conn:
-        conn: Connection
-        # Проверяем, что оба пользователя не в браке
-        existing = await conn.fetch(
-            """
-                SELECT user_id
-                FROM users
-                WHERE chat_id = $1
-                AND user_id = ANY($2::bigint[])
-                AND marriage_id IS NOT NULL;
-            """,
-            chat_id, users
+    await db.execute(
+        """
+        WITH new_marriage AS (
+            INSERT INTO marriages (chat_id, date)
+            VALUES ($1, NOW())
+            RETURNING id
         )
-        
-        if existing:
-            in_marriage = [row['user_id'] for row in existing]
-            return {"success": False, "in_marriage": in_marriage}
-        
-        # Создаём брак и обновляем пользователей одним запросом через CTE
-        result = await conn.fetchrow(
-            """
-                WITH new_marriage AS (
-                    INSERT INTO marriages (chat_id, date)
-                    VALUES ($1, NOW())
-                    RETURNING id
-                )
-                UPDATE users
-                SET marriage_id = (SELECT id FROM new_marriage)
-                WHERE chat_id = $1 AND user_id = ANY($2::bigint[])
-                RETURNING marriage_id;
-            """,
-            chat_id, users
-        )
-        
-        return {"success": True, "marriage_id": int(result['marriage_id'])} if result else {"success": False}
+        UPDATE users
+        SET marriage_id = (SELECT id FROM new_marriage)
+        WHERE chat_id = $1 AND user_id = ANY($2::bigint[]);
+        """,
+        chat_id, users
+    )
 
 async def get_marriages(chat_id: int, page: int, per_page: int = 10) -> dict:
     """

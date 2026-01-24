@@ -22,25 +22,6 @@ async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False
 
     await bot.send_photo(photo=HELLO_PICTURE_ID, caption=text, chat_id=chat_id, parse_mode="HTML")
 
-async def check_marriage_loyality(bot: Bot, chat_id: int, trigger_user_id: int, target_user_id: int) -> bool:
-    """Проверяем чтобы человек был не в браке."""
-    marriage = await get_user_marriage(chat_id, trigger_user_id)
-
-    if marriage:
-        partner = int(marriage["participants"][1]) if int(marriage["participants"][0]) == trigger_user_id else int(marriage["participants"][0])
-
-        if partner == target_user_id:
-            await bot.send_message(chat_id=chat_id, text=f"❌ Вы уже в браке.", parse_mode="HTML")
-        else:
-            partner_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=partner)
-            random_phrases = ["потяните сильнее за поводок пожалуйста",
-                              "error 404: верность не найдена",
-                              "ваше уплыло", "ваш партнёр сбежал, заберите пожалуйста"]
-            await bot.send_message(chat_id=chat_id, text=f"❗️ {partner_mention}, {random.choice(random_phrases)}!", parse_mode="HTML")
-        
-        return False
-    return True
-
 async def delete_marriage_and_notify(bot: Bot, chat_id: int, user_id: int, gone_from_chat: bool) -> bool:
     """Удаляет брак пользователя."""
     users = await delete_marriage(chat_id, user_id) # Удаляем брак пользователя, если был

@@ -3,13 +3,12 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 
 from middlewares.maintenance import MaintenanceMiddleware
-from services.messaging.family import generate_family_tree_msg
+from services.messaging.family import generate_family_tree_msg, can_become_parent
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
 
 from services.telegram.keyboards.families import AdoptionRequest, get_adoption_request_keyboard
-from db.marriages import get_user_marriage
-from db.marriages.families import adopt_child, check_adoption_possibility, is_parent, is_child, abandon
+from db.marriages.families import adopt_child, is_parent, is_child, abandon
 
 router = Router(name="marriages")
 router.message.middleware(MaintenanceMiddleware())
@@ -46,14 +45,9 @@ async def adopt(msg: Message):
         await msg.reply(f"❌ Вы не можете стать своим родителем.", parse_mode="HTML")
         return
     
-    marriage = await get_user_marriage(chat_id, trigger_user_id)
-    if not marriage:
-        await msg.reply(f"❌ Вы должны быть в браке, стать родителем.", parse_mode="HTML")
-        return
-
-    adoption_possibility = await check_adoption_possibility(chat_id, target_user_id, marriage)
-    if not adoption_possibility.get("success", False):
-        await msg.reply(f"❌ {adoption_possibility.get('error', 'Вы не можете стать родителем.')}", parse_mode="HTML")
+    ok, text = await can_become_parent(chat_id, trigger_user_id, target_user_id)
+    if not ok and text:
+        await msg.reply(text, parse_mode="HTML")
         return
 
     keyboard = await get_adoption_request_keyboard(trigger_user_id, target_user_id)
@@ -163,24 +157,27 @@ async def adoption_accept_callback_handler(callback: CallbackQuery, callback_dat
     if not msg or not msg.chat: return
 
     chat_id = int(msg.chat.id)
+    trigger_id = int(callback.from_user.id)
+    parent_id = callback_data.trigger_user_id
+    child_id = callback_data.target_user_id
 
     # Проверка прав доступа
-    if int(callback.from_user.id) != callback_data.target_user_id:
+    if trigger_id != child_id:
         await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
         return
 
     await msg.edit_reply_markup()
-    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.target_user_id)
-    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=callback_data.trigger_user_id)
+    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=parent_id)
+    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=child_id)
 
-    adoption_possibility = await check_adoption_possibility(chat_id, callback_data.target_user_id, parent_id=callback_data.trigger_user_id)
-    if not adoption_possibility.get("success", False):
-        await msg.edit_text(f"❌ {trigger_user}, {adoption_possibility.get('error', 'Вы не можете быть усыновлены.')}", parse_mode="HTML")
+    ok, text = await can_become_parent(chat_id, child_id, parent_id)
+    if not ok and text:
+        await msg.edit_text(text=text, show_alert=True)
         return
 
-    await adopt_child(chat_id, callback_data.trigger_user_id, callback_data.target_user_id)
+    await adopt_child(chat_id, parent_id, child_id)
     
-    ans = f"👨‍👩‍👧 Поздравляем с пополнением в семье!\n💞 {trigger_user} теперь приёмный родитель {target_user}!"
+    ans = f"👨‍👩‍👧 В семье новое пополнение!\n💞 {trigger_user} стал(-а) родителем {target_user}!"
     
     await msg.edit_text(text=ans, parse_mode="HTML")
     await callback.answer("") # пустой ответ, чтобы убрать "часики"
@@ -194,7 +191,7 @@ async def adoption_decline_callback_handler(callback: CallbackQuery, callback_da
 
     chat_id = int(msg.chat.id)
 
-     # Проверка прав доступа
+    # Проверка прав доступа
     if int(callback.from_user.id) != callback_data.target_user_id:
         await callback.answer(text="❌ Вы не можете ответить на чужое предложение.", show_alert=True)
         return
