@@ -3,7 +3,7 @@ from aiogram import Bot
 from config import HELLO_PICTURE_ID
 
 # TODO: Full util rework
-async def send_welcome_message(bot: Bot, chat_id: int, private_msg: bool = False):
+async def send_welcome_message(bot: Bot, chat_id: int):
     """Отправляет приветственное сообщение с описанием бота."""
 
     text = (

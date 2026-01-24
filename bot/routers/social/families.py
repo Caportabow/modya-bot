@@ -128,7 +128,6 @@ async def abandon_parent(msg: Message):
 
     await msg.reply(text=ans, parse_mode="HTML")
 
-# TODO: сделать команду чтобы попросить удочерить/усыновить себя
 @router.message(
     F.text.regexp(r"^(семейное древо|моя семья)(?:\s|$)", flags=re.IGNORECASE)
 )

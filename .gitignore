@@ -28,6 +28,7 @@ pgdata/
 bot/sendm.py
 bot/sendu.py
 test.py
+test.html
 
 # Config
 docker-compose.yml
