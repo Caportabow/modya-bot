@@ -9,7 +9,7 @@ from services.telegram.chat_member import get_chat_member
 from services.telegram.user_parser import parse_user_mention
 from services.messaging.warnings import generate_user_warnings_msg
 from services.messaging.awards import generate_user_awards_msg
-from services.messaging.family import generate_family_tree_msg
+from services.messaging.families import generate_family_tree_msg
 from services.messaging.user_info import generate_user_info_msg
 from services.telegram.keyboards.pagination import Pagination
 from services.telegram.keyboards.user_info import UserInfo
