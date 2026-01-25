@@ -283,11 +283,6 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
     if not rows:
         return None
 
-    # Row example: 'parent_marriage_id': 6, 'parent_ids': [3, 6]
-    os.makedirs("debug", exist_ok=True)
-    with open("debug/database_result.py", "w", encoding="utf-8") as f:
-        f.write(repr(rows))
-
     def make_id(person):
         """Возвращает уникальный id для человека: marriage_id если есть, иначе -user_id"""
         return person['marriage_id'] or -person['user_id']
@@ -371,6 +366,6 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
             }
 
     # Находим стартовые точки (где parent_marriage_id None)
-    root_ids = {p['marriage_id'] for p in rows if p['generation'] == -1}
+    root_ids = {make_id(p) for p in rows if p['generation'] == -1}
     
     return [build_marriage_node(rid, None) for rid in root_ids]
