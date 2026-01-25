@@ -181,8 +181,8 @@ async def adoption_accept_callback_handler(callback: CallbackQuery, callback_dat
         return
 
     await msg.edit_reply_markup()
-    target_user = await mention_user(bot=bot, chat_id=chat_id, user_id=parent_id)
-    trigger_user = await mention_user(bot=bot, chat_id=chat_id, user_id=child_id)
+    parent_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=parent_id)
+    child_mention = await mention_user(bot=bot, chat_id=chat_id, user_id=child_id)
 
     ok, text = await can_become_parent(chat_id, parent_id, child_id)
     if not ok and text:
@@ -191,7 +191,7 @@ async def adoption_accept_callback_handler(callback: CallbackQuery, callback_dat
 
     await adopt_child(chat_id, parent_id, child_id)
     
-    ans = f"👨‍👩‍👧 В семье новое пополнение!\n💞 {trigger_user} стал(-а) родителем {target_user}!"
+    ans = f"👨‍👩‍👧 В семье новое пополнение!\n💞 {parent_mention} стал(-а) родителем {child_mention}!"
     
     await msg.edit_text(text=ans, parse_mode="HTML")
     await callback.answer("") # пустой ответ, чтобы убрать "часики"
