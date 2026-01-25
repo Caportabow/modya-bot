@@ -86,10 +86,10 @@ async def user_stats(chat_id: int, user_id: int):
         "first_seen": rows["first_seen"],
         "last_active": rows["last_active"],
         "activity": {
-            "day_count": int(rows["day_count"]),
-            "week_count": int(rows["week_count"]),
-            "month_count": int(rows["month_count"]),
-            "total": int(rows["total"])
+            "day_count": int(rows["day_count"]) if rows["day_count"] else 0,
+            "week_count": int(rows["week_count"])if rows["week_count"] else 0,
+            "month_count": int(rows["month_count"])if rows["month_count"] else 0,
+            "total": int(rows["total"])if rows["total"] else 0
         },
         "rest": rows["rest"],
     }
