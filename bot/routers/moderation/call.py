@@ -15,20 +15,24 @@ router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
 
 
+CALL_CMD_RE = re.compile(
+    r'^(?:/call|общий созыв|созвать|собрать|созыв)(?:\b|$)',
+    re.IGNORECASE
+)
+
 @router.message(
-    F.text.lower().startswith("/call") | F.text.lower().startswith("созвать") | 
-    F.text.lower().startswith("созыв") | F.text.lower().startswith("собрать") |
-    F.text.lower().startswith("общий созыв")
+    (F.text.regexp(CALL_CMD_RE)) | (F.caption.regexp(CALL_CMD_RE))
 )
 async def сall_members(msg: Message):
     """Команда: созвать | /call | созвать всех | собрать всех | созыв | общий созыв"""
     bot = msg.bot
     chat_id = int(msg.chat.id)
+    message_text = msg.text or msg.caption
     
     arg = re.sub(
         r'^(?:/call|созвать всех|собрать всех|созвать|собрать|общий созыв)\b\s*',
         '',
-        msg.text,
+        message_text,
         flags=re.IGNORECASE
     )
     if len(arg) > 300:
