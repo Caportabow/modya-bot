@@ -4,7 +4,7 @@ from aiogram.types import ChatMemberUpdated, Message
 from utils.telegram.message_templates import send_welcome_message
 from services.messaging.marriages import delete_marriage_and_notify
 from db.users import upsert_user, remove_user
-from db.chats import add_chat, forget_chat
+from db.chats import add_chat, migrate_chat, forget_chat
 
 router = Router(name="chat_member")
 
@@ -48,4 +48,10 @@ async def on_user_left(msg: Message):
     
     await remove_user(cid, uid)
     
-    
+@router.message(F.migrate_to_chat_id)
+async def handle_chat_migration(msg: Message):
+    old_chat_id = msg.chat.id
+    new_chat_id = msg.migrate_to_chat_id
+
+    print(f"Chat migrated: {old_chat_id} → {new_chat_id}")
+    await migrate_chat(old_chat_id, new_chat_id)

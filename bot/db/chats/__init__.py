@@ -10,6 +10,16 @@ async def add_chat(chat_id: int):
         """, chat_id
     )
 
+async def migrate_chat(old_chat_id: int, new_chat_id):
+    """Мигрирует чат на новый chat_id."""
+    await db.execute(
+        """
+        UPDATE chats
+        SET chat_id = $2
+        WHERE chat_id = $1
+        """, old_chat_id, new_chat_id
+    )
+
 async def forget_chat(chat_id: int):
     """Удаляем чат из датабазы."""
     await db.execute(
