@@ -42,7 +42,7 @@ async def on_user_left(msg: Message):
     cid = (int(msg.chat.id))
     uid = int(user.id)
 
-    text = await delete_marriage_and_notify(msg.bot, chat_id=int(msg.chat.id), user_id=int(msg.from_user.id))
+    text = await delete_marriage_and_notify(msg.bot, chat_id=int(msg.chat.id), user_id=int(user.id))
     if text:
         await msg.reply(text, parse_mode="HTML")
     
