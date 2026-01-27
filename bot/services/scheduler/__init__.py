@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from aiogram import Bot
 
 from services.scheduler.jobs.cleaning import run_cleanings
@@ -6,7 +7,7 @@ from services.scheduler.jobs.rests import expire_rests
 from services.scheduler.jobs.warnings import expire_warnings
 
 async def scheduler(bot: Bot):
-    print("⚙️ Scheduler started...")
+    logging.info("⚙️ Scheduler started...")
     while True:
         # Выполняем задачи
         await expire_rests(bot)
