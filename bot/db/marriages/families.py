@@ -1,5 +1,5 @@
 import os
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 
 import db
@@ -252,27 +252,42 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
             AND s.user_id <> $2
         ),
 
-        extended AS (
-            SELECT user_id, marriage_id, parent_marriage_id, parent_ids, generation 
-            FROM family_tree
+        extended_nodes AS (
+            SELECT user_id, marriage_id, parent_marriage_id, parent_ids, generation FROM family_tree
             UNION 
-            SELECT user_id, marriage_id, parent_marriage_id, parent_ids, generation 
-            FROM siblings
+            SELECT user_id, marriage_id, parent_marriage_id, parent_ids, generation FROM siblings
+        ),
+
+        -- Добавляем этот шаг, чтобы найти супругов для всех, кто уже в списке
+        full_family AS (
+            SELECT DISTINCT
+                u.user_id,
+                u.marriage_id,
+                u.parent_marriage_id,
+                -- Сохраняем генерацию от найденного родственника
+                COALESCE(en.generation, 0) as generation 
+            FROM users u
+            LEFT JOIN extended_nodes en ON u.user_id = en.user_id
+            WHERE u.chat_id = $1 
+              AND (
+                u.user_id IN (SELECT user_id FROM extended_nodes)
+                OR 
+                u.marriage_id IN (SELECT marriage_id FROM extended_nodes WHERE marriage_id IS NOT NULL)
+              )
         )
 
         SELECT 
             et.user_id,
             et.marriage_id,
             et.parent_marriage_id,
-            et.parent_ids,
-            et.generation,
+            COALESCE(mp.parent_ids, '{}') as parent_ids,
             u.nickname AS name,
             u.adoption_date,
             spouse.user_id AS spouse_id,
             spouse.nickname AS spouse_name
-        FROM extended et
-        LEFT JOIN users u 
-            ON u.user_id = et.user_id AND u.chat_id = $1
+        FROM full_family et
+        LEFT JOIN users u ON u.user_id = et.user_id AND u.chat_id = $1
+        LEFT JOIN marriage_parents mp ON u.marriage_id = mp.marriage_id
         LEFT JOIN users spouse 
             ON spouse.marriage_id = et.marriage_id
             AND spouse.user_id <> et.user_id
@@ -283,6 +298,66 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
     if not rows:
         return None
 
+    def calculate_deep_generations(user_list):
+        """Рассчитываем generations для юзеров"""
+
+        # 1. Индексация: собираем всех участников брака
+        # marriage_id -> [список супругов]
+        marriage_participants = defaultdict(list)
+        for u in user_list:
+            if u.get('marriage_id'):
+                marriage_participants[u['marriage_id']].append(u)
+
+        # 2. Инициализация: Сбрасываем поколения
+        # Если parent_marriage_id нет — ставим 0, иначе пока None (неизвестно)
+        for u in user_list:
+            if u.get('parent_marriage_id') is None:
+                u['generation'] = 0
+            else:
+                u['generation'] = None
+
+        # 3. Цикл распространения (Relaxation loop)
+        # Мы крутим цикл, пока поколения обновляются. Это решает проблему любой глубины.
+        has_changes = True
+        iteration_limit = 100 # Защита от вечного цикла
+        
+        while has_changes and iteration_limit > 0:
+            has_changes = False
+            iteration_limit -= 1
+            
+            # Создаем карту текущих поколений для быстрого доступа
+            # marriage_id -> максимальное поколение среди супругов в этом браке
+            current_marriage_gens = {}
+            for m_id, participants in marriage_participants.items():
+                gens = [p['generation'] for p in participants if p['generation'] is not None]
+                if gens:
+                    current_marriage_gens[m_id] = max(gens) # БЕРЕМ МАКСИМУМ!
+
+            # Пробегаемся по всем детям
+            for u in user_list:
+                p_m_id = u.get('parent_marriage_id')
+                
+                # Если это ребенок и мы знаем поколение его родителей
+                if p_m_id and p_m_id in current_marriage_gens:
+                    parent_gen = current_marriage_gens[p_m_id]
+                    new_gen = parent_gen + 1
+                    
+                    # Если поколение изменилось (или было None), обновляем
+                    if u['generation'] != new_gen:
+                        u['generation'] = new_gen
+                        has_changes = True # Данные изменились, нужен еще проход для внуков
+                        
+        # 4. (Опционально) Подтянуть супругов-аутсайдеров до уровня партнера
+        # Чтобы муж милфы тоже стал Gen 1, а не остался Gen 0
+        for u in user_list:
+            if u['generation'] == 0 and u.get('marriage_id'):
+                partners = marriage_participants[u['marriage_id']]
+                max_gen = max([p['generation'] for p in partners if p['generation'] is not None], default=0)
+                if max_gen > u['generation']:
+                    u['generation'] = max_gen
+
+        return user_list
+
     def make_id(person):
         """Возвращает уникальный id для человека: marriage_id если есть, иначе -user_id"""
         return person['marriage_id'] or -person['user_id']
@@ -290,6 +365,9 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
     def make_processed_id(person):
         """Возвращает уникальный идентификатор для проверки дубликатов"""
         return f"{person['user_id']}:{person['parent_marriage_id']}"
+
+    # 0. Прикрепляем generations
+    rows = calculate_deep_generations(rows)
 
     # 1. Группируем людей по их собственному marriage_id
     marriages = defaultdict(list)
@@ -344,7 +422,7 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
                 'adoption_date': p['adoption_date']
             })
 
-        if m_id < 0:  # Одиночка (использовали -user_id как ключ) (все айди браков положительные)
+        if m_id and m_id < 0:  # Одиночка (использовали -user_id как ключ) (все айди браков положительные)
             return {
                 'marriage_id': None,
                 'parent_marriage_id': p_marriage_id_context,
@@ -365,7 +443,14 @@ async def get_family_tree_data(chat_id: int, user_id: int) -> list | None:
                 'children': children_nodes
             }
 
-    # Находим стартовые точки (где parent_marriage_id None)
-    root_ids = {make_id(p) for p in rows if p['generation'] == -1}
-    
+    # Находим начало древа (юзеры с самым маленьким значением поколения)
+    min_generation = min(p['generation'] for p in rows)
+
+    root_ids = {
+        make_id(p)
+        for p in rows
+        if p['generation'] == min_generation
+    }
+
     return [build_marriage_node(rid, None) for rid in root_ids]
+
