@@ -4,13 +4,14 @@ from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from config import PRODUCTION, DEVELOPERS_ID
 
 class MaintenanceMiddleware(BaseMiddleware):
-    def __init__(self, notify: bool = True):
+    def __init__(self, notify: bool = True, block_module: bool = False):
         super().__init__()
         self.notify = notify
+        self.block_module = block_module
 
     async def __call__(self, handler, event, data):
         # Если на проде — пропускаем всех
-        if PRODUCTION:
+        if PRODUCTION and not self.block_module:
             return await handler(event, data)
 
         # Если пользователь админ — пропускаем
@@ -20,7 +21,7 @@ class MaintenanceMiddleware(BaseMiddleware):
 
         # Уведомляем юзера
         if self.notify:
-            note = "🛠 Бот сейчас на техобслуживании. Пожалуйста, попробуйте позже."
+            note = "🛠 Этот модуль сейчас на техобслуживании. Пожалуйста, попробуйте позже."
             if isinstance(event, Message):
                 await event.reply(note)
             elif isinstance(event, CallbackQuery):
