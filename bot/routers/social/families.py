@@ -1,16 +1,17 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.families import generate_family_tree_msg, can_become_parent
-from services.telegram.user_mention import mention_user
+from services.telegram.user_mention import mention_user, get_chat_member
 from services.telegram.user_parser import parse_user_mention
 
 from services.telegram.keyboards.families import AdoptionRequest, get_adoption_request_keyboard
+from services.telegram.keyboards.user_info import UserInfo
 from db.marriages.families import adopt_child, is_parent, is_child, abandon
 
-router = Router(name="marriages")
+router = Router(name="families")
 router.message.middleware(MaintenanceMiddleware())
 router.callback_query.middleware(MaintenanceMiddleware())
 router.message.filter(F.chat.type.in_({"group", "supergroup"}))
@@ -240,4 +241,38 @@ async def adoption_retire_callback_handler(callback: CallbackQuery, callback_dat
     ans = f"💔 {target_user}, мне очень жаль..\n🥀 {trigger_user} передумал принимать вас в семью."
 
     await msg.edit_text(text=ans, parse_mode="HTML")
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"
+
+@router.callback_query(
+    UserInfo.filter(F.secondary_action == "family")
+)
+async def user_family_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
+    """Обрабатывает запрос об семье пользователя."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+    user_info = callback_data
+    chat_id = int(msg.chat.id)
+    user_id = user_info.user_id
+
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
+    if not member:
+        return
+
+    text, keyboard, img = await generate_family_tree_msg(bot, chat_id, member.user, True)
+    if not text:
+        if user_id == int(callback.from_user.id):
+            await callback.answer(text=f"❕Вы пока не состоите в семье.", show_alert=True)
+        else:
+            await callback.answer(text=f"❕Этот пользователь пока не состоит в семье.", show_alert=True)
+        return
+
+    await msg.edit_media(
+        media=InputMediaPhoto(
+            media=img,
+            caption=text,
+            parse_mode="HTML"
+        ), 
+        reply_markup=keyboard
+    )
     await callback.answer("") # пустой ответ, чтобы убрать "часики"

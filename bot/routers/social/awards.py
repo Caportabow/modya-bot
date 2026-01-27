@@ -1,12 +1,13 @@
 import re
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
 from middlewares.maintenance import MaintenanceMiddleware
 from services.messaging.awards import generate_user_awards_msg
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_mention import mention_user
 from services.telegram.user_parser import parse_user_mention
+from services.telegram.keyboards.user_info import UserInfo
 from services.telegram.keyboards.pagination import Pagination
 
 from db.awards import add_award, remove_award
@@ -112,3 +113,37 @@ async def user_awards_pagination_handler(callback: CallbackQuery, callback_data:
     
     else:
         await callback.answer(text="❌ Неизвестная ошибка.", show_alert=True)
+
+@router.callback_query(
+    UserInfo.filter(F.secondary_action == "awards")
+)
+async def user_awards_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
+    """Обрабатывает запросы об наградах пользователя."""
+    bot = callback.bot
+    msg = callback.message
+    if not msg or not msg.chat: return
+    user_info = callback_data
+    chat_id = int(msg.chat.id)
+    user_id = user_info.user_id
+
+    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
+    if not member:
+        return
+
+    text, keyboard = await generate_user_awards_msg(bot, chat_id, member.user, 1, True)
+    if not text:
+        if user_id == int(callback.from_user.id):
+            await callback.answer(text=f"❕У вас нет наград.", show_alert=True)
+        else:
+            await callback.answer(text=f"❕У этого пользователя нет наград.", show_alert=True)
+        return
+
+    await msg.edit_media(
+        media=InputMediaPhoto(
+            media=AWARDS_PICTURE_ID,
+            caption=text,
+            parse_mode="HTML"
+        ), 
+        reply_markup=keyboard
+    )
+    await callback.answer("") # пустой ответ, чтобы убрать "часики"

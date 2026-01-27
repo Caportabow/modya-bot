@@ -2,17 +2,11 @@ import re
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 
-from config import AWARDS_PICTURE_ID, WARNINGS_PICTURE_ID
-
 from middlewares.maintenance import MaintenanceMiddleware
 from services.telegram.chat_member import get_chat_member
 from services.telegram.user_parser import parse_user_mention
-from services.messaging.warnings import generate_user_warnings_msg
-from services.messaging.awards import generate_user_awards_msg
-from services.messaging.families import generate_family_tree_msg
 from services.messaging.user_info import generate_user_info_msg
 from services.telegram.keyboards.pagination import Pagination
-from services.telegram.keyboards.user_info import UserInfo
 
 router = Router(name="user_info")
 router.message.middleware(MaintenanceMiddleware())
@@ -58,108 +52,6 @@ async def user_info_handler(msg: Message):
         reply_markup=keyboard,
         parse_mode="HTML"
     )
-
-@router.callback_query(
-    UserInfo.filter(F.secondary_action == "family")
-)
-async def user_family_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
-    """Обрабатывает запрос об семье пользователя."""
-    bot = callback.bot
-    msg = callback.message
-    if not msg or not msg.chat: return
-    user_info = callback_data
-    chat_id = int(msg.chat.id)
-    user_id = user_info.user_id
-
-    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
-    if not member:
-        return
-
-    text, keyboard, img = await generate_family_tree_msg(bot, chat_id, member.user, True)
-    if not text:
-        if user_id == int(callback.from_user.id):
-            await callback.answer(text=f"❕Вы пока не состоите в семье.", show_alert=True)
-        else:
-            await callback.answer(text=f"❕Этот пользователь пока не состоит в семье.", show_alert=True)
-        return
-
-    await msg.edit_media(
-        media=InputMediaPhoto(
-            media=img,
-            caption=text,
-            parse_mode="HTML"
-        ), 
-        reply_markup=keyboard
-    )
-    await callback.answer("") # пустой ответ, чтобы убрать "часики"
-
-@router.callback_query(
-    UserInfo.filter(F.secondary_action == "awards")
-)
-async def user_awards_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
-    """Обрабатывает запросы об наградах пользователя."""
-    bot = callback.bot
-    msg = callback.message
-    if not msg or not msg.chat: return
-    user_info = callback_data
-    chat_id = int(msg.chat.id)
-    user_id = user_info.user_id
-
-    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
-    if not member:
-        return
-
-    text, keyboard = await generate_user_awards_msg(bot, chat_id, member.user, 1, True)
-    if not text:
-        if user_id == int(callback.from_user.id):
-            await callback.answer(text=f"❕У вас нет наград.", show_alert=True)
-        else:
-            await callback.answer(text=f"❕У этого пользователя нет наград.", show_alert=True)
-        return
-
-    await msg.edit_media(
-        media=InputMediaPhoto(
-            media=AWARDS_PICTURE_ID,
-            caption=text,
-            parse_mode="HTML"
-        ), 
-        reply_markup=keyboard
-    )
-    await callback.answer("") # пустой ответ, чтобы убрать "часики"
-
-@router.callback_query(
-    UserInfo.filter(F.secondary_action == "warnings")
-)
-async def user_warnings_info_callback_handler(callback: CallbackQuery, callback_data: UserInfo):
-    """Обрабатывает запросы об предупрежденях пользователя."""
-    bot = callback.bot
-    msg = callback.message
-    if not msg or not msg.chat: return
-    user_info = callback_data
-    chat_id = int(msg.chat.id)
-    user_id = user_info.user_id
-
-    member = await get_chat_member(bot = bot, chat_id = chat_id, user_id = user_id)
-    if not member:
-        return
-
-    text, keyboard = await generate_user_warnings_msg(bot, chat_id, member.user, 1, True)
-    if not text:
-        if user_id == int(callback.from_user.id):
-            await callback.answer(text=f"❕У вас нет предупреждений.", show_alert=True)
-        else:
-            await callback.answer(text=f"❕У этого пользователя нет предупреждений.", show_alert=True)
-        return
-
-    await msg.edit_media(
-        media=InputMediaPhoto(
-            media=WARNINGS_PICTURE_ID,
-            caption=text,
-            parse_mode="HTML"
-        ), 
-        reply_markup=keyboard
-    )
-    await callback.answer("") # пустой ответ, чтобы убрать "часики"
 
 
 @router.callback_query(
